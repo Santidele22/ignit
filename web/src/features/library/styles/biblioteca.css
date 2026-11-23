@@ -1,0 +1,1551 @@
+/* =============================================================================
+   Ignit — Biblioteca «Sala de lectura» (S1/S2/S5)
+   Port of design/ignit-biblioteca/01-sala-escritorio.html to the project stack
+   (Astro + SolidJS). Every colour is routed through the `--b-*` bridge below,
+   following the same dual-palette pattern as `landing.css`:
+
+   - `noche-azul` reproduces the artboard verbatim (`--negro`, `--panel`,
+     `--panel-2`, `--fg`, `--body`, `--faint`, `--ghost`, `--border`,
+     `--border-strong`, `--azul`, `--azul-claro`, `--warn`, `--danger`).
+   - `original` (light `:root` and `.dark`) borrows the app tokens
+     (`--background`, `--card`, `--secondary`, `--foreground`, `--ink-soft`,
+     `--muted-foreground`, `--border`, `--aka`, `--aka-deep`,
+     `--aka-foreground`, `--destructive`) so the sala stays warm and legible
+     paper/ink instead of inheriting the artboard's blue-black.
+
+   The file is only imported by `BibliotecaLayout.astro`; every rule is scoped
+   to `body.biblioteca-body` so no other page of the app is affected.
+   ============================================================================= */
+
+/* ---------------------------------------------------------------- palette -- */
+
+body.biblioteca-body {
+	/* Self-hosted project fonts (the artboard's system stacks are replaced). */
+	--b-sans: var(--font-zen), var(--font-sans);
+	--b-serif: var(--font-shippori), var(--font-mincho);
+	--b-mono: var(--font-geist-mono), var(--font-mono);
+
+	/* `original` palette: the sala surfaces follow the app tokens. */
+	--b-bg: var(--background);
+	--b-panel: var(--card);
+	--b-panel-2: var(--secondary);
+	--b-fg: var(--foreground);
+	--b-body: var(--ink-soft);
+	--b-faint: var(--muted-foreground);
+	--b-ghost: color-mix(in oklab, var(--muted-foreground) 62%, var(--background));
+	--b-border: var(--border);
+	--b-border-strong: color-mix(in oklab, var(--foreground) 26%, var(--border));
+	--b-accent: var(--aka);
+	/* On warm paper the "bright" accent has to be the deeper red to keep the
+	   hairlines and hover labels readable; `.dark` flips it back to a lifted
+	   tone because the surface is now the dark one. */
+	--b-accent-bright: var(--aka-deep);
+	--b-accent-fg: var(--aka-foreground);
+	--b-accent-rgb: 199 62 58; /* --aka */
+	--b-bg-rgb: 244 239 228; /* --background */
+	--b-warn: #8a6a1f; /* ochre dark enough for paper */
+	--b-danger: var(--destructive);
+	--b-surface-deep: var(--card);
+	--b-surface-cover: var(--secondary);
+	--b-bar-track: color-mix(in oklab, var(--foreground) 9%, var(--background));
+	--b-grid-line: color-mix(in srgb, var(--border) 65%, transparent);
+	--b-grid-glow: color-mix(in srgb, var(--aka) 9%, transparent);
+	--b-shadow-card: 0 24px 60px color-mix(in srgb, var(--foreground) 16%, transparent);
+	--b-shadow-modal: 0 36px 96px color-mix(in srgb, var(--foreground) 26%, transparent);
+
+	background: var(--b-bg);
+	color: var(--b-body);
+	font-family: var(--b-sans);
+	-webkit-font-smoothing: antialiased;
+	min-height: 100vh;
+	overflow-x: hidden;
+}
+
+/* `original` + OS/theme dark. The selector excludes `noche-azul` on purpose:
+   the palette forces `.dark` too, and these warm-surface lifts must not reach
+   it (the artboard block below is what `noche-azul` uses). */
+html.dark:not([data-palette="noche-azul"]) body.biblioteca-body {
+	--b-ghost: color-mix(in oklab, var(--muted-foreground) 66%, var(--background));
+	--b-accent-bright: color-mix(in oklab, var(--aka) 58%, var(--foreground));
+	--b-accent-rgb: 217 84 72; /* --aka on dark */
+	--b-bg-rgb: 20 17 13; /* --background on dark */
+	--b-warn: #d4a759;
+	--b-surface-deep: color-mix(in oklab, var(--card) 72%, var(--background));
+	--b-surface-cover: color-mix(in oklab, var(--card) 82%, var(--background));
+	--b-bar-track: color-mix(in oklab, var(--foreground) 12%, var(--background));
+	--b-grid-line: color-mix(in srgb, var(--border) 80%, transparent);
+	--b-grid-glow: color-mix(in srgb, var(--aka) 12%, transparent);
+	--b-shadow-card: 0 24px 60px rgb(0 0 0 / 0.45);
+	--b-shadow-modal: 0 36px 96px rgb(0 0 0 / 0.75);
+}
+
+/* Artboard values, verbatim. The two blocks never match at the same time
+   (`original` dark excludes this attribute), so the palette cannot be
+   outranked by the warm `original` lifts above. */
+html[data-palette="noche-azul"] body.biblioteca-body {
+	--b-bg: #04050a;
+	--b-panel: #060810;
+	--b-panel-2: #080c17;
+	--b-fg: #e6edf7;
+	--b-body: #b9c6dd;
+	--b-faint: #8fa4c8;
+	--b-ghost: #7e91b8;
+	--b-border: #232941;
+	--b-border-strong: #344064;
+	--b-accent: #5f86c9;
+	--b-accent-bright: #9fc0ee;
+	--b-accent-fg: #04050a;
+	--b-accent-rgb: 95 134 201;
+	--b-bg-rgb: 4 5 10;
+	--b-warn: #d4a759;
+	--b-danger: #d96b6b;
+	--b-surface-deep: #05070e;
+	--b-surface-cover: #070b15;
+	--b-bar-track: #101728;
+	--b-grid-line: rgba(35, 41, 65, 0.14);
+	--b-grid-glow: rgba(95, 134, 201, 0.11);
+	--b-shadow-card: 0 24px 60px rgba(0, 0, 0, 0.45);
+	--b-shadow-modal: 0 36px 96px rgba(0, 0, 0, 0.75);
+}
+
+/* ------------------------------------------------------------ affordances -- */
+
+body.biblioteca-body a,
+body.biblioteca-body button,
+body.biblioteca-body input,
+body.biblioteca-body select,
+body.biblioteca-body textarea {
+	font-family: inherit;
+}
+
+body.biblioteca-body button,
+body.biblioteca-body a,
+body.biblioteca-body select,
+body.biblioteca-body [role="tab"] {
+	cursor: pointer;
+}
+
+body.biblioteca-body :focus-visible {
+	outline: 2px solid var(--b-accent-bright);
+	outline-offset: 2px;
+}
+
+body.biblioteca-body ::selection {
+	background: var(--b-accent);
+	color: var(--b-accent-fg);
+}
+
+/* --------------------------------------------------- skip link + a11y ----- */
+
+body.biblioteca-body .skip-link {
+	position: fixed;
+	left: 16px;
+	top: -80px;
+	z-index: 100;
+	background: var(--b-accent-bright);
+	color: var(--b-accent-fg);
+	font-family: var(--b-mono);
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	padding: 10px 16px;
+	text-decoration: none;
+	border: 2px solid var(--b-accent-fg);
+}
+
+body.biblioteca-body .skip-link:focus {
+	top: 12px;
+}
+
+body.biblioteca-body .sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+/* ------------------------------------------------------ fondo atmosférico -- */
+
+body.biblioteca-body .bg-grid {
+	position: fixed;
+	inset: 0;
+	z-index: 0;
+	pointer-events: none;
+	background:
+		radial-gradient(ellipse 60% 40% at 75% 8%, var(--b-grid-glow), transparent 70%),
+		linear-gradient(90deg, var(--b-grid-line) 1px, transparent 1px) 0 0 / 40px 40px,
+		linear-gradient(0deg, var(--b-grid-line) 1px, transparent 1px) 0 0 / 40px 40px;
+}
+
+/* ------------------------------------------------------------ topbar (S2) -- */
+
+body.biblioteca-body header.app-top {
+	position: sticky;
+	top: 0;
+	z-index: 20;
+	background: rgb(var(--b-bg-rgb) / 0.88);
+	backdrop-filter: blur(12px);
+	border-bottom: 1px solid var(--b-border);
+}
+
+body.biblioteca-body .top-inner {
+	max-width: 1360px;
+	margin: 0 auto;
+	padding: 12px clamp(16px, 4vw, 40px);
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 16px;
+	flex-wrap: wrap;
+}
+
+body.biblioteca-body .brand {
+	display: inline-flex;
+	align-items: center;
+	gap: 11px;
+	text-decoration: none;
+	color: var(--b-fg);
+	font-family: var(--b-mono);
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+}
+
+body.biblioteca-body .sello {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 30px;
+	height: 30px;
+	background: var(--b-accent);
+	color: var(--b-accent-fg);
+	font-family: var(--b-serif);
+	font-size: 15px;
+	font-weight: 700;
+	letter-spacing: 0;
+}
+
+body.biblioteca-body .top-tabs {
+	display: flex;
+	gap: 4px;
+	flex-wrap: wrap;
+}
+
+body.biblioteca-body .top-tab {
+	font-family: var(--b-mono);
+	font-size: 11px;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	padding: 10px 14px;
+	min-height: 42px;
+	background: none;
+	border: 1px solid transparent;
+	color: var(--b-faint);
+	transition: color 0.16s, background 0.16s, border-color 0.16s;
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+}
+
+body.biblioteca-body .top-tab:hover {
+	color: var(--b-fg);
+	border-color: var(--b-border);
+}
+
+body.biblioteca-body .top-tab[data-active="true"],
+body.biblioteca-body .top-tab[aria-selected="true"] {
+	background: rgb(var(--b-accent-rgb) / 0.14);
+	border-color: var(--b-accent);
+	color: var(--b-accent-bright);
+	font-weight: 700;
+}
+
+body.biblioteca-body .tab-count {
+	font-size: 9px;
+	padding: 1px 5px;
+	border: 1px solid var(--b-border-strong);
+	color: var(--b-ghost);
+}
+
+body.biblioteca-body .top-tab[data-active="true"] .tab-count,
+body.biblioteca-body .top-tab[aria-selected="true"] .tab-count {
+	border-color: var(--b-accent);
+	color: var(--b-accent-bright);
+}
+
+body.biblioteca-body .top-actions {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+
+body.biblioteca-body .net-toggle {
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	font-family: var(--b-mono);
+	font-size: 9.5px;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	padding: 7px 11px;
+	border: 1px solid var(--b-border-strong);
+	background: var(--b-panel);
+	color: var(--b-accent-bright);
+}
+
+body.biblioteca-body .net-dot {
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: var(--b-accent-bright);
+	box-shadow: 0 0 8px var(--b-accent-bright);
+}
+
+body.biblioteca-body[data-offline="true"] .net-toggle,
+body.biblioteca-body .sala-root[data-offline="true"] .net-toggle {
+	color: var(--b-warn);
+	border-color: var(--b-warn);
+}
+
+body.biblioteca-body[data-offline="true"] .net-dot,
+body.biblioteca-body .sala-root[data-offline="true"] .net-dot {
+	background: var(--b-warn);
+	box-shadow: none;
+}
+
+body.biblioteca-body .btn-primary {
+	font-family: var(--b-mono);
+	font-size: 10.5px;
+	font-weight: 700;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	padding: 9px 15px;
+	background: var(--b-accent);
+	border: 1px solid var(--b-accent-bright);
+	color: var(--b-accent-fg);
+	text-decoration: none;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	box-shadow: 3px 3px 0 var(--b-border);
+	transition: transform 0.14s, background 0.14s;
+}
+
+body.biblioteca-body .btn-primary:hover {
+	background: var(--b-accent-bright);
+	transform: translate(-1px, -1px);
+}
+
+body.biblioteca-body .btn-primary:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+	transform: none;
+}
+
+body.biblioteca-body .user-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 9px;
+	padding: 5px 10px 5px 6px;
+	border: 1px solid var(--b-border);
+	background: var(--b-panel);
+	font-family: var(--b-mono);
+	font-size: 10px;
+	letter-spacing: 0.1em;
+	color: var(--b-body);
+}
+
+body.biblioteca-body .user-avatar {
+	width: 22px;
+	height: 22px;
+	background: var(--b-border-strong);
+	color: var(--b-accent-bright);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-weight: 700;
+	font-size: 10px;
+}
+
+body.biblioteca-body .btn-ghost {
+	background: none;
+	border: none;
+	color: var(--b-ghost);
+	font-family: var(--b-mono);
+	font-size: 9.5px;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	padding: 4px 6px;
+}
+
+body.biblioteca-body .btn-ghost:hover {
+	color: var(--b-fg);
+}
+
+/* Discrete 2-button palette toggle in the topbar (S2). */
+body.biblioteca-body .palette-mini {
+	display: inline-flex;
+	align-items: stretch;
+	border: 1px solid var(--b-border-strong);
+	background: var(--b-panel);
+}
+
+body.biblioteca-body .palette-mini button {
+	font-family: var(--b-mono);
+	font-size: 9px;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	padding: 7px 9px;
+	background: none;
+	border: 0;
+	color: var(--b-ghost);
+	transition: background 0.14s, color 0.14s;
+}
+
+body.biblioteca-body .palette-mini button + button {
+	border-left: 1px solid var(--b-border);
+}
+
+body.biblioteca-body .palette-mini button:hover {
+	color: var(--b-fg);
+}
+
+body.biblioteca-body .palette-mini button[aria-pressed="true"],
+body.biblioteca-body .palette-mini button[data-active="true"] {
+	background: var(--b-accent);
+	color: var(--b-accent-fg);
+	font-weight: 700;
+}
+
+/* ------------------------------------------------------------- shell ------ */
+
+body.biblioteca-body main.shell {
+	position: relative;
+	z-index: 2;
+	max-width: 1360px;
+	margin: 0 auto;
+	padding: 28px clamp(16px, 4vw, 40px) 72px;
+}
+
+/* ------------------------------- hero-dash: continuidad + almacenamiento -- */
+
+body.biblioteca-body .hero-dash {
+	display: grid;
+	grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.75fr);
+	gap: 18px;
+	margin-bottom: 28px;
+}
+
+@media (max-width: 960px) {
+	body.biblioteca-body .hero-dash {
+		grid-template-columns: 1fr;
+	}
+}
+
+body.biblioteca-body .resume-card {
+	position: relative;
+	border: 1px solid var(--b-border-strong);
+	background: color-mix(in srgb, var(--b-panel) 90%, transparent);
+	display: grid;
+	grid-template-columns: 130px 1fr;
+	gap: 22px;
+	padding: 20px;
+	box-shadow: var(--b-shadow-card);
+}
+
+/* Corner marks: the artboard's brutalist registration ticks. */
+body.biblioteca-body .resume-card::before,
+body.biblioteca-body .resume-card::after {
+	content: "";
+	position: absolute;
+	width: 9px;
+	height: 9px;
+	border: 1.5px solid var(--b-accent-bright);
+	pointer-events: none;
+}
+
+body.biblioteca-body .resume-card::before {
+	top: -5px;
+	left: -5px;
+}
+
+body.biblioteca-body .resume-card::after {
+	bottom: -5px;
+	right: -5px;
+}
+
+@media (max-width: 600px) {
+	body.biblioteca-body .resume-card {
+		grid-template-columns: 1fr;
+	}
+}
+
+body.biblioteca-body .resume-cover {
+	position: relative;
+	aspect-ratio: 4 / 5;
+	border: 1px solid var(--b-border-strong);
+	overflow: hidden;
+	background: var(--b-surface-cover);
+}
+
+body.biblioteca-body .resume-cover svg,
+body.biblioteca-body .resume-art {
+	width: 100%;
+	height: 100%;
+	display: block;
+}
+
+body.biblioteca-body .resume-info {
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+body.biblioteca-body .kicker {
+	font-family: var(--b-mono);
+	font-size: 9.5px;
+	letter-spacing: 0.22em;
+	text-transform: uppercase;
+	color: var(--b-accent-bright);
+	display: flex;
+	justify-content: space-between;
+	gap: 12px;
+	flex-wrap: wrap;
+}
+
+body.biblioteca-body .resume-title {
+	font-family: var(--b-serif);
+	font-size: clamp(22px, 2.4vw, 30px);
+	font-weight: 400;
+	color: var(--b-fg);
+	line-height: 1.2;
+}
+
+body.biblioteca-body .resume-author {
+	font-family: var(--b-mono);
+	font-size: 10.5px;
+	letter-spacing: 0.16em;
+	text-transform: uppercase;
+	color: var(--b-faint);
+	margin-top: 4px;
+}
+
+body.biblioteca-body .resume-quote {
+	font-family: var(--b-serif);
+	font-style: italic;
+	font-size: 13.5px;
+	line-height: 1.65;
+	color: var(--b-body);
+	border-left: 2px solid var(--b-accent);
+	padding-left: 12px;
+	opacity: 0.9;
+}
+
+body.biblioteca-body .resume-bottom {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 16px;
+	flex-wrap: wrap;
+}
+
+body.biblioteca-body .prog-wrap {
+	flex: 1;
+	min-width: 180px;
+}
+
+body.biblioteca-body .prog-labels {
+	display: flex;
+	justify-content: space-between;
+	font-family: var(--b-mono);
+	font-size: 9.5px;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--b-faint);
+	margin-bottom: 6px;
+}
+
+body.biblioteca-body .prog-labels b {
+	color: var(--b-fg);
+}
+
+body.biblioteca-body .prog-bar {
+	height: 5px;
+	background: var(--b-bar-track);
+	border: 1px solid var(--b-border);
+	overflow: hidden;
+}
+
+body.biblioteca-body .prog-bar i {
+	display: block;
+	height: 100%;
+	width: 0%;
+	background: linear-gradient(90deg, var(--b-accent), var(--b-accent-bright));
+	transition: width 0.3s ease;
+}
+
+/* ------------------------------------------------------- storage card ----- */
+
+body.biblioteca-body .storage-card {
+	border: 1px solid var(--b-border-strong);
+	background: var(--b-panel);
+	padding: 20px;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+	gap: 16px;
+}
+
+body.biblioteca-body .storage-head {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	gap: 10px;
+}
+
+body.biblioteca-body .storage-head span {
+	font-family: var(--b-mono);
+	font-size: 10px;
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+	color: var(--b-ghost);
+}
+
+body.biblioteca-body .storage-head b {
+	font-family: var(--b-mono);
+	font-size: 13px;
+	color: var(--b-accent-bright);
+}
+
+body.biblioteca-body .storage-big {
+	font-family: var(--b-sans);
+	font-weight: 800;
+	font-size: 26px;
+	color: var(--b-fg);
+	letter-spacing: -0.02em;
+}
+
+body.biblioteca-body .storage-sub {
+	font-size: 13px;
+	line-height: 1.55;
+	color: var(--b-faint);
+	margin-top: 4px;
+}
+
+body.biblioteca-body .storage-sub code {
+	font-family: var(--b-mono);
+	font-size: 11.5px;
+}
+
+body.biblioteca-body .storage-foot {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 10px;
+	flex-wrap: wrap;
+	padding-top: 12px;
+	border-top: 1px solid var(--b-border);
+}
+
+body.biblioteca-body .storage-status {
+	font-family: var(--b-mono);
+	font-size: 9.5px;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--b-ghost);
+}
+
+body.biblioteca-body .btn-sec {
+	font-family: var(--b-mono);
+	font-size: 9.5px;
+	font-weight: 600;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	padding: 8px 12px;
+	border: 1px solid var(--b-border-strong);
+	background: var(--b-bg);
+	color: var(--b-body);
+	text-decoration: none;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	transition: border-color 0.15s, color 0.15s;
+}
+
+body.biblioteca-body .btn-sec:hover {
+	border-color: var(--b-accent-bright);
+	color: var(--b-accent-bright);
+}
+
+/* ------------------------------------------------------------ section bar -- */
+
+body.biblioteca-body .section-bar {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 14px;
+	flex-wrap: wrap;
+	margin-bottom: 20px;
+	padding: 12px 14px;
+	border: 1px solid var(--b-border);
+	background: color-mix(in srgb, var(--b-panel) 80%, transparent);
+}
+
+body.biblioteca-body .section-title {
+	font-family: var(--b-mono);
+	font-size: 11px;
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+	color: var(--b-fg);
+}
+
+body.biblioteca-body .section-hint {
+	font-family: var(--b-mono);
+	font-size: 10.5px;
+	letter-spacing: 0.06em;
+	color: var(--b-faint);
+}
+
+body.biblioteca-body .filtros {
+	display: flex;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+body.biblioteca-body .chip {
+	font-family: var(--b-mono);
+	font-size: 11px;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--b-faint);
+	background: none;
+	border: 1px solid var(--b-border);
+	padding: 9px 14px;
+	min-height: 40px;
+	transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+body.biblioteca-body .chip:hover {
+	border-color: var(--b-accent);
+	color: var(--b-fg);
+}
+
+body.biblioteca-body .chip[data-activa="true"],
+body.biblioteca-body .chip[aria-pressed="true"] {
+	background: var(--b-accent);
+	border-color: var(--b-accent-bright);
+	color: var(--b-accent-fg);
+	font-weight: 700;
+}
+
+body.biblioteca-body .search-input {
+	background: var(--b-bg);
+	border: 1px solid var(--b-border-strong);
+	color: var(--b-fg);
+	font-family: var(--b-mono);
+	font-size: 11px;
+	padding: 7px 11px;
+	min-width: 220px;
+}
+
+body.biblioteca-body .search-input::placeholder {
+	color: var(--b-ghost);
+}
+
+body.biblioteca-body .search-input:focus {
+	border-color: var(--b-accent-bright);
+	outline: none;
+}
+
+/* ------------------------------------------------------------- rejilla ---- */
+
+body.biblioteca-body .rejilla {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 16px;
+}
+
+@media (max-width: 1080px) {
+	body.biblioteca-body .rejilla {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+}
+
+@media (max-width: 740px) {
+	body.biblioteca-body .rejilla {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+@media (max-width: 480px) {
+	body.biblioteca-body .rejilla {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* ------------------------------------------------------------------ tomo -- */
+
+body.biblioteca-body .tomo {
+	display: flex;
+	flex-direction: column;
+	background: var(--b-panel);
+	border: 1px solid var(--b-border);
+	transition: border-color 0.18s, transform 0.18s;
+}
+
+body.biblioteca-body .tomo:hover {
+	border-color: var(--b-accent);
+	transform: translateY(-2px);
+}
+
+body.biblioteca-body .tomo[data-offline="true"] {
+	border-color: var(--b-accent);
+}
+
+body.biblioteca-body .tomo-tapa {
+	position: relative;
+	aspect-ratio: 4 / 5;
+	padding: 13px 13px 15px 17px;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+	text-decoration: none;
+	overflow: hidden;
+	background: var(--b-surface-cover);
+}
+
+body.biblioteca-body .tomo-art {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	display: block;
+	transition: transform 0.45s cubic-bezier(0.22, 0.9, 0.32, 1), filter 0.35s ease;
+	pointer-events: none;
+}
+
+body.biblioteca-body .tomo:hover .tomo-art {
+	transform: scale(1.035);
+	filter: brightness(1.14);
+}
+
+/* Editorial vignette: in `noche-azul` this is the artboard's dark wash
+   (`--b-bg-rgb` = 4 5 10); in `original` it becomes a paper wash so the ink
+   title keeps its contrast instead of inheriting blue-black. */
+body.biblioteca-body .tomo-tapa::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	background:
+		linear-gradient(
+			90deg,
+			rgb(var(--b-bg-rgb) / 0.65) 0,
+			rgb(var(--b-accent-rgb) / 0.12) 9px,
+			rgb(var(--b-bg-rgb) / 0.5) 11px,
+			transparent 16px
+		),
+		linear-gradient(
+			180deg,
+			rgb(var(--b-bg-rgb) / 0.45) 0%,
+			transparent 34%,
+			rgb(var(--b-bg-rgb) / 0.55) 66%,
+			rgb(var(--b-bg-rgb) / 0.96) 100%
+		);
+}
+
+/* Spine wire. */
+body.biblioteca-body .tomo-tapa::before {
+	content: "";
+	position: absolute;
+	left: 0;
+	top: 0;
+	bottom: 0;
+	width: 4px;
+	z-index: 3;
+	background: linear-gradient(180deg, var(--b-accent-bright), var(--b-accent));
+	opacity: 0.42;
+}
+
+body.biblioteca-body .tomo[data-offline="true"] .tomo-tapa::before {
+	opacity: 1;
+}
+
+body.biblioteca-body .tomo-top,
+body.biblioteca-body .tomo-copy {
+	position: relative;
+	z-index: 2;
+}
+
+body.biblioteca-body .tomo-top {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 8px;
+}
+
+body.biblioteca-body .tomo-idx {
+	font-family: var(--b-mono);
+	font-size: 10.5px;
+	letter-spacing: 0.14em;
+	color: var(--b-body);
+	background: rgb(var(--b-bg-rgb) / 0.78);
+	padding: 3px 7px;
+	border: 1px solid color-mix(in srgb, var(--b-border) 85%, transparent);
+}
+
+body.biblioteca-body .tomo-badge {
+	font-family: var(--b-mono);
+	font-size: 10.5px;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	padding: 4px 8px;
+	border: 1px solid var(--b-border-strong);
+	color: var(--b-faint);
+	background: rgb(var(--b-bg-rgb) / 0.86);
+}
+
+body.biblioteca-body .tomo[data-offline="true"] .tomo-badge {
+	background: var(--b-accent-bright);
+	border-color: var(--b-accent-bright);
+	color: var(--b-accent-fg);
+	font-weight: 700;
+}
+
+body.biblioteca-body .tomo-titulo {
+	font-family: var(--b-serif);
+	font-size: 16px;
+	line-height: 1.25;
+	color: var(--b-fg);
+	text-shadow: 0 2px 12px rgb(var(--b-bg-rgb) / 0.9);
+}
+
+body.biblioteca-body .tomo-autor {
+	font-family: var(--b-mono);
+	font-size: 10.5px;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--b-body);
+	margin-top: 5px;
+	opacity: 0.92;
+}
+
+body.biblioteca-body .tomo-foot {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 8px;
+	padding: 10px 12px;
+	border-top: 1px solid var(--b-border);
+	background: var(--b-surface-deep);
+}
+
+body.biblioteca-body .tomo-meta {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	font-family: var(--b-mono);
+	font-size: 10.5px;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+}
+
+body.biblioteca-body .tomo-meta .cat {
+	color: var(--b-accent-bright);
+}
+
+body.biblioteca-body .tomo-meta .peso {
+	color: var(--b-ghost);
+}
+
+body.biblioteca-body .btn-dl {
+	font-family: var(--b-mono);
+	font-size: 10.5px;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	padding: 9px 12px;
+	min-height: 40px;
+	border: 1px solid var(--b-border-strong);
+	background: transparent;
+	color: var(--b-body);
+	transition: border-color 0.16s, color 0.16s, background 0.16s;
+	white-space: nowrap;
+}
+
+body.biblioteca-body .btn-dl:hover:not(:disabled) {
+	border-color: var(--b-accent-bright);
+	color: var(--b-accent-bright);
+}
+
+body.biblioteca-body .tomo[data-offline="true"] .btn-dl {
+	background: rgb(var(--b-accent-rgb) / 0.16);
+	border-color: var(--b-accent);
+	color: var(--b-accent-bright);
+}
+
+body.biblioteca-body .btn-dl:disabled {
+	opacity: 0.65;
+	cursor: not-allowed;
+	border-color: var(--b-border);
+}
+
+/* Offline gate: cloud-only books lose their colour and their download. */
+body.biblioteca-body[data-offline="true"] .tomo[data-offline="false"] .tomo-art,
+body.biblioteca-body .sala-root[data-offline="true"] .tomo[data-offline="false"] .tomo-art {
+	filter: grayscale(0.75) brightness(0.65);
+}
+
+body.biblioteca-body[data-offline="true"] .tomo[data-offline="false"] .tomo-badge,
+body.biblioteca-body .sala-root[data-offline="true"] .tomo[data-offline="false"] .tomo-badge {
+	border-color: var(--b-warn);
+	color: var(--b-warn);
+	background: rgb(var(--b-bg-rgb) / 0.86);
+	font-weight: 400;
+}
+
+body.biblioteca-body[data-offline="true"] .tomo[data-offline="false"] .btn-dl,
+body.biblioteca-body .sala-root[data-offline="true"] .tomo[data-offline="false"] .btn-dl {
+	opacity: 0.65;
+	cursor: not-allowed;
+	border-color: var(--b-border);
+}
+
+/* Discrete edit/delete affordance on the user's own cards (S7). */
+body.biblioteca-body .tomo-actions {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+}
+
+body.biblioteca-body .btn-edit-mini {
+	font-family: var(--b-mono);
+	font-size: 9px;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	padding: 6px 8px;
+	min-height: 28px;
+	border: 1px solid var(--b-border);
+	background: none;
+	color: var(--b-ghost);
+	transition: border-color 0.16s, color 0.16s;
+}
+
+body.biblioteca-body .btn-edit-mini:hover {
+	border-color: var(--b-accent-bright);
+	color: var(--b-accent-bright);
+}
+
+/* ---------------------------------------------------------- aportes (S6) -- */
+
+body.biblioteca-body .aportes-list {
+	border: 1px solid var(--b-border-strong);
+	background: var(--b-panel);
+}
+
+body.biblioteca-body .aporte-row {
+	display: grid;
+	grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto;
+	gap: 18px;
+	align-items: center;
+	padding: 18px 20px;
+	border-bottom: 1px solid var(--b-border);
+}
+
+body.biblioteca-body .aporte-row:last-child {
+	border-bottom: none;
+}
+
+@media (max-width: 860px) {
+	body.biblioteca-body .aporte-row {
+		grid-template-columns: 1fr;
+	}
+}
+
+body.biblioteca-body .aporte-title {
+	font-family: var(--b-serif);
+	font-size: 18px;
+	color: var(--b-fg);
+}
+
+body.biblioteca-body .aporte-meta {
+	font-family: var(--b-mono);
+	font-size: 10px;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--b-faint);
+	margin-top: 4px;
+}
+
+body.biblioteca-body .aporte-note {
+	font-size: 12.5px;
+	color: var(--b-body);
+	margin-top: 8px;
+	line-height: 1.5;
+}
+
+body.biblioteca-body .aporte-note.err {
+	color: var(--b-danger);
+}
+
+body.biblioteca-body .aporte-actions {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+body.biblioteca-body .aporte-state {
+	font-family: var(--b-mono);
+	font-size: 10px;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--b-accent-bright);
+}
+
+body.biblioteca-body .aporte-state[data-tone="danger"] {
+	color: var(--b-danger);
+}
+
+body.biblioteca-body .steps-mini {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	flex-wrap: wrap;
+}
+
+body.biblioteca-body .st-pill {
+	font-family: var(--b-mono);
+	font-size: 9px;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	padding: 4px 8px;
+	border: 1px solid var(--b-border);
+	color: var(--b-ghost);
+}
+
+body.biblioteca-body .st-pill[data-state="done"] {
+	border-color: var(--b-accent);
+	color: var(--b-accent-bright);
+	background: rgb(var(--b-accent-rgb) / 0.12);
+}
+
+body.biblioteca-body .st-pill[data-state="now"] {
+	border-color: var(--b-accent-bright);
+	background: var(--b-accent-bright);
+	color: var(--b-accent-fg);
+	font-weight: 700;
+}
+
+body.biblioteca-body .st-pill[data-state="rej"] {
+	border-color: var(--b-danger);
+	color: var(--b-danger);
+	background: color-mix(in srgb, var(--b-danger) 10%, transparent);
+}
+
+/* -------------------------------------------------------------- modales --- */
+
+body.biblioteca-body .modal-back {
+	position: fixed;
+	inset: 0;
+	z-index: 50;
+	background: rgb(var(--b-bg-rgb) / 0.82);
+	backdrop-filter: blur(8px);
+	display: none;
+	align-items: flex-start;
+	justify-content: center;
+	padding: 20px;
+	overflow-y: auto;
+}
+
+body.biblioteca-body .modal-back[data-open="true"] {
+	display: flex;
+}
+
+/* `margin: auto` centres the box when there is room and collapses to 0 when the
+   modal is taller than the viewport, so `.modal-back` scrolls instead of
+   clipping. The box itself keeps `overflow: visible` so the corner marks
+   (positioned at -5px) are never cut off. */
+body.biblioteca-body .modal-box {
+	width: min(540px, 100%);
+	margin: auto;
+	border: 1px solid var(--b-border-strong);
+	background: var(--b-panel-2);
+	box-shadow: var(--b-shadow-modal);
+	position: relative;
+}
+
+body.biblioteca-body .modal-box::before,
+body.biblioteca-body .modal-box::after {
+	content: "";
+	position: absolute;
+	width: 9px;
+	height: 9px;
+	border: 1.5px solid var(--b-accent-bright);
+	pointer-events: none;
+}
+
+body.biblioteca-body .modal-box::before {
+	top: -5px;
+	left: -5px;
+}
+
+body.biblioteca-body .modal-box::after {
+	bottom: -5px;
+	right: -5px;
+}
+
+body.biblioteca-body .modal-head {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 12px;
+	padding: 14px 18px;
+	border-bottom: 1px solid var(--b-border);
+	background: var(--b-bg);
+	font-family: var(--b-mono);
+	font-size: 10.5px;
+	letter-spacing: 0.18em;
+	text-transform: uppercase;
+	color: var(--b-fg);
+}
+
+body.biblioteca-body .modal-body {
+	padding: 20px;
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+}
+
+body.biblioteca-body .modal-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 12px;
+}
+
+@media (max-width: 520px) {
+	body.biblioteca-body .modal-grid {
+		grid-template-columns: 1fr;
+	}
+}
+
+body.biblioteca-body .field {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+body.biblioteca-body .field label {
+	font-family: var(--b-mono);
+	font-size: 9.5px;
+	letter-spacing: 0.16em;
+	text-transform: uppercase;
+	color: var(--b-faint);
+}
+
+body.biblioteca-body .field input,
+body.biblioteca-body .field select,
+body.biblioteca-body .field textarea {
+	background: var(--b-bg);
+	border: 1px solid var(--b-border-strong);
+	color: var(--b-fg);
+	padding: 9px 11px;
+	font-size: 13.5px;
+	width: 100%;
+}
+
+body.biblioteca-body .field textarea {
+	resize: vertical;
+	min-height: 60px;
+}
+
+body.biblioteca-body .field input::placeholder,
+body.biblioteca-body .field textarea::placeholder {
+	color: var(--b-ghost);
+}
+
+body.biblioteca-body .field input:focus,
+body.biblioteca-body .field select:focus,
+body.biblioteca-body .field textarea:focus {
+	border-color: var(--b-accent-bright);
+	outline: none;
+}
+
+body.biblioteca-body .form-error {
+	font-family: var(--b-mono);
+	font-size: 10px;
+	letter-spacing: 0.1em;
+	line-height: 1.6;
+	color: var(--b-danger);
+	border-left: 2px solid var(--b-danger);
+	padding-left: 10px;
+}
+
+body.biblioteca-body .drop-pdf {
+	border: 1px dashed var(--b-accent);
+	background: rgb(var(--b-accent-rgb) / 0.06);
+	padding: 18px;
+	text-align: center;
+	font-family: var(--b-mono);
+	font-size: 10.5px;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--b-accent-bright);
+	cursor: pointer;
+	display: block;
+	transition: border-color 0.16s, background 0.16s;
+}
+
+body.biblioteca-body .drop-pdf:hover {
+	border-color: var(--b-accent-bright);
+}
+
+body.biblioteca-body .drop-pdf input[type="file"] {
+	display: block;
+	width: 100%;
+	margin-top: 10px;
+	font-family: var(--b-mono);
+	font-size: 10px;
+	letter-spacing: 0.08em;
+	text-transform: none;
+	color: var(--b-body);
+}
+
+body.biblioteca-body .drop-pdf[data-has-file="true"] {
+	border-style: solid;
+	border-color: var(--b-accent-bright);
+	background: rgb(var(--b-accent-rgb) / 0.14);
+	color: var(--b-fg);
+}
+
+body.biblioteca-body .pipe-notice {
+	padding: 10px 12px;
+	border-left: 2px solid var(--b-accent);
+	background: rgb(var(--b-accent-rgb) / 0.08);
+	font-size: 12.5px;
+	line-height: 1.55;
+	color: var(--b-body);
+}
+
+body.biblioteca-body .pipe-notice b {
+	color: var(--b-fg);
+}
+
+body.biblioteca-body .modal-foot {
+	display: flex;
+	justify-content: flex-end;
+	gap: 10px;
+	flex-wrap: wrap;
+	padding: 14px 18px;
+	border-top: 1px solid var(--b-border);
+	background: var(--b-bg);
+}
+
+/* Destructive action (delete confirmation inside EditBookModal, S7). */
+body.biblioteca-body .btn-danger {
+	font-family: var(--b-mono);
+	font-size: 10.5px;
+	font-weight: 700;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	padding: 9px 15px;
+	border: 1px solid var(--b-danger);
+	background: color-mix(in srgb, var(--b-danger) 12%, transparent);
+	color: var(--b-danger);
+	transition: background 0.15s, color 0.15s;
+}
+
+body.biblioteca-body .btn-danger:hover {
+	background: var(--b-danger);
+	color: var(--b-bg);
+}
+
+/* ----------------------------------------------------------- view panels -- */
+
+body.biblioteca-body .view-panel {
+	display: none;
+}
+
+body.biblioteca-body .view-panel[data-visible="true"] {
+	display: block;
+}
+
+body.biblioteca-body .view-panel:focus {
+	outline: none;
+}
+
+body.biblioteca-body .empty-box {
+	grid-column: 1 / -1;
+	border: 1px solid var(--b-border);
+	background: color-mix(in srgb, var(--b-surface-deep) 92%, transparent);
+	padding: 28px;
+	font-family: var(--b-mono);
+	font-size: 11px;
+	line-height: 1.7;
+	letter-spacing: 0.06em;
+	color: var(--b-faint);
+	text-align: center;
+	box-shadow: 4px 4px 0 color-mix(in srgb, var(--b-border) 60%, transparent);
+}
+
+/* ============ SVG palette roles (tapas editoriales + continuity hero) ===== */
+
+body.biblioteca-body .cv-deep {
+	fill: var(--b-bg);
+	stop-color: var(--b-bg);
+}
+
+body.biblioteca-body .cv-panel {
+	fill: var(--b-panel);
+	stop-color: var(--b-panel);
+}
+
+body.biblioteca-body .cv-panel-2 {
+	fill: var(--b-panel-2);
+	stop-color: var(--b-panel-2);
+}
+
+body.biblioteca-body .cv-shelf {
+	fill: var(--b-surface-deep);
+	stop-color: var(--b-surface-deep);
+}
+
+body.biblioteca-body .cv-fg {
+	fill: var(--b-fg);
+	stop-color: var(--b-fg);
+}
+
+body.biblioteca-body .cv-body {
+	fill: var(--b-body);
+	stop-color: var(--b-body);
+}
+
+body.biblioteca-body .cv-faint {
+	fill: var(--b-faint);
+	stop-color: var(--b-faint);
+}
+
+body.biblioteca-body .cv-ghost {
+	fill: var(--b-ghost);
+	stop-color: var(--b-ghost);
+}
+
+body.biblioteca-body .cv-line {
+	fill: var(--b-border);
+	stop-color: var(--b-border);
+}
+
+body.biblioteca-body .cv-line-strong {
+	fill: var(--b-border-strong);
+	stop-color: var(--b-border-strong);
+}
+
+body.biblioteca-body .cv-accent {
+	fill: var(--b-accent);
+	stop-color: var(--b-accent);
+}
+
+body.biblioteca-body .cv-accent-bright {
+	fill: var(--b-accent-bright);
+	stop-color: var(--b-accent-bright);
+}
+
+/* Mid + solid tones the artboard mixes by hand (#172748, #13203d, …). */
+body.biblioteca-body .cv-cover-mid {
+	fill: color-mix(in oklab, var(--b-accent) 28%, var(--b-panel-2));
+	stop-color: color-mix(in oklab, var(--b-accent) 28%, var(--b-panel-2));
+}
+
+body.biblioteca-body .cv-cover-solid {
+	fill: color-mix(in oklab, var(--b-accent) 22%, var(--b-panel));
+	stop-color: color-mix(in oklab, var(--b-accent) 22%, var(--b-panel));
+}
+
+body.biblioteca-body .cv-cover-strong {
+	fill: color-mix(in oklab, var(--b-accent) 45%, var(--b-panel-2));
+	stop-color: color-mix(in oklab, var(--b-accent) 45%, var(--b-panel-2));
+}
+
+body.biblioteca-body .cv-st-line {
+	stroke: var(--b-border);
+}
+
+body.biblioteca-body .cv-st-line-strong {
+	stroke: var(--b-border-strong);
+}
+
+body.biblioteca-body .cv-st-accent {
+	stroke: var(--b-accent);
+}
+
+body.biblioteca-body .cv-st-accent-soft {
+	stroke: color-mix(in oklab, var(--b-accent) 62%, var(--b-border));
+}
+
+body.biblioteca-body .cv-st-accent-bright {
+	stroke: var(--b-accent-bright);
+}
+
+body.biblioteca-body .cv-st-fg {
+	stroke: var(--b-fg);
+}
+
+body.biblioteca-body .cv-st-body {
+	stroke: var(--b-body);
+}
+
+body.biblioteca-body .cv-st-faint {
+	stroke: var(--b-faint);
+}
+
+/* In-cover caption ("RING 0 · KERNEL") keeps the mono voice of the artboard. */
+body.biblioteca-body .cov-svg-label {
+	font-family: var(--b-mono);
+	font-size: 6.5px;
+	letter-spacing: 1.5px;
+	text-anchor: middle;
+}
+
+/* ------------------------------------------------------------ motion ----- */
+
+@media (prefers-reduced-motion: reduce) {
+	body.biblioteca-body *,
+	body.biblioteca-body *::before,
+	body.biblioteca-body *::after {
+		animation-duration: 0.001ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.001ms !important;
+	}
+
+	body.biblioteca-body .tomo:hover {
+		transform: none;
+	}
+
+	body.biblioteca-body .tomo:hover .tomo-art {
+		transform: none;
+		filter: none;
+	}
+
+	body.biblioteca-body .btn-primary:hover {
+		transform: none;
+	}
+
+	body.biblioteca-body .bg-grid {
+		background:
+			linear-gradient(90deg, var(--b-grid-line) 1px, transparent 1px) 0 0 / 40px 40px,
+			linear-gradient(0deg, var(--b-grid-line) 1px, transparent 1px) 0 0 / 40px 40px;
+	}
+}
