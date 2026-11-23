@@ -13,6 +13,7 @@ export type Book = {
 	review?: string;
 	published: boolean;
 	hasFile?: boolean;
+	fileSizeBytes?: number;
 	isOwner?: boolean;
 };
 

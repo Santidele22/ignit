@@ -3,6 +3,7 @@ import { hasAuthenticatedSession } from './features/auth/api/serverSession';
 import { isAuthSecurityScope, isProtectedRoute, LOGIN_PATH } from './features/auth/paths';
 import { setEdgeCacheStore, setWaitUntil } from './shared/api/contentCache';
 import { contentCacheKv } from './shared/api/serverEnvironment';
+import { applySecurityHeaders } from './shared/lib/securityHeaders';
 
 const PAGE_BG = '#f4efe4';
 const PAGE_FG = '#23201a';
@@ -66,21 +67,6 @@ p.note { color: ${PAGE_MUTED}; font-size: .9rem; }
 	});
 }
 
-function applySecurityHeaders(headers: Headers, isHttps: boolean, allowEvalForAuth: boolean): void {
-	headers.set('X-Content-Type-Options', 'nosniff');
-	headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-
-	if (allowEvalForAuth) {
-		const csp = headers.get('Content-Security-Policy');
-		if (csp) headers.set('Content-Security-Policy', csp.replaceAll('script-src ', "script-src 'unsafe-eval' "));
-	}
-
-	headers.append('Content-Security-Policy', "frame-ancestors 'none'");
-	if (isHttps) {
-		headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
-	}
-}
-
 export const onRequest = defineMiddleware(async (context, next) => {
 	const runtime = context.locals as unknown as {
 		cfContext?: { waitUntil?: (promise: Promise<unknown>) => void };
@@ -120,7 +106,11 @@ export const onRequest = defineMiddleware(async (context, next) => {
 	}
 
 	const allowEvalForAuth = isAuthSecurityScope(context.url.pathname);
-	applySecurityHeaders(response.headers, context.url.protocol === 'https:', allowEvalForAuth);
+	applySecurityHeaders(response.headers, {
+		pathname: context.url.pathname,
+		isHttps: context.url.protocol === 'https:',
+		allowEvalForAuth,
+	});
 	if (isProtected) {
 		response.headers.set('Cache-Control', 'no-store');
 	}

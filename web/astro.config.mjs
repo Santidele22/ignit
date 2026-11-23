@@ -20,6 +20,7 @@ export default defineConfig({
 				apiOrigin ? `connect-src 'self' ${apiOrigin}` : "connect-src 'self'",
 				"img-src 'self' https: data:",
 				"font-src 'self'",
+				"frame-src 'self'",
 				"base-uri 'self'",
 				"form-action 'self'",
 			],

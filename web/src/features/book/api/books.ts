@@ -37,6 +37,12 @@ type ApiBook = {
 	isOwner?: boolean;
 };
 
+function parseOptionalFileSize(raw: string | null | undefined): number | undefined {
+	if (!raw) return undefined;
+	const parsed = Number(raw);
+	return Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed) : undefined;
+}
+
 function mapBook(book: ApiBook): Book {
 	const status = READING_STATUSES.includes(book.status as ReadingStatus)
 		? (book.status as ReadingStatus)
@@ -44,6 +50,7 @@ function mapBook(book: ApiBook): Book {
 	const kind = BOOK_KINDS.includes(book.kind as BookKind)
 		? (book.kind as BookKind)
 		: 'no_tecnico';
+	const fileSizeBytes = parseOptionalFileSize(book.fileSize);
 
 	return {
 		id: book.id,
@@ -56,6 +63,7 @@ function mapBook(book: ApiBook): Book {
 		review: book.review ?? undefined,
 		published: book.published === true,
 		hasFile: Boolean(book.filePath || book.originalName),
+		...(fileSizeBytes !== undefined ? { fileSizeBytes } : {}),
 		...(typeof book.isOwner === 'boolean' ? { isOwner: book.isOwner } : {}),
 	};
 }
