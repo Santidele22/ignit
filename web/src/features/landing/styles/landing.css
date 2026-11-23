@@ -441,31 +441,8 @@ body.landing-body .nav-install:focus-visible {
 
 .landing-page .hero-frame {
 	position: relative;
-	border: 1px solid var(--l-border-strong);
 	background: color-mix(in srgb, var(--l-panel) 84%, transparent);
 	box-shadow: 0 36px 100px rgb(var(--l-bg-rgb) / 0.62);
-}
-
-/* Brutalist registration marks */
-.landing-page .hero-frame::before,
-.landing-page .hero-frame::after {
-	content: "";
-	position: absolute;
-	width: 11px;
-	height: 11px;
-	border: 1.5px solid var(--l-accent-bright);
-	pointer-events: none;
-	z-index: 4;
-}
-
-.landing-page .hero-frame::before {
-	top: -6px;
-	left: -6px;
-}
-
-.landing-page .hero-frame::after {
-	bottom: -6px;
-	right: -6px;
 }
 
 .landing-page .hero-topbar {
@@ -1644,30 +1621,8 @@ html.dark:not([data-palette="noche-azul"]) body.landing-body .landing-page .tomo
 
 .landing-page .viaje-stage {
 	position: relative;
-	border: 1px solid var(--l-border-strong);
 	background: linear-gradient(180deg, color-mix(in srgb, var(--l-panel-2) 86%, transparent), rgb(var(--l-bg-rgb) / 0.92));
 	box-shadow: 0 36px 96px rgb(var(--l-bg-rgb) / 0.6);
-}
-
-.landing-page .viaje-stage::before,
-.landing-page .viaje-stage::after {
-	content: "";
-	position: absolute;
-	width: 10px;
-	height: 10px;
-	border: 1.5px solid var(--l-accent-bright);
-	pointer-events: none;
-	z-index: 4;
-}
-
-.landing-page .viaje-stage::before {
-	top: -5px;
-	left: -5px;
-}
-
-.landing-page .viaje-stage::after {
-	bottom: -5px;
-	right: -5px;
 }
 
 .landing-page .viaje-canvas {
@@ -2102,30 +2057,10 @@ html.dark:not([data-palette="noche-azul"]) body.landing-body .landing-page .tomo
 /* ========================= VI · CIERRE + FOOTER ========================== */
 
 .landing-page .cierre-box {
-	border: 1px solid var(--l-border-strong);
 	background: color-mix(in srgb, var(--l-panel) 85%, transparent);
 	padding: clamp(40px, 6vw, 76px) clamp(24px, 5vw, 64px);
 	text-align: center;
 	position: relative;
-}
-
-.landing-page .cierre-box::before,
-.landing-page .cierre-box::after {
-	content: "";
-	position: absolute;
-	width: 10px;
-	height: 10px;
-	border: 1.5px solid var(--l-accent-bright);
-}
-
-.landing-page .cierre-box::before {
-	top: -5px;
-	left: -5px;
-}
-
-.landing-page .cierre-box::after {
-	bottom: -5px;
-	right: -5px;
 }
 
 .landing-page .cierre-box .lead {
