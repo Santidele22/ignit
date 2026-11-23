@@ -1,5 +1,5 @@
 import type { BookKind, ReadingStatus } from '../../../entities/book/types';
-import { deleteJson, getBearerToken, getJson, patchJson, postJson } from '../../../shared/api/authorizedHttp';
+import { deleteJson, getBearerToken, getJson, patchJson, postJson, postJsonReturning } from '../../../shared/api/authorizedHttp';
 
 export type AdminBookRow = {
 	id: number;
@@ -44,6 +44,10 @@ export function fetchMyBooks(): Promise<AdminBookRow[]> {
 
 export function createBook(body: BookWriteBody): Promise<void> {
 	return postJson('/books', body);
+}
+
+export function createBookReturning(body: BookWriteBody): Promise<AdminBookRow> {
+	return postJsonReturning<AdminBookRow>('/books', body);
 }
 
 export function updateBook(id: number, body: BookWriteBody): Promise<void> {
