@@ -66,8 +66,18 @@ const quickLoadLabel = defaultBookTitle ? `Cargar «${defaultBookTitle}»` : 'Ca
 
 			<p id="embedError" class="embed-error" role="alert" hidden></p>
 
-			<div class="embed-viewport" id="embedViewport" data-loaded="false">
-				<iframe id="embedIframe" title="Lector Vigilia real embebido" loading="lazy"></iframe>
+			<div
+				class="embed-viewport"
+				id="embedViewport"
+				data-loaded={hasDefault ? 'true' : 'false'}
+				data-default-path={defaultPath ?? undefined}
+			>
+				<iframe
+					id="embedIframe"
+					src={defaultPath ?? undefined}
+					title="Lector Vigilia real embebido"
+					loading="lazy"
+				></iframe>
 				<div class="embed-placeholder">
 					<span class="tag">lector real · sin demo falsa</span>
 					<h3>Acá se monta el lector real de Vigilia</h3>

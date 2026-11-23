@@ -63,6 +63,24 @@ describe('security headers and CSP frame scoping', () => {
 		expect(csp).not.toContain("frame-ancestors 'none'");
 	});
 
+	it('preserves existing CSP directives and omits unsafe-eval on landing / (S6)', () => {
+		const headers = new Headers({
+			'Content-Security-Policy': "default-src 'none'; script-src 'self'; frame-src 'self'",
+		});
+
+		applySecurityHeaders(headers, {
+			pathname: '/',
+			isHttps: true,
+			allowEvalForAuth: false,
+		});
+
+		const csp = headers.get('Content-Security-Policy') ?? '';
+		expect(csp).toContain("default-src 'none'");
+		expect(csp).toContain("frame-src 'self'");
+		expect(csp).toContain("frame-ancestors 'none'");
+		expect(csp).not.toContain("'unsafe-eval'");
+	});
+
 	it('registers frame-src self in astro.config.mjs while keeping default-src none', () => {
 		const webRoot = path.resolve(import.meta.dirname, '../../..');
 		const astroConfig = fs.readFileSync(path.join(webRoot, 'astro.config.mjs'), 'utf8');

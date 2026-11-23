@@ -164,8 +164,8 @@ export function initLanding(): () => void {
 
 	if (lamp) {
 		if (reduceMotion) {
-			// Dim, never follow: no RAF loop at all.
-			lamp.style.opacity = '0.35';
+			// Match landing.css and the artboard: hide reactive lamp under reduced motion.
+			lamp.style.opacity = '0';
 		} else {
 			const followLamp = () => {
 				if (disposed) return;
@@ -740,6 +740,11 @@ export function initLanding(): () => void {
 			() => loadEmbed(embedQuickButton.dataset.defaultPath ?? embedInput.value),
 			{ signal },
 		);
+
+		const initialDefault = embedViewport.dataset.defaultPath;
+		if (initialDefault && !embedFrame.getAttribute('src')) {
+			loadEmbed(initialDefault);
+		}
 	}
 
 	/* ---------------------------------------------------------------------

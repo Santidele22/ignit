@@ -165,9 +165,44 @@ describe('landing reader embed URL validation', () => {
 		expect(resolveSafeReaderEmbedPath('', origin)).toBeNull();
 	});
 
+	it('rejects relative dot-segment traversal, encoded traversal, scheme mismatches, and non-positive IDs (S6)', () => {
+		const invalidInputs = [
+			'/lecturas/..',
+			'/lecturas/.',
+			'/lecturas/../',
+			'/lecturas/./',
+			'/lecturas/%2e%2e',
+			'/lecturas/%2e',
+			'/lecturas/%2E%2E',
+			'0',
+			'-1',
+			'http://ignit.ignit677.workers.dev/lecturas/4',
+			'https://ignit.ignit677.workers.dev.evil.com/lecturas/4',
+			'https://ignit.ignit677.workers.dev@evil.com/lecturas/4',
+			'//ignit.ignit677.workers.dev/lecturas/4',
+			'/\\evil.example/lecturas/4',
+			'JAVASCRIPT:alert(1)',
+			'blob:https://ignit.ignit677.workers.dev/lecturas/4',
+			'https://ignit.ignit677.workers.dev/lecturas/..',
+		];
+
+		for (const input of invalidInputs) {
+			expect(
+				resolveSafeReaderEmbedPath(input, origin),
+				`input=${JSON.stringify(input)}`,
+			).toBeNull();
+		}
+
+		expect(resolveSafeReaderEmbedPath('/lecturas/4?foo=1#bar', origin)).toBe('/lecturas/4');
+		expect(resolveSafeReaderEmbedPath(`${origin}/lecturas/4?foo=1#bar`, origin)).toBe(
+			'/lecturas/4',
+		);
+	});
+
 	it('picks the first published book for default embed path or null when empty', () => {
 		expect(defaultEmbedPath(SAMPLE_BOOKS)).toBe('/lecturas/4');
 		expect(defaultEmbedPath([])).toBeNull();
+		expect(defaultEmbedPath([{ id: 0, published: true }])).toBeNull();
 	});
 });
 
