@@ -8,8 +8,8 @@ vi.mock('jose', () => ({
 import { NeonSessionReader } from './neon-session.reader.js';
 
 const env = {
-  NEON_AUTH_BASE_URL: 'https://auth.example.com/personal_page/auth',
-  NEON_AUTH_JWKS_URL: 'https://auth.example.com/personal_page/auth/.well-known/jwks.json',
+  NEON_AUTH_BASE_URL: 'https://auth.example.com/ignit/auth',
+  NEON_AUTH_JWKS_URL: 'https://auth.example.com/ignit/auth/.well-known/jwks.json',
 };
 
 describe('NeonSessionReader', () => {

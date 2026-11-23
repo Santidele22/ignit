@@ -270,6 +270,7 @@ describe('Ignit Books Multi-User (e2e)', () => {
       .expect(200);
     expect(stateAInitial.body).toEqual({
       bookId: String(id),
+      status: 'queued',
       marks: [],
       words: [],
       progress: { page: 1, pct: 0 },

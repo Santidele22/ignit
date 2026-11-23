@@ -12,6 +12,7 @@ import type {
 export function defaultReadingState(bookId: number): BookReadingState {
   return {
     bookId: String(bookId),
+    status: ReadingStatus.QUEUED,
     marks: [],
     words: [],
     progress: { page: 1, pct: 0 },
@@ -40,6 +41,7 @@ export function rowToReadingState(
 
   return {
     bookId: String(bookId),
+    status: row.status ?? ReadingStatus.QUEUED,
     progress:
       typeof progress.page === 'number' && typeof progress.pct === 'number'
         ? {
@@ -83,7 +85,6 @@ export async function persistUserReadingState(
   try {
     await readingStatesRepository.save(row);
   } catch (error) {
-    // Handle concurrent first-save race on unique (userId, bookId).
     const raced = await readingStatesRepository.findOne({ where: { bookId, userId } });
     if (!raced) {
       throw error;
@@ -95,7 +96,7 @@ export async function persistUserReadingState(
     await readingStatesRepository.save(raced);
   }
 
-  return state;
+  return { ...state, status };
 }
 
 /** Overlays the sent slices onto the stored state, copying every nested object. */
@@ -106,16 +107,34 @@ export function mergeReadingState(
 ): BookReadingState {
   return {
     bookId: String(bookId),
-    progress: dto.progress ? { ...dto.progress } : current.progress,
-    marks: dto.marks ? dto.marks.map((m) => ({ ...m })) : current.marks,
-    words: dto.words ? dto.words.map((w) => ({ ...w })) : current.words,
+    status: current.status ?? ReadingStatus.QUEUED,
+    progress: dto.progress
+      ? {
+          page: dto.progress.page,
+          pct: dto.progress.pct,
+          ...(dto.progress.chunkId !== undefined ? { chunkId: dto.progress.chunkId } : {}),
+        }
+      : current.progress,
+    marks: dto.marks
+      ? dto.marks.map((m) => ({
+          id: m.id,
+          kind: m.kind,
+          anchor: m.anchor,
+          ...(m.ink !== undefined ? { ink: m.ink } : {}),
+          ...(m.text !== undefined ? { text: m.text } : {}),
+          ...(m.note !== undefined ? { note: m.note } : {}),
+        }))
+      : current.marks,
+    words: dto.words
+      ? dto.words.map((w) => ({
+          term: w.term,
+          ...(w.trans !== undefined ? { trans: w.trans } : {}),
+          ...(w.anchor !== undefined ? { anchor: w.anchor } : {}),
+        }))
+      : current.words,
   };
 }
 
-/**
- * Progress at 100% closes the book; starting to read a queued one moves it to
- * `reading`; every other combination keeps the stored status.
- */
 export function readingStatusAfter(
   current: ReadingStatus,
   dto: UpdateReadingStateDto,

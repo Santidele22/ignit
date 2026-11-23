@@ -41,8 +41,24 @@ function allowedCrossOrigin(originHeader: string | null): string | null {
 const DEFAULT_BODY_LIMIT = 1_048_576; // 1 MiB
 const BOOK_FILE_BODY_LIMIT = 62_914_560; // 60 MiB
 const BOOK_FILE_ROUTE = /^\/api\/books\/[^/]+\/file$/;
+const BOOK_DOWNLOAD_ROUTE = /^\/api\/books\/[^/]+\/download$/;
 
 export const prerender = false;
+
+async function readNeonBearerForCookie(cookieHeader: string): Promise<string | undefined> {
+	if (!neonAuthUrl) return undefined;
+	try {
+		const res = await fetch(`${neonAuthUrl}/token`, {
+			headers: { cookie: cookieHeader, 'cache-control': 'no-store' },
+			signal: AbortSignal.timeout(5_000),
+		});
+		if (!res.ok) return undefined;
+		const payload = (await res.json().catch(() => null)) as { token?: unknown } | null;
+		return typeof payload?.token === 'string' && payload.token.length > 0 ? payload.token : undefined;
+	} catch {
+		return undefined;
+	}
+}
 
 function upstreamUrl(url: URL): string {
 	if (neonAuthUrl && url.pathname.startsWith(BETTER_AUTH_PREFIX)) {
@@ -136,6 +152,21 @@ async function forward(request: Request, clientAddress?: string): Promise<Respon
 	if (clientAddress) {
 		const claimed = headers.get('x-forwarded-for')?.split(',').map((entry) => entry.trim()).filter(Boolean) ?? [];
 		headers.set('x-forwarded-for', [...claimed, clientAddress].join(', '));
+	}
+
+	// Browser downloads/iframes (`<a href>`, `<iframe src>`) only carry cookies,
+	// so in Neon Auth mode we exchange the session cookie for a short-lived JWT.
+	if (
+		request.method === 'GET' &&
+		BOOK_DOWNLOAD_ROUTE.test(url.pathname) &&
+		neonAuthUrl &&
+		headers.has('cookie') &&
+		!headers.has('authorization')
+	) {
+		const token = await readNeonBearerForCookie(headers.get('cookie')!);
+		if (token) {
+			headers.set('authorization', `Bearer ${token}`);
+		}
 	}
 
 	const body = await readBody(request, bodyLimitFor(url.pathname, request.method));

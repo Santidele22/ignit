@@ -36,9 +36,10 @@ export function respondWithDownload(
     return;
   }
 
+  const safeName = headers.originalName.replace(/[\r\n"\\]/g, '_');
   res.set({
     'Content-Type': headers.mimeType,
-    'Content-Disposition': `attachment; filename="${headers.originalName}"`,
+    'Content-Disposition': `attachment; filename="${safeName}"`,
   });
   // Every stream gets an error handler before piping: a read failure must
   // answer a controlled 404 (headers not sent yet) or close the socket

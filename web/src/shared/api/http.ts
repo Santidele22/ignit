@@ -95,11 +95,7 @@ export async function postJson(path: string, body: unknown, options: RequestOpti
 	);
 }
 
-/**
- * POST that returns the created resource body: the full-page diario editor
- * needs the new entry `id` to move to `/admin/diario/<id>` after a save; the
- * remaining mutations stay URL-addressable and use `postJson`.
- */
+/** POST that returns the created resource JSON body. */
 export async function postJsonReturning<T>(path: string, body: unknown, options: RequestOptions = {}): Promise<T> {
 	const response = await request(
 		path,

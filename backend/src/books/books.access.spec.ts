@@ -193,6 +193,13 @@ describe('BooksService multi-user isolation and reading state', () => {
     const emptyStateA = await service.getReadingState(5, { id: 'user-a', role: 'user' });
     expect(emptyStateA.marks).toEqual([]);
     expect(emptyStateA.progress).toEqual({ page: 1, pct: 0 });
+    expect(emptyStateA.status).toBe(ReadingStatus.QUEUED);
+
+    // Even if User A's book is already finished, a brand-new reader (User C) starts with status=queued
+    books[0].status = ReadingStatus.FINISHED;
+    const bookFinishedCStart = await service.getReadingState(5, { id: 'user-c', role: 'user' });
+    expect(bookFinishedCStart.status).toBe(ReadingStatus.QUEUED);
+    books[0].status = ReadingStatus.QUEUED;
 
     const stateA = await service.updateReadingState(
       5,

@@ -143,7 +143,7 @@ export function initMarkActions(): void {
 				state.words.push({ term: t, anchor: chunkId });
 				void persistReadingState();
 				const short = t.length > 30 ? t.slice(0, 30) + '…' : t;
-				announce('◇ keyword · <b>' + short + '</b> → riel del capítulo');
+				announce('◇ keyword · <b>' + escapeHtml(short) + '</b> → riel del capítulo');
 			}
 			hideSelbar();
 			return;
@@ -159,7 +159,7 @@ export function initMarkActions(): void {
 				anchor: wrapped.chunkId,
 			});
 			void persistReadingState();
-			announce('◇ keyword · <b>' + short + '</b> → riel del capítulo');
+			announce('◇ keyword · <b>' + escapeHtml(short) + '</b> → riel del capítulo');
 		}
 		window.getSelection()?.removeAllRanges();
 		hideSelbar();

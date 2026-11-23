@@ -4,17 +4,10 @@
  * profile fields from `user.additionalFields` in the backend config.
  */
 export type AuthUser = {
-	/**
-	 * Better Auth user id. The interim dev snapshot (`/auth/dev-session`) only
-	 * identifies its single administrator by email, so it stays optional.
-	 */
 	id?: string;
-	/** Display name; the dev snapshot may omit it. */
 	name?: string;
 	email: string;
 	role?: string;
-	firstName?: string | null;
-	lastName?: string | null;
 };
 
 export type AuthSession = {

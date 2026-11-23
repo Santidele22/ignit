@@ -8,7 +8,7 @@ import { createAuth } from './auth.js';
  * CLI uses. Better Auth owns these tables; TypeORM never migrates them.
  *
  * Run it against the local database with:
- * `docker compose up -d && DATABASE_URL=postgres://app:app@localhost:5432/personal_page pnpm build && DATABASE_URL=... BETTER_AUTH_SECRET=... node dist/auth/run-auth-migrations.js`
+ * `docker compose up -d && DATABASE_URL=postgres://app:app@localhost:5432/ignit pnpm build && DATABASE_URL=... BETTER_AUTH_SECRET=... node dist/auth/run-auth-migrations.js`
  */
 export async function runAuthMigrations(): Promise<string[]> {
   const migrations = await getMigrations(createAuth().options, {

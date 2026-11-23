@@ -1,21 +1,26 @@
 import { Pool } from 'pg';
 import { DataSource } from 'typeorm';
-import { Book } from '../books/entities/book.entity.js';
-import { DownloadEvent } from '../books/entities/download-event.entity.js';
-import { ReadingState } from '../books/entities/reading-state.entity.js';
-import { User } from '../users/entities/user.entity.js';
 
 /**
  * One-off additive schema sync for PostgreSQL production (`DB_MODE=prod`).
- * Ensures the `user` shadow table exists (supporting both Better Auth
- * self-hosted and Neon Managed Auth) before synchronizing Ignit domain tables
- * (`books`, `download_events`, `reading_states`).
+ * Sets DB_MODE/DATABASE_URL before importing `User` so `isAuthEnabled` stays
+ * true even when invoked with only `DATABASE_URL_UNPOOLED`.
  */
 async function main(): Promise<void> {
   const databaseUrl = process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL;
   if (!databaseUrl) {
     throw new Error('sync-schema: DATABASE_URL_UNPOOLED (preferred) or DATABASE_URL is required.');
   }
+
+  process.env.DB_MODE ??= 'prod';
+  process.env.DATABASE_URL ??= databaseUrl;
+
+  const [{ User }, { Book }, { DownloadEvent }, { ReadingState }] = await Promise.all([
+    import('../users/entities/user.entity.js'),
+    import('../books/entities/book.entity.js'),
+    import('../books/entities/download-event.entity.js'),
+    import('../books/entities/reading-state.entity.js'),
+  ]);
 
   const pool = new Pool({ connectionString: databaseUrl });
   try {

@@ -13,9 +13,10 @@ export function presentBook(
   user: RouteSessionUser | null | undefined,
 ): PresentedBook {
   const owner = isBookOwner(book, user);
+  const copy = Object.assign({}, book) as Book;
   if (owner || isAdminUser(user)) {
-    return { ...book, isOwner: owner };
+    return Object.assign(copy, { isOwner: owner });
   }
-  const { ownerId: _ownerId, ...publicBook } = book;
-  return { ...publicBook, isOwner: false };
+  const { ownerId: _ownerId, ...publicBook } = copy;
+  return Object.assign(publicBook, { isOwner: false });
 }

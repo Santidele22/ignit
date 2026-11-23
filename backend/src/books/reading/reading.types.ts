@@ -67,6 +67,7 @@ export interface ReadingProgress {
 
 export interface BookReadingState {
   bookId: string;
+  status?: 'reading' | 'finished' | 'queued';
   marks: ReadingMark[];
   words: ReadingWord[];
   progress: ReadingProgress;

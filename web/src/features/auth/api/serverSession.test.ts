@@ -78,4 +78,14 @@ describe('getServerSession', () => {
 		fetchStub.mockResolvedValueOnce(jsonResponse(null));
 		await expect(hasAuthenticatedSession('better.sid=invalid')).resolves.toBe(false);
 	});
+
+	it('fails closed in neon mode when neither set-auth-jwt nor /token yields a bearer JWT', async () => {
+		fetchStub
+			.mockResolvedValueOnce(jsonResponse({ mode: 'neon' }))
+			.mockResolvedValueOnce(jsonResponse({ user: { id: 'u1', email: 'a@b.com', role: 'user' } }))
+			.mockResolvedValueOnce(jsonResponse({}, 401));
+
+		const { getServerSession } = await import('./serverSession');
+		await expect(getServerSession('neon.sid=abc')).resolves.toEqual({ authenticated: false });
+	});
 });

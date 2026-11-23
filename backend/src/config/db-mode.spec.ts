@@ -9,14 +9,14 @@ describe('resolveDbMode', () => {
 
   it('stays on the local store when DB_MODE is not configured', () => {
     expect(resolveDbMode({}, logger)).toBe('dev');
-    expect(resolveDbMode({ DATABASE_URL: 'postgres://app:app@localhost:5432/personal_page' }, logger)).toBe('dev');
+    expect(resolveDbMode({ DATABASE_URL: 'postgres://app:app@localhost:5432/ignit' }, logger)).toBe('dev');
     expect(logger.warn).not.toHaveBeenCalled();
   });
 
   it('uses the explicit dev mode even with DATABASE_URL set', () => {
     expect(
       resolveDbMode(
-        { DB_MODE: 'dev', DATABASE_URL: 'postgres://app:app@localhost:5432/personal_page' },
+        { DB_MODE: 'dev', DATABASE_URL: 'postgres://app:app@localhost:5432/ignit' },
         logger,
       ),
     ).toBe('dev');

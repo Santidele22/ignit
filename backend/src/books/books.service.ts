@@ -174,6 +174,7 @@ export class BooksService {
       nextStatus,
       existingRow,
     );
+    next.status = nextStatus;
 
     if (isBookOwner(book, sessionUser)) {
       const ownerNextStatus = readingStatusAfter(book.status, dto);

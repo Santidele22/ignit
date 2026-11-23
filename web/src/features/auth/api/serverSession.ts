@@ -84,6 +84,9 @@ export async function getServerSession(cookieHeader: string | null): Promise<Ser
 				typeof headerJwt === 'string' && headerJwt.length > 0
 					? headerJwt
 					: await readNeonToken(cookieHeader);
+			if (!bearerToken) {
+				return { authenticated: false };
+			}
 			return { authenticated: true, user: data.user, bearerToken };
 		}
 

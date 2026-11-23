@@ -83,6 +83,7 @@ export type ReadingProgress = {
 
 export type BookReadingState = {
 	bookId: string;
+	status?: ReadingStatus;
 	marks: ReadingMark[];
 	words: ReadingWord[];
 	progress: ReadingProgress;
