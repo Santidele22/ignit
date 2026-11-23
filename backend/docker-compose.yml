@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: ignit-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-app}
+      POSTGRES_DB: ignit
+    ports:
+      - '127.0.0.1:5432:5432'
+    volumes:
+      - ignit_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U app -d ignit']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  ignit_db:

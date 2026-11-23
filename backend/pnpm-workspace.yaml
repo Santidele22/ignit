@@ -1,0 +1,8 @@
+overrides:
+  'tmp@<0.2.7': '0.2.7'
+  'undici@>=6.0.0 <6.28.1': '6.28.1'
+
+allowBuilds:
+  '@scarf/scarf': false
+  bcrypt: true
+  better-sqlite3: true
