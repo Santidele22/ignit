@@ -4,14 +4,14 @@
 	display:grid; grid-template-columns:minmax(100px, 1fr) minmax(0, auto) minmax(160px, 1fr);
 	align-items:center; gap:16px;
 	padding:15px 28px 17px;
-	background:rgba(13,10,7,.92);
+	background:var(--w-bar);
 	backdrop-filter:blur(10px);
 	transition:opacity .45s ease, transform .45s ease;
 }
 .topbar::after {
 	content:""; position:absolute; left:0; right:0; top:100%; height:20px;
 	pointer-events:none;
-	background:linear-gradient(to bottom, rgba(13,10,7,.85), rgba(13,10,7,0));
+	background:linear-gradient(to bottom, var(--w-bar-fade), var(--w-bar-clear));
 }
 .topbar .crumb {
 	font:400 10px/1 var(--font-mono); letter-spacing:.22em; text-transform:uppercase;
@@ -30,23 +30,23 @@
 .topbar .prog .pg b { color:var(--w-foreground); font-weight:500; }
 .topbar .prog .wire {
 	width:104px; height:5px; border-radius:999px;
-	background:#262017; border:1px solid #3f3628; position:relative; overflow:hidden;
+	background:var(--w-track-bg); border:1px solid var(--w-track-border); position:relative; overflow:hidden;
 }
 .topbar .prog .wire i {
 	position:absolute; inset:0 auto 0 0; width:var(--prog-pct, 0%);
 	border-radius:999px;
-	background:linear-gradient(90deg, var(--aka-deep), var(--aka));
-	box-shadow:0 0 8px rgba(201,62,58,.55);
+	background:linear-gradient(90deg, var(--w-wire-1), var(--w-wire-2));
+	box-shadow:0 0 8px var(--w-wire-glow);
 	opacity:1;
 	transition:width .4s ease;
 }
 .topbar .prog .pct { font:500 10px/1 var(--font-mono); letter-spacing:.1em; color:var(--w-body); min-width:36px; text-align:right; }
 /* Hilo de capítulo fijo arriba: queda visible incluso en vigilia pura */
-.topthread { position:fixed; top:0; left:0; right:0; height:2px; background:rgba(74,62,44,.32); z-index:28; pointer-events:none; }
+.topthread { position:fixed; top:0; left:0; right:0; height:2px; background:var(--w-topthread-bg); z-index:28; pointer-events:none; }
 .topthread i {
 	display:block; height:100%; width:var(--prog-pct, 0%);
-	background:linear-gradient(90deg, var(--aka-deep), var(--aka));
-	box-shadow:0 0 6px rgba(201,62,58,.5);
+	background:linear-gradient(90deg, var(--w-wire-1), var(--w-wire-2));
+	box-shadow:0 0 6px var(--w-wire-glow-soft);
 	opacity:1;
 	transition:width .6s ease;
 }
@@ -69,8 +69,8 @@
 		to bottom,
 		var(--veil-edge) 0%,
 		var(--veil-mid) calc(var(--focus-top) - 56px),
-		rgba(13,10,7,0) var(--focus-top),
-		rgba(13,10,7,0) var(--focus-bottom),
+		var(--w-bar-clear) var(--focus-top),
+		var(--w-bar-clear) var(--focus-bottom),
 		var(--veil-mid) calc(var(--focus-bottom) + 56px),
 		var(--veil-edge) 100%
 	);
@@ -82,15 +82,15 @@ body.vigilia-body[data-focus="off"] .foveal-veil { opacity:0; }
 .bottombar {
 	position:fixed; bottom:0; left:0; right:0; z-index:30;
 	padding:14px 26px 18px;
-	background:rgba(13,10,7,.92);
-	border-top:1px solid rgba(53,45,34,.85);
+	background:var(--w-bar);
+	border-top:1px solid var(--w-border-chrome);
 	backdrop-filter:blur(10px);
 	transition:opacity .45s ease, transform .45s ease;
 }
 .bottombar::before {
 	content:""; position:absolute; left:0; right:0; bottom:100%; height:22px;
 	pointer-events:none;
-	background:linear-gradient(to top, rgba(13,10,7,.88), rgba(13,10,7,0));
+	background:linear-gradient(to top, var(--w-bar-fade-bottom), var(--w-bar-clear));
 }
 .bottombar .hint {
 	position:static; margin-bottom:10px;
@@ -127,15 +127,15 @@ body.vigilia-body[data-zen="on"] .rail {
 }
 .session button, .session a, .view-trigger {
 	display:inline-flex; align-items:center; gap:8px; height:32px; padding:0 14px;
-	border:1px solid var(--w-border); background:rgba(20,17,13,.85); cursor:pointer;
+	border:1px solid var(--w-border); background:var(--w-control-bg); cursor:pointer;
 	border-radius:999px; color:var(--w-faint); text-decoration:none;
 	white-space:nowrap; flex:none;
 	font:500 9px/1 var(--font-mono); letter-spacing:.16em; text-transform:uppercase;
 }
 .session button svg, .session a svg, .view-trigger svg { width:12px; height:12px; stroke:currentColor; fill:none; stroke-width:1.6; flex:none; }
-.session button:hover, .session a:hover, .view-trigger:hover { color:var(--w-foreground); border-color:#b3a78e; }
+.session button:hover, .session a:hover, .view-trigger:hover { color:var(--w-foreground); border-color:var(--w-border-hover); }
 .session button.save:hover, .session button.save.saved, .session button.full[aria-pressed="true"], .view-trigger[aria-expanded="true"] {
-	color:var(--aka); border-color:rgba(201,62,58,.5);
+	color:var(--aka); border-color:var(--w-aka-border);
 }
 @media (max-width: 560px) {
 	.session button.full .full-lbl { display:none; }

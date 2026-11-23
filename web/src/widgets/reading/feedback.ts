@@ -2,12 +2,9 @@ import type { ReadingMood } from '../../entities/book/types';
 import { body, toast } from './dom';
 
 // Toasts and the ambient mood that follows the passage being read.
-const moodGlow: Record<ReadingMood, string> = {
-	espera: 'rgba(201,62,58,.15)',
-	polvo: 'rgba(185,138,68,.14)',
-	alerta: 'rgba(201,62,58,.22)',
-	niebla: 'rgba(140,150,160,.13)',
-};
+// The mood only sets `data-mood`; each palette paints `--glow` from its own
+// tokens (reader-tokens.css), so switching palette re-lights the lamp at once.
+const VALID_MOODS: readonly ReadingMood[] = ['espera', 'polvo', 'alerta', 'niebla'];
 
 function escapeHtml(value: string): string {
 	return value
@@ -33,10 +30,8 @@ let pendingMoodCandidate: ReadingMood | null = null;
 let pendingMoodHits = 0;
 
 function setMood(key: ReadingMood) {
-	const glow = moodGlow[key];
-	if (!glow || body.dataset.mood === key) return;
+	if (!VALID_MOODS.includes(key) || body.dataset.mood === key) return;
 	body.dataset.mood = key;
-	body.style.setProperty('--glow', glow);
 	lastMoodSwitchAt = Date.now();
 }
 

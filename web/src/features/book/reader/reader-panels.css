@@ -10,7 +10,7 @@
 	width:26px; height:26px; border-radius:50%; border:none; background:none;
 	cursor:pointer; display:inline-flex; align-items:center; justify-content:center;
 }
-.selbar .ink:hover { background:rgba(216,205,180,.08); }
+.selbar .ink:hover { background:var(--w-hover-tint-strong); }
 .selbar .ink i { width:11px; height:11px; border-radius:50%; display:block; }
 .selbar .sep { width:1px; height:16px; background:var(--w-border); margin:0 3px; }
 .selbar .kwbtn, .selbar .delbtn {
@@ -18,9 +18,9 @@
 	padding:0 12px; font:500 9px/1 var(--font-mono); letter-spacing:.14em; text-transform:uppercase;
 	color:var(--w-faint); white-space:nowrap;
 }
-.selbar .kwbtn:hover { color:var(--aka); background:rgba(201,62,58,.1); }
-.selbar .delbtn { color:#e07d79; }
-.selbar .delbtn:hover { color:#ffd9d7; background:rgba(201,62,58,.2); }
+.selbar .kwbtn:hover { color:var(--aka); background:var(--w-aka-tint-2); }
+.selbar .delbtn { color:var(--w-del); }
+.selbar .delbtn:hover { color:var(--w-del-hover); background:var(--w-del-tint); }
 .selbar [hidden] { display:none !important; }
 
 /* Riel de keywords: el margen derecho recoge lo capturado */
@@ -88,7 +88,7 @@
 .view-deck .vd-seg {
 	display:inline-flex; align-items:center; gap:4px;
 	border:1px solid var(--w-border); border-radius:999px; padding:2px;
-	background:rgba(13,10,7,.65);
+	background:var(--w-seg-bg);
 }
 .view-deck .vd-seg button {
 	height:24px; padding:0 10px; border:none; background:none; border-radius:999px;
@@ -97,7 +97,7 @@
 }
 .view-deck .vd-seg button:hover { color:var(--w-foreground); }
 .view-deck .vd-seg button[aria-pressed="true"] {
-	background:rgba(201,62,58,.18); color:var(--aka);
+	background:var(--w-aka-tint-5); color:var(--aka);
 }
 .view-deck .vd-scale-val {
 	min-width:42px; text-align:center;
@@ -116,20 +116,20 @@
 
 /* Fallback honesto para PDF escaneado sin OCR (07-del-horno-al-visor) */
 .fallback-box {
-	border:1px dashed var(--w-border); background:rgba(20,17,13,.88);
+	border:1px dashed var(--w-border); background:var(--w-control-bg-strong);
 	padding:22px 24px; margin-bottom:28px;
 }
 .fallback-box .head { display:flex; align-items:baseline; gap:14px; margin-bottom:14px; flex-wrap:wrap; }
 .fallback-box .seal {
 	font:600 10px/1 var(--font-mono); letter-spacing:.18em; text-transform:uppercase;
-	color:var(--aka); border:1px solid rgba(201,62,58,.5); padding:5px 8px; white-space:nowrap;
+	color:var(--aka); border:1px solid var(--w-aka-border); padding:5px 8px; white-space:nowrap;
 }
 .fallback-box p {
 	font:400 13px/1.8 var(--font-zen-stack) !important;
 	color:var(--w-faint) !important; margin:0 !important; text-align:left !important;
 }
 .fallback-frame {
-	width:100%; height:68vh; border:1px solid var(--w-border); background:#0d0b08;
+	width:100%; height:68vh; border:1px solid var(--w-border); background:var(--w-fallback-bg);
 }
 .fallback-link {
 	color:var(--aka); text-decoration:underline;
@@ -153,7 +153,7 @@
 }
 .retry-btn {
 	margin-top:12px; height:30px; padding:0 14px; border-radius:999px;
-	border:1px solid var(--w-border); background:rgba(20,17,13,.88);
+	border:1px solid var(--w-border); background:var(--w-control-bg-strong);
 	color:var(--w-foreground); cursor:pointer;
 	font:500 10px/1 var(--font-mono); letter-spacing:.16em; text-transform:uppercase;
 }
@@ -166,7 +166,7 @@
 .chapter-nav {
 	display:inline-flex; align-items:center;
 	border:1px solid var(--w-border); border-radius:999px;
-	background:rgba(20,17,13,.85); overflow:hidden;
+	background:var(--w-control-bg); overflow:hidden;
 }
 .chapter-nav button {
 	height:30px; border:none; background:none; cursor:pointer;
@@ -177,10 +177,10 @@
 .chapter-nav button.chap-step { width:30px; justify-content:center; padding:0; font-size:12px; }
 .chapter-nav button.chap-open {
 	padding:0 12px;
-	border-left:1px solid rgba(53,45,34,.85);
-	border-right:1px solid rgba(53,45,34,.85);
+	border-left:1px solid var(--w-border-chrome);
+	border-right:1px solid var(--w-border-chrome);
 }
-.chapter-nav button:hover:not(:disabled) { color:var(--w-foreground); background:rgba(216,205,180,.06); }
+.chapter-nav button:hover:not(:disabled) { color:var(--w-foreground); background:var(--w-hover-tint); }
 .chapter-nav button:disabled { opacity:.35; cursor:default; }
 .chapter-nav button[aria-expanded="true"] { color:var(--aka); }
 
@@ -225,10 +225,10 @@
 	transition:background .15s ease, border-color .15s ease;
 }
 .chapter-opt:hover, .chapter-opt:focus-visible {
-	background:rgba(216,205,180,.06); border-color:rgba(138,125,102,.35);
+	background:var(--w-hover-tint); border-color:var(--w-opt-hover-border);
 }
 .chapter-opt.is-active {
-	background:rgba(201,62,58,.12); border-color:rgba(201,62,58,.45);
+	background:var(--w-aka-tint-3); border-color:var(--w-aka-border-soft);
 }
 .chapter-opt-title {
 	font:400 13px/1.45 var(--font-zen-stack); color:var(--w-foreground);
@@ -242,7 +242,7 @@
 }
 .chapter-opt.is-active .chapter-opt-page { color:var(--aka); }
 .deck-foot {
-	margin-top:10px; padding-top:10px; border-top:1px solid rgba(53,45,34,.7);
+	margin-top:10px; padding-top:10px; border-top:1px solid var(--w-border-soft);
 	font:400 9px/1.5 var(--font-mono); letter-spacing:.12em; text-transform:uppercase;
 	color:var(--w-ghost);
 }

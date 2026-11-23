@@ -1,5 +1,6 @@
 import type { ReaderFocusMode, ReaderPrefs } from '../../features/book/lib/reader';
 import { computeFovealBandMetrics, parseReaderPrefs } from '../../features/book/lib/reader';
+import { initPaletteControls } from '../../shared/lib/palette';
 import { body, fontPctEl } from './dom';
 import { announce } from './feedback';
 
@@ -77,4 +78,11 @@ function cycleFocusMode() {
 export function initReaderPrefs(): void {
 	applyReaderPrefs(false);
 	window.addEventListener('resize', updateFovealGeometry);
+	// La paleta del lector comparte `localStorage` (`ignit:palette`) con el header
+	// global: initPaletteControls() re-sincroniza los botones ya renderizados y
+	// anuncia el cambio con el toast discreto de la vigilia.
+	initPaletteControls({
+		onSelect: (palette) =>
+			announce(palette === 'noche-azul' ? '<b>Noche azul</b>' : '<b>Original</b>'),
+	});
 }
