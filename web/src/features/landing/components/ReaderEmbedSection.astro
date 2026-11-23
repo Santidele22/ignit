@@ -1,0 +1,113 @@
+---
+/**
+ * Sección IV · Probalo en la app real — Vigilia embebido (S6).
+ *
+ * El `<iframe>` nunca recibe un `src` desde el servidor: `initLanding.ts` lo
+ * asigna recién cuando `resolveSafeReaderEmbedPath` valida una ruta del mismo
+ * origen que además sea `/lecturas/:id` (el único path con
+ * `frame-ancestors 'self'` en `web/src/middleware.ts`). Así el marco queda
+ * vacío y el placeholder explica qué componentes reales se montan ahí.
+ *
+ * `defaultPath` es el primer libro publicado (`defaultEmbedPath`), calculado en
+ * el servidor; cuando no hay catálogo todavía la CTA principal manda a subir el
+ * primero.
+ */
+interface Props {
+	/** Same-origin `/lecturas/:id` of the first published book, or `null`. */
+	defaultPath: string | null;
+	defaultBookTitle?: string;
+}
+
+const { defaultPath, defaultBookTitle } = Astro.props;
+
+const hasDefault = defaultPath !== null;
+const quickLoadLabel = defaultBookTitle ? `Cargar «${defaultBookTitle}»` : 'Cargar en vivo';
+---
+
+<section class="capa" data-capa id="s4">
+	<div class="anim vigilia-wrap">
+		<p class="num">IV · el modo vigilia</p>
+		<div class="vigilia-head">
+			<div>
+				<h2>Probalo <span class="azu">en la app real.</span></h2>
+				<p class="lead">
+					Sin capturas ni maquetas: acá corre el lector real de Vigilia con atmósfera, subrayados, léxico,
+					índice, temporizador y foco.
+				</p>
+			</div>
+			<a
+				class="cta-sec"
+				id="embedFullLink"
+				href={defaultPath ?? '/biblioteca'}
+				data-full-link={hasDefault ? 'true' : 'false'}
+				target="_blank"
+				rel="noopener">{hasDefault ? 'Abrir pantalla completa ↗' : 'Subir primer libro'}</a
+			>
+		</div>
+
+		<div class="embed-shell">
+			<div class="embed-bar">
+				<div class="embed-bar-left">
+					<span class="embed-live">lector real embebido · modo Vigilia</span>
+					<span>· componente vigilia (Astro / Solid)</span>
+				</div>
+				<div class="embed-bar-right">
+					<input
+						class="embed-url"
+						id="embedUrlInput"
+						type="text"
+						value={defaultPath ?? ''}
+						placeholder="/lecturas/4 o ID del libro…"
+						aria-label="Ruta del lector real para previsualizar"
+					/>
+					<button class="embed-btn" id="embedLoadBtn" type="button">Cargar en vivo</button>
+				</div>
+			</div>
+
+			<p id="embedError" class="embed-error" role="alert" hidden></p>
+
+			<div class="embed-viewport" id="embedViewport" data-loaded="false">
+				<iframe id="embedIframe" title="Lector Vigilia real embebido" loading="lazy"></iframe>
+				<div class="embed-placeholder">
+					<span class="tag">lector real · sin demo falsa</span>
+					<h3>Acá se monta el lector real de Vigilia</h3>
+					<p>
+						Esta ventana monta directamente el lector real (<code>ReaderAtmosphere</code>,
+						<code>ReaderTopbar</code>, <code>ReaderStage</code>, <code>ReaderMargins</code>,
+						<code>ReaderDecks</code> y <code>ReaderVigiliaOverlays</code>) sobre un libro publicado del
+						catálogo, con la misma experiencia que abre <code>/lecturas/:id</code>.
+					</p>
+					<div class="embed-chips">
+						<span>atmósfera + grano real</span>
+						<span>subrayados y léxico</span>
+						<span>capítulos y atajos</span>
+						<span>temporizador</span>
+						<span>modo inmersión</span>
+					</div>
+					{
+						hasDefault ? (
+							<button
+								class="cta"
+								id="embedQuickLoadBtn"
+								type="button"
+								data-default-path={defaultPath}
+							>
+								{quickLoadLabel}
+							</button>
+						) : (
+							<p>
+								Todavía no hay libros publicados: <a class="quiet" href="/biblioteca">subí el primero</a>{' '}
+								y volvé para verlo acá dentro.
+							</p>
+						)
+					}
+				</div>
+			</div>
+
+			<div class="embed-foot">
+				<span><code>frame-ancestors 'self'</code> sólo en <code>/lecturas/:id</code></span>
+				<b>misma experiencia que /lecturas/:id</b>
+			</div>
+		</div>
+	</div>
+</section>

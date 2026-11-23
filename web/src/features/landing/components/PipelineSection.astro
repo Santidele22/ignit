@@ -1,0 +1,258 @@
+---
+/**
+ * Sección III · Publicar en el catálogo (S5).
+ *
+ * El pipeline real de cuatro pasos se server-renderiza desde `PIPELINE_STEPS`
+ * (`../lib/pipeline`), así que el copy, los badges y las etiquetas del río de
+ * tinta no pueden divergir del dominio. Los pasos y las estaciones del SVG se
+ * cruzan por `data-step` / `data-est`; `initLanding.ts` los ilumina en espejo y
+ * escribe la leyenda con `pipelineCaptionForStep`.
+ *
+ * Cada paso es un `role="button"` con `tabindex="0"` (no `<button>`, porque el
+ * layout brutalista usa una grilla propia que el UA stylesheet del botón
+ * rompería) y las estaciones del SVG son focuseables por el mismo motivo.
+ */
+import { PIPELINE_STEPS, pipelineCaptionForStep } from '../lib/pipeline';
+---
+
+<section class="capa" data-capa id="s3">
+	<div class="anim">
+		<p class="num">III · publicar en el catálogo</p>
+		<div class="pipe-grid">
+			<div>
+				<h2>
+					¿Querés subir un libro?<br /><span class="azu">Cuatro filtros hasta el estante.</span>
+				</h2>
+				<p class="lead">
+					Todo aporte queda público para la comunidad, pero nada entra sin pasar por seguridad, extracción y
+					validación de formato.
+				</p>
+
+				<div class="pasos" id="pasos" role="group" aria-label="Los cuatro pasos del pipeline de publicación">
+					{
+						PIPELINE_STEPS.map((step, index) => {
+							const active = index === 0;
+							return (
+								<div
+									class="paso"
+									data-step={step.step}
+									data-activo={active ? 'true' : 'false'}
+									role="button"
+									tabindex="0"
+									aria-pressed={active ? 'true' : 'false'}
+								>
+									<span class="paso-num">{step.num}</span>
+									<div>
+										<div class="paso-tag">
+											{step.title} <small>{step.badge}</small>
+										</div>
+										<p>{step.description}</p>
+									</div>
+								</div>
+							);
+						})
+					}
+				</div>
+
+				<div class="acciones">
+					<a class="cta" href="/biblioteca">Subir un libro</a>
+					<a class="quiet" href="/registro">Crear cuenta para aportar</a>
+				</div>
+			</div>
+
+			<figure class="panel-marco">
+				<svg
+					viewBox="0 0 640 460"
+					role="img"
+					aria-label="Río de tinta luminosa atravesando las cuatro estaciones del pipeline: standby, en curso, tested y catálogo"
+				>
+					<defs>
+						<linearGradient id="g-pipe-rio" x1="0%" y1="15%" x2="100%" y2="85%">
+							<stop offset="0%" class="cv-line" stop-opacity=".28" />
+							<stop offset="30%" class="cv-cover-solid" stop-opacity=".55" />
+							<stop offset="65%" class="cv-accent" stop-opacity=".85" />
+							<stop offset="100%" class="cv-accent-bright" stop-opacity="1" />
+						</linearGradient>
+						<linearGradient id="g-pipe-corriente" x1="0%" y1="15%" x2="100%" y2="85%">
+							<stop offset="0%" class="cv-cover-mid" stop-opacity=".2" />
+							<stop offset="38%" class="cv-accent" stop-opacity=".65" />
+							<stop offset="72%" class="cv-accent-bright" stop-opacity=".95" />
+							<stop offset="100%" class="cv-fg" stop-opacity="1" />
+						</linearGradient>
+						<radialGradient id="g-pipe-desembocadura" cx="50%" cy="50%" r="50%">
+							<stop offset="0%" class="cv-accent-bright" stop-opacity=".35" />
+							<stop offset="100%" class="cv-accent-bright" stop-opacity="0" />
+						</radialGradient>
+						<linearGradient id="g-pipe-manuscrito" x1="0" y1="0" x2="0" y2="1">
+							<stop offset="0%" class="cv-cover-solid" />
+							<stop offset="100%" class="cv-panel" />
+						</linearGradient>
+					</defs>
+
+					<rect width="640" height="460" class="cv-deep" />
+					<path
+						d="M40 86 C140 86 160 162 240 172 C330 184 320 250 400 258 C480 266 470 326 556 334"
+						fill="none"
+						stroke="url(#g-pipe-rio)"
+						stroke-width="26"
+						stroke-linecap="round"
+						opacity=".32"></path>
+					<path
+						d="M40 86 C140 86 160 162 240 172 C330 184 320 250 400 258 C480 266 470 326 556 334"
+						fill="none"
+						stroke="url(#g-pipe-corriente)"
+						stroke-width="6.5"
+						stroke-linecap="round"></path>
+					<ellipse cx="548" cy="332" rx="118" ry="84" fill="url(#g-pipe-desembocadura)" class="respira"></ellipse>
+
+					<!-- Estación 1 · Standby -->
+					<g
+						class="estacion"
+						data-est="1"
+						data-lit="true"
+						transform="translate(132,96)"
+						role="button"
+						tabindex="0"
+						aria-label="Paso 1 · Standby: cuarentena y seguridad"
+						aria-pressed="true"
+					>
+						<circle class="ring cv-deep cv-st-accent" r="17" stroke-width="1.4"></circle>
+						<circle r="4.5" class="cv-accent-bright"></circle>
+						<text
+							y="-26"
+							font-family="ui-monospace, monospace"
+							font-size="10"
+							letter-spacing="2"
+							class="cv-accent-bright"
+							text-anchor="middle">01 · STANDBY</text
+						>
+						<text
+							y="34"
+							font-family="Georgia, serif"
+							font-size="11"
+							font-style="italic"
+							class="cv-faint"
+							text-anchor="middle">cuarentena y seguridad</text
+						>
+					</g>
+
+					<!-- Estación 2 · En curso -->
+					<g
+						class="estacion"
+						data-est="2"
+						transform="translate(268,176)"
+						role="button"
+						tabindex="0"
+						aria-label="Paso 2 · En curso: scrapeo automático"
+						aria-pressed="false"
+					>
+						<circle class="ring cv-deep cv-st-accent" r="17" stroke-width="1.4"></circle>
+						<circle r="11" fill="none" class="cv-st-faint" stroke-width="1" stroke-dasharray="3 3"></circle>
+						<circle r="4" class="cv-accent-bright"></circle>
+						<text
+							y="-26"
+							font-family="ui-monospace, monospace"
+							font-size="10"
+							letter-spacing="2"
+							class="cv-faint"
+							text-anchor="middle">02 · EN CURSO</text
+						>
+						<text
+							y="34"
+							font-family="Georgia, serif"
+							font-size="11"
+							font-style="italic"
+							class="cv-faint"
+							text-anchor="middle">scrapeo del PDF</text
+						>
+					</g>
+
+					<!-- Estación 3 · Tested -->
+					<g
+						class="estacion"
+						data-est="3"
+						transform="translate(402,256)"
+						role="button"
+						tabindex="0"
+						aria-label="Paso 3 · Tested: preview en Vigilia"
+						aria-pressed="false"
+					>
+						<circle class="ring cv-panel-2 cv-st-accent" r="19" stroke-width="1.5"></circle>
+						<circle
+							r="13"
+							fill="none"
+							class="cv-st-accent-bright"
+							stroke-width="1"
+							stroke-dasharray="3 3"
+							opacity=".85"></circle>
+						<circle r="4.5" class="cv-accent-bright"></circle>
+						<text
+							y="-28"
+							font-family="ui-monospace, monospace"
+							font-size="10"
+							letter-spacing="2"
+							class="cv-accent-bright"
+							text-anchor="middle">03 · TESTED</text
+						>
+						<text
+							y="36"
+							font-family="Georgia, serif"
+							font-size="11"
+							font-style="italic"
+							class="cv-faint"
+							text-anchor="middle">formato en Vigilia</text
+						>
+					</g>
+
+					<!-- Estación 4 · Catálogo -->
+					<g
+						class="estacion"
+						data-est="4"
+						transform="translate(534,332)"
+						role="button"
+						tabindex="0"
+						aria-label="Paso 4 · Catálogo: publicado para todos"
+						aria-pressed="false"
+					>
+						<g transform="translate(0,-10)">
+							<path
+								class="ring cv-st-accent-bright"
+								d="M-36 10 C-18 -2 0 -2 0 10 C0 -2 18 -2 36 10 L34 32 C18 20 0 20 0 32 C0 20 -18 20 -34 32 Z"
+								fill="url(#g-pipe-manuscrito)"
+								stroke-width="1.4"></path>
+							<line x1="0" y1="9" x2="0" y2="32" class="cv-st-accent" stroke-width="1.2"></line>
+							<g class="cv-st-accent-bright" stroke-width="1.2" stroke-linecap="round" opacity=".85">
+								<line x1="-25" y1="12" x2="-8" y2="8"></line>
+								<line x1="-25" y1="18" x2="-6" y2="14"></line>
+								<line x1="-25" y1="24" x2="-10" y2="20"></line>
+								<line x1="8" y1="8" x2="25" y2="12"></line>
+								<line x1="6" y1="14" x2="25" y2="18"></line>
+								<line x1="10" y1="20" x2="25" y2="24"></line>
+							</g>
+						</g>
+						<text
+							y="-26"
+							font-family="ui-monospace, monospace"
+							font-size="10"
+							letter-spacing="2"
+							class="cv-fg"
+							text-anchor="middle">04 · CATÁLOGO</text
+						>
+						<text
+							y="42"
+							font-family="Georgia, serif"
+							font-size="11"
+							font-style="italic"
+							class="cv-accent-bright"
+							text-anchor="middle">publicado por categoría</text
+						>
+					</g>
+				</svg>
+				<figcaption class="panel-caption">
+					<span>pasá el mouse por cada paso</span>
+					<b id="pipeActiveLabel">{pipelineCaptionForStep('1')}</b>
+				</figcaption>
+			</figure>
+		</div>
+	</div>
+</section>

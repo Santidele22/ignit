@@ -1,0 +1,54 @@
+---
+/**
+ * Sección VI · Cierre + footer de la landing (S7).
+ *
+ * El bloque final resume la propuesta (instalar una vez, descargar sólo lo que
+ * se lee) y cierra con las mismas CTAs que el resto de la página, adaptadas a la
+ * sesión: con cuenta manda a la biblioteca personal, sin cuenta invita a
+ * crearla.
+ */
+interface Props {
+	authenticated: boolean;
+}
+
+const { authenticated } = Astro.props;
+---
+
+<section class="capa" data-capa id="s6">
+	<div class="anim">
+		<div class="cierre-box">
+			<p class="num">VI · empezar</p>
+			<span class="sello" aria-hidden="true">熒</span>
+			<h2>
+				Instalá una vez.<br /><span class="azu">Descargá solo lo que leés.</span>
+			</h2>
+			<p class="lead">
+				App liviana sin tiendas ni ruido. Catálogo curado por categoría, lectura offline y progreso sincronizado
+				entre tus dispositivos.
+			</p>
+			<div class="acciones">
+				<a class="cta" href="#s2">Explorar catálogo</a>
+				{
+					authenticated ? (
+						<a class="cta-sec" href="/biblioteca">
+							Ir a mi biblioteca
+						</a>
+					) : (
+						<a class="cta-sec" href="/registro">
+							Crear cuenta
+						</a>
+					)
+				}
+				<a class="quiet" href="/biblioteca">Subir un libro</a>
+			</div>
+		</div>
+	</div>
+</section>
+
+<footer class="landing-footer">
+	<span>Ignit — biblioteca comunitaria · modo vigilia</span>
+	<span>
+		<a href="#s2">catálogo</a> · <a href="#s3">publicar</a> · <a href="#s4">vigilia</a> ·
+		{authenticated ? <a href="/biblioteca">mi biblioteca</a> : <a href="/login">entrar</a>}
+	</span>
+</footer>

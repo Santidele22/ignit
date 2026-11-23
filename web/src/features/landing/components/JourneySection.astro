@@ -1,0 +1,127 @@
+---
+/**
+ * Sección V · El viaje: Desktop ↔ Celu PWA (S7).
+ *
+ * Todo el estado inicial sale de `createInitialJourneyState()` y del primer
+ * snippet de `JOURNEY_SNIPPETS` (`../lib/journey`), así que el HTML ya coincide
+ * con lo que `initLanding.ts` va a renderizar al primer click: página 98, 46%
+ * de avance, cola local al día y escritorio sincronizado.
+ *
+ * Es una **vista previa interactiva**: la continuidad real (Service Worker +
+ * IndexedDB) queda para una fase aparte y se dice explícitamente en las specs
+ * de la sección.
+ */
+import { JOURNEY_SNIPPETS, createInitialJourneyState } from '../lib/journey';
+
+const state = createInitialJourneyState();
+const snippet = JOURNEY_SNIPPETS[state.phoneSnippetIndex] ?? JOURNEY_SNIPPETS[0]!;
+---
+
+<section class="capa" data-capa id="s5">
+	<div class="anim">
+		<p class="num">V · en cualquier pantalla</p>
+		<div class="viaje-head">
+			<div>
+				<h2>
+					La página <span id="vTitlePage">{state.phonePage}</span> <span class="azu">viaja con vos.</span>
+				</h2>
+				<p class="lead">
+					Vista previa interactiva de la continuidad PWA: cortá la conexión y seguís pasando páginas en el
+					celular sin señal; cuando vuelve la red, el escritorio salta solo a donde quedaste.
+				</p>
+			</div>
+			<div class="net-controls" role="group" aria-label="Simular conexión">
+				<button class="net-btn" id="btnOnline" data-active="true" aria-pressed="true" type="button">
+					<span class="net-dot"></span>En línea
+				</button>
+				<button
+					class="net-btn"
+					id="btnOffline"
+					data-offline-btn="true"
+					data-active="false"
+					aria-pressed="false"
+					type="button"
+				>
+					<span class="net-dot"></span>Modo avión (bondi)
+				</button>
+			</div>
+		</div>
+
+		<div class="viaje-stage" id="viajeStage" data-offline="false">
+			<div class="viaje-canvas">
+				<!-- Escritorio -->
+				<div class="frame-desktop">
+					<div class="desk-bar">
+						<span class="desk-dots"><i></i><i></i><i></i></span>
+						<span>ignit.app/lecturas/4</span>
+						<span class="desk-status" id="deskStatus">{state.deskStatus}</span>
+					</div>
+					<div class="desk-subbar">
+						<span>El desierto de los tártaros</span>
+						<span>capítulo xi</span>
+					</div>
+					<div class="desk-body">
+						<div>
+							<p class="cap">escritorio · sesión web</p>
+							<p class="linea" id="deskText">
+								{snippet.deskLead}<span class="en-focus">{snippet.deskFocus}</span>{snippet.deskTail}
+							</p>
+							<div class="desk-note" id="deskNote">{state.deskNote}</div>
+						</div>
+						<div class="pie-pag">
+							<span>PÁG <b id="deskPage">{state.deskPage}</b> / {state.totalPages} · <span id="deskPct">{state.deskPct}%</span></span>
+							<span class="mini" aria-hidden="true"><i id="deskBar" style={`width:${state.deskPct}%`}></i></span>
+						</div>
+					</div>
+				</div>
+
+				<!-- Hilo de sincronización horizontal -->
+				<div class="sync-bridge" aria-hidden="true">
+					<div class="sync-line"><span class="sync-pulse"></span></div>
+					<span class="sync-tag" id="syncTag">{state.syncTag}</span>
+				</div>
+
+				<!-- Smartphone PWA vertical -->
+				<div class="frame-phone">
+					<div class="phone-notch" aria-hidden="true"></div>
+					<div class="phone-screen">
+						<div class="phone-status">
+							<span>19:42 · bondi</span>
+							<span class="phone-pill" id="phonePill">{state.phonePill}</span>
+						</div>
+						<div class="phone-appbar">
+							<b>熒 IGNIT · PWA</b>
+							<span>566 KB local</span>
+						</div>
+						<div class="phone-body">
+							<div>
+								<p class="linea" id="phoneText">
+									<span class="en-focus">{snippet.phoneFocus}</span>{snippet.phoneTail}
+								</p>
+								<div class="phone-queue">
+									<span>IndexedDB</span>
+									<b id="phoneQueue">{state.phoneQueueLabel}</b>
+								</div>
+							</div>
+							<div class="pie-pag">
+								<span>PÁG <b id="phonePage">{state.phonePage}</b> / {state.totalPages}</span>
+								<span id="phonePct">{state.phonePct}%</span>
+							</div>
+						</div>
+						<div class="phone-controls">
+							<button class="phone-act" id="phonePrev" type="button">‹ Pág ant</button>
+							<button class="phone-act" id="phoneNext" type="button">Leer +1 ›</button>
+						</div>
+					</div>
+					<div class="phone-home" aria-hidden="true"></div>
+				</div>
+			</div>
+
+			<div class="viaje-specs">
+				<div><span>en tu dispositivo</span><b>Preview interactivo · PWA offline en camino</b></div>
+				<div><span>sin conexión</span><b>Lectura y cola local en el celu</b></div>
+				<div><span>al reconectar</span><b>Cola automática: la PC salta adonde quedaste</b></div>
+			</div>
+		</div>
+	</div>
+</section>
