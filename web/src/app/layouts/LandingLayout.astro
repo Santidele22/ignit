@@ -1,0 +1,72 @@
+---
+/**
+ * Shell HTML autónomo de la landing (S1/S2).
+ *
+ * Espeja el `<head>` de `BaseLayout.astro` (metadatos, fuentes self-hosted,
+ * `ThemeScript`) pero reemplaza el header/footer de la app por el chrome
+ * inmersivo de «Lámpara brutalista»: canvas de polvo, lámpara reactiva, hilo de
+ * progreso, aguja de estaciones y header de vidrio.
+ *
+ * CSP: no hay ningún `<script is:inline>` acá. Toda la interacción de la
+ * landing viaja en el módulo empaquetado `initLanding.ts`, así que no suma
+ * hashes nuevos a `script-src 'self'`.
+ */
+import { Font } from 'astro:assets';
+import LandingHeader from '../../features/landing/components/LandingHeader.astro';
+import LandingChrome from '../../features/landing/components/LandingChrome.astro';
+import { getServerSession, type ServerSession } from '../../features/auth/api/serverSession';
+import ThemeScript from '../../shared/ui/ThemeScript.astro';
+import { SITE_AUTHOR, SITE_DESCRIPTION, SITE_NAME, SITE_TITLE } from '../config/site';
+import '../styles/global.css';
+import '../../features/landing/styles/landing.css';
+
+interface Props {
+	title?: string;
+	description?: string;
+	noindex?: boolean;
+	session?: ServerSession;
+}
+
+const {
+	title = SITE_TITLE,
+	description = SITE_DESCRIPTION,
+	noindex = false,
+	session: providedSession,
+} = Astro.props;
+
+const session = providedSession ?? (await getServerSession(Astro.request.headers.get('cookie')));
+const canonicalURL = new URL(Astro.url.pathname, Astro.site);
+---
+
+<!doctype html>
+<html lang="es">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" href="/favicon.ico" />
+		<meta name="generator" content={Astro.generator} />
+		<meta name="description" content={description} />
+		{noindex && <meta name="robots" content="noindex" />}
+		<meta name="view-transition" content="same-origin" />
+		<meta name="author" content={SITE_AUTHOR} />
+		<link rel="canonical" href={canonicalURL} />
+		<meta property="og:type" content="website" />
+		<meta property="og:url" content={Astro.url} />
+		<meta property="og:title" content={title} />
+		<meta property="og:description" content={description} />
+		<meta property="og:site_name" content={SITE_NAME} />
+		<title>{title}</title>
+		<Font cssVariable="--font-shippori" preload />
+		<Font cssVariable="--font-zen" preload />
+		<Font cssVariable="--font-geist-mono" />
+		<ThemeScript />
+	</head>
+	<body class="landing-body bg-background font-sans text-foreground antialiased">
+		<LandingChrome />
+		<LandingHeader session={session} />
+		<main class="landing-page">
+			<slot />
+		</main>
+	</body>
+</html>

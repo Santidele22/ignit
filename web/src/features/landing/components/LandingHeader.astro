@@ -1,0 +1,47 @@
+---
+/**
+ * Header fijo con vidrio de la landing (S2): sello hanko `熒`, anclas de las
+ * seis estaciones, selector de paleta y controles que dependen de la sesión
+ * (Mi biblioteca + salir cuando hay sesión, Entrar + Instalar app cuando no).
+ *
+ * Todo el estilo vive en `landing.css` (`header.marcas`), que se apoya en los
+ * tokens semánticos `--l-*` para reproducir el artboard en `noche-azul` y
+ * seguir siendo legible en `original`.
+ */
+import type { ServerSession } from '../../auth/api/serverSession';
+import HeaderAuth from '../../auth/HeaderAuth';
+import PaletteToggle from '../../../shared/ui/PaletteToggle.astro';
+
+interface Props {
+	session: ServerSession;
+}
+
+const { session } = Astro.props;
+const userLabel = session.authenticated ? session.user.name || session.user.email : '';
+---
+
+<header class="marcas" aria-label="Principal">
+	<a class="marca-brand" href="#s1"><span class="sello" aria-hidden="true">熒</span>Ignit</a>
+	<nav class="nav-links" aria-label="Secciones de la landing">
+		<a href="#s2">Catálogo</a>
+		<a href="#s3">Publicar</a>
+		<a href="#s4">Vigilia</a>
+		<a href="#s5">Offline</a>
+		<PaletteToggle />
+		{
+			session.authenticated ? (
+				<>
+					<a href="/biblioteca">Mi biblioteca</a>
+					<HeaderAuth label={userLabel} client:load />
+				</>
+			) : (
+				<>
+					<a href="/login">Entrar</a>
+					<a class="nav-install" href="#s6">
+						Instalar app
+					</a>
+				</>
+			)
+		}
+	</nav>
+</header>

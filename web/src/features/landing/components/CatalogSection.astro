@@ -1,0 +1,203 @@
+---
+/**
+ * Sección II · Catálogo + descarga selectiva (S4).
+ *
+ * Todo el estado inicial es server-rendered y real: el conteo del medidor de
+ * dispositivo, los filtros activos (`activeKind` de la URL), el índice de
+ * búsqueda normalizado de cada libro, el peso en KB (`fileSize` cuando existe,
+ * estimación cuando no) y el enlace directo al lector real `/lecturas/:id`.
+ *
+ * El marcado también declara los nodos que `initLanding.ts` necesita
+ * (`#catSearch`, `.chip[data-filtro]`, `.tomo`, `.btn-dl`, `#dlCount`,
+ * `#dlBar`, `#catEmptySearch`); por eso no hay `<script is:inline>`.
+ */
+import type { Book, BookKind } from '../../../entities/book/types';
+import PaginationControls from '../../../shared/ui/PaginationControls.astro';
+import {
+	bookSearchIndex,
+	bookSizeKb,
+	computeOfflineMeter,
+	coverVariantIndex,
+	formatSizeKb,
+	kindLabel,
+} from '../lib/catalog';
+import BookCoverArt from './BookCoverArt.astro';
+
+interface Props {
+	/** Published books for the current page, or `null` when the API failed. */
+	books: Book[] | null;
+	total: number;
+	offset: number;
+	limit: number;
+	activeKind?: BookKind;
+}
+
+const { books, total, offset, limit, activeKind } = Astro.props;
+
+const unreachable = books === null;
+const items = books ?? [];
+
+const filters: Array<{ value: '*' | BookKind; label: string }> = [
+	{ value: '*', label: 'Todos' },
+	{ value: 'tecnico', label: 'Técnico' },
+	{ value: 'no_tecnico', label: 'No técnico' },
+];
+const isActiveFilter = (value: '*' | BookKind) =>
+	value === '*' ? activeKind === undefined : activeKind === value;
+
+/* The artboard starts its offline preview with two downloads; we mirror that
+   with the first two books of the page so the KB meter is never a lie. */
+const previewBooks = items.slice(0, 2);
+const meter = computeOfflineMeter(previewBooks.map((book) => bookSizeKb(book)));
+const meterLabel = previewBooks.length === 0 ? '0 libros · 0 KB' : meter.label;
+const initialOfflineIds = new Set(previewBooks.map((book) => book.id));
+
+const basePath = activeKind ? `/?kind=${activeKind}` : '/';
+const indexLabel = (position: number) => String(position).padStart(2, '0');
+---
+
+<section class="capa" data-capa id="s2">
+	<div class="anim">
+		<p class="num">II · el catálogo</p>
+		<div class="cat-head">
+			<div>
+				<h2>Elegí qué descargar, <span class="azu">no instales todo.</span></h2>
+				<p class="lead">
+					Cada libro publicado ya está limpio para Vigilia. Podés leer online sin cuenta o descargar solo los que
+					llevás encima — livianos, en tu dispositivo.
+				</p>
+			</div>
+			<div class="device-meter" aria-live="polite">
+				<div class="device-meter-row">
+					<span>En este dispositivo (preview)</span>
+					<b id="dlCount">{meterLabel}</b>
+				</div>
+				<div class="meter-bar"><i id="dlBar" style={`width:${meter.barPercent}%`}></i></div>
+			</div>
+		</div>
+
+		<div class="cat-controls">
+			<div class="filtros" role="group" aria-label="Filtrar por categoría">
+				{
+					filters.map((filter) => (
+						<button
+							class="chip"
+							data-filtro={filter.value}
+							data-activa={isActiveFilter(filter.value) ? 'true' : 'false'}
+							aria-pressed={isActiveFilter(filter.value) ? 'true' : 'false'}
+							type="button"
+						>
+							{filter.label}
+						</button>
+					))
+				}
+			</div>
+			<input
+				class="cat-search"
+				id="catSearch"
+				type="search"
+				placeholder="Buscar título o autor…"
+				aria-label="Buscar en el catálogo"
+			/>
+		</div>
+
+		{
+			unreachable && (
+				<div class="cat-empty-box" id="catEmptyCatalog" role="status">
+					<span class="tag">api sin respuesta</span>
+					<h3>No pudimos abrir el catálogo ahora mismo</h3>
+					<p>
+						La API no respondió. Tu biblioteca sigue disponible y podés reintentar en unos segundos.
+					</p>
+					<div class="acciones">
+						<a class="cta" href="/biblioteca">
+							Ir a mi biblioteca
+						</a>
+						<a class="quiet" href={Astro.url.pathname}>
+							Reintentar
+						</a>
+					</div>
+				</div>
+			)
+		}
+
+		{
+			books !== null && items.length === 0 && (
+				<div class="cat-empty-box" id="catEmptyCatalog" role="status">
+					<span class="tag">catálogo vacío</span>
+					<h3>Todavía no hay libros publicados</h3>
+					<p>
+						Creá una cuenta y subí tu primer PDF: después de pasar seguridad, extracción y control de formato, tu
+						libro aparece en esta estantería.
+					</p>
+					<div class="acciones">
+						<a class="cta" href="/biblioteca">
+							Subir un libro
+						</a>
+						<a class="quiet" href="/registro">
+							Crear cuenta
+						</a>
+					</div>
+				</div>
+			)
+		}
+
+		{
+			items.length > 0 && (
+				<>
+					<div class="rejilla" id="rejilla">
+						{items.map((book, index) => {
+							const sizeKb = bookSizeKb(book);
+							const offline = initialOfflineIds.has(book.id);
+							return (
+								<article
+									class="tomo"
+									data-kind={book.kind}
+									data-kb={sizeKb}
+									data-offline={offline ? 'true' : 'false'}
+									data-search={bookSearchIndex(book)}
+								>
+									<a class="tomo-tapa" href={`/lecturas/${book.id}`}>
+										<BookCoverArt variant={coverVariantIndex(book.id)} bookId={book.id} />
+										<div class="tomo-top">
+											<span class="tomo-idx">{indexLabel(offset + index + 1)}</span>
+											<span class="tomo-badge">{offline ? 'offline ✓' : 'nube'}</span>
+										</div>
+										<div class="tomo-copy">
+											<div class="tomo-editorial">{book.statusLabel}</div>
+											<div class="tomo-titulo">{book.title}</div>
+											<div class="tomo-autor">{book.author}</div>
+										</div>
+									</a>
+									<div class="tomo-foot">
+										<div class="tomo-meta">
+											<span class="cat">{kindLabel(book.kind)}</span>
+											<span class="peso">{formatSizeKb(sizeKb)}</span>
+										</div>
+										<button class="btn-dl" type="button" aria-pressed={offline ? 'true' : 'false'}>{
+											offline ? 'Quitar' : '↓ Descargar'
+										}</button>
+									</div>
+								</article>
+							);
+						})}
+					</div>
+
+					<div class="cat-empty-box" id="catEmptySearch" hidden aria-live="polite">
+						<span class="tag">sin resultados</span>
+						<h3>Ningún libro coincide con tu búsqueda</h3>
+						<p>Probá con otro título u autor, o volvé al filtro «Todos» para ver el catálogo completo.</p>
+					</div>
+
+					{
+						total > limit && (
+							<div class="cat-pagination">
+								<PaginationControls basePath={basePath} total={total} offset={offset} limit={limit} />
+							</div>
+						)
+					}
+				</>
+			)
+		}
+	</div>
+</section>

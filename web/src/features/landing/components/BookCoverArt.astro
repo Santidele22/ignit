@@ -1,0 +1,265 @@
+---
+/**
+ * Tapas editoriales de la sección II (S4): ocho motivos SVG propios heredados
+ * del artboard (`desierto`, `shoji`, `vela`, `línea rota`, `grafo`, `anillos`,
+ * `arco`, `engranajes`).
+ *
+ * Cada tapa prefija sus `<defs>` con el `bookId` (`cov-12-sky`, …) porque varias
+ * cards conviven en la misma grilla: sin ese prefijo la primera definición
+ * ganaría para todos los libros y dos tapas distintas compartirían degradado.
+ *
+ * Los colores viajan por las clases `cv-*` de `landing.css`, así que las tapas
+ * siguen la paleta activa en vez de clavar el azul del artboard.
+ */
+interface Props {
+	/** Índice de motivo 0..7; se normaliza a un rango seguro. */
+	variant: number;
+	/** Id real del libro, usado para aislar los ids de `<defs>`. */
+	bookId: number;
+}
+
+const { variant, bookId } = Astro.props;
+
+const numericBookId = Number.isFinite(bookId) ? Math.abs(Math.trunc(bookId)) : 0;
+const motif = ((Math.trunc(variant) % 8) + 8) % 8;
+const uid = (name: string) => `cov-${numericBookId}-${name}`;
+---
+
+<svg class="tomo-art" viewBox="0 0 240 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+	{
+		motif === 0 && (
+			<>
+				<defs>
+					<linearGradient id={uid('sky')} x1="0" y1="0" x2="0" y2="1">
+						<stop offset="0%" class="cv-panel-2" />
+						<stop offset="65%" class="cv-cover-mid" />
+						<stop offset="100%" class="cv-deep" />
+					</linearGradient>
+					<radialGradient id={uid('sun')} cx="68%" cy="28%" r="34%">
+						<stop offset="0%" class="cv-accent-bright" stop-opacity=".42" />
+						<stop offset="55%" class="cv-accent" stop-opacity=".12" />
+						<stop offset="100%" class="cv-accent" stop-opacity="0" />
+					</radialGradient>
+				</defs>
+				<rect width="240" height="300" fill={`url(#${uid('sky')})`} />
+				<rect width="240" height="220" fill={`url(#${uid('sun')})`} />
+				<circle cx="164" cy="84" r="14" class="cv-accent-bright" opacity=".28" />
+				<circle cx="164" cy="84" r="7" class="cv-fg" opacity=".55" />
+				<path d="M0 176 Q65 164 128 175 T240 168 L240 300 L0 300 Z" class="cv-panel-2" />
+				<path
+					d="M46 174 L46 112 L58 112 L58 122 L70 122 L70 100 L86 100 L86 122 L98 122 L98 134 L126 134 L126 174 Z"
+					class="cv-cover-solid cv-st-accent"
+					stroke-width="1"
+				/>
+				<rect x="75" y="108" width="6" height="12" class="cv-accent-bright" opacity=".75" />
+				<path d="M0 198 Q90 186 170 202 T240 196 L240 300 L0 300 Z" class="cv-shelf cv-st-line" stroke-width=".8" />
+			</>
+		)
+	}
+	{
+		motif === 1 && (
+			<>
+				<defs>
+					<linearGradient id={uid('beam')} x1="0" y1="0" x2="1" y2="1">
+						<stop offset="0%" class="cv-accent-bright" stop-opacity=".35" />
+						<stop offset="65%" class="cv-accent" stop-opacity=".08" />
+						<stop offset="100%" class="cv-deep" stop-opacity="0" />
+					</linearGradient>
+				</defs>
+				<rect width="240" height="300" class="cv-panel" />
+				<g class="cv-st-line" stroke-width="1" opacity=".8">
+					<rect x="28" y="34" width="184" height="156" class="cv-panel-2" />
+					<line x1="89" y1="34" x2="89" y2="190" />
+					<line x1="151" y1="34" x2="151" y2="190" />
+					<line x1="28" y1="86" x2="212" y2="86" />
+					<line x1="28" y1="138" x2="212" y2="138" />
+				</g>
+				<polygon points="89,34 151,34 218,220 42,220" fill={`url(#${uid('beam')})`} />
+				<path d="M88 168 Q120 198 152 168 Z" class="cv-cover-solid cv-st-accent-bright" stroke-width="1" />
+				<ellipse
+					cx="120"
+					cy="168"
+					rx="32"
+					ry="6"
+					class="cv-panel cv-st-accent-bright"
+					stroke-width="1"
+				/>
+				<path
+					d="M104 167 Q120 172 138 167"
+					fill="none"
+					class="cv-st-fg"
+					stroke-width="1.2"
+					opacity=".7"
+				/>
+			</>
+		)
+	}
+	{
+		motif === 2 && (
+			<>
+				<defs>
+					<radialGradient id={uid('glow')} cx="50%" cy="42%" r="36%">
+						<stop offset="0%" class="cv-fg" stop-opacity=".42" />
+						<stop offset="45%" class="cv-accent" stop-opacity=".18" />
+						<stop offset="100%" class="cv-deep" stop-opacity="0" />
+					</radialGradient>
+				</defs>
+				<rect width="240" height="300" class="cv-panel" />
+				<rect x="26" y="28" width="188" height="196" fill="none" class="cv-st-line" stroke-width="1" />
+				<rect
+					x="42"
+					y="44"
+					width="156"
+					height="164"
+					fill="none"
+					class="cv-st-line-strong"
+					stroke-width="1"
+				/>
+				<circle cx="120" cy="126" r="78" fill={`url(#${uid('glow')})`} />
+				<rect x="114" y="138" width="12" height="54" class="cv-cover-solid cv-st-accent" stroke-width="1" />
+				<path d="M120 104 C127 116 126 130 120 134 C114 130 113 116 120 104 Z" class="cv-accent-bright" />
+				<path d="M120 114 C123 121 123 129 120 132 C117 129 117 121 120 114 Z" class="cv-fg" />
+			</>
+		)
+	}
+	{
+		motif === 3 && (
+			<>
+				<rect width="240" height="300" class="cv-panel-2" />
+				<circle
+					cx="120"
+					cy="126"
+					r="64"
+					fill="none"
+					class="cv-st-line"
+					stroke-width="1"
+					stroke-dasharray="4 6"
+				/>
+				<circle
+					cx="120"
+					cy="126"
+					r="42"
+					fill="none"
+					class="cv-st-accent"
+					stroke-width="1.2"
+					opacity=".7"
+				/>
+				<line x1="120" y1="24" x2="120" y2="108" class="cv-st-accent-bright" stroke-width="2" />
+				<line
+					x1="120"
+					y1="146"
+					x2="120"
+					y2="210"
+					class="cv-st-accent"
+					stroke-width="2"
+					stroke-dasharray="3 5"
+				/>
+				<circle cx="120" cy="126" r="5" class="cv-fg" />
+				<line x1="48" y1="126" x2="96" y2="126" class="cv-st-line-strong" stroke-width="1" />
+				<line x1="144" y1="126" x2="192" y2="126" class="cv-st-line-strong" stroke-width="1" />
+			</>
+		)
+	}
+	{
+		motif === 4 && (
+			<>
+				<rect width="240" height="300" class="cv-panel" />
+				<g class="cv-st-line" stroke-width=".8">
+					<line x1="0" y1="70" x2="240" y2="70" />
+					<line x1="0" y1="120" x2="240" y2="120" />
+					<line x1="0" y1="170" x2="240" y2="170" />
+					<line x1="60" y1="0" x2="60" y2="230" />
+					<line x1="120" y1="0" x2="120" y2="230" />
+					<line x1="180" y1="0" x2="180" y2="230" />
+				</g>
+				<g class="cv-st-accent" stroke-width="1.3" opacity=".85">
+					<line x1="64" y1="88" x2="126" y2="66" />
+					<line x1="126" y1="66" x2="176" y2="112" />
+					<line x1="64" y1="88" x2="96" y2="148" />
+					<line x1="96" y1="148" x2="176" y2="112" />
+					<line x1="96" y1="148" x2="152" y2="178" />
+					<line x1="126" y1="66" x2="96" y2="148" />
+				</g>
+				<circle cx="64" cy="88" r="5" class="cv-accent-bright" />
+				<circle cx="126" cy="66" r="6" class="cv-fg" />
+				<circle cx="176" cy="112" r="5" class="cv-accent-bright" />
+				<circle cx="96" cy="148" r="7" class="cv-accent cv-st-fg" stroke-width="1.4" />
+				<circle cx="152" cy="178" r="4.5" class="cv-faint" />
+			</>
+		)
+	}
+	{
+		motif === 5 && (
+			<>
+				<rect width="240" height="300" class="cv-panel-2" />
+				<circle cx="120" cy="122" r="78" fill="none" class="cv-st-line" stroke-width="1.2" />
+				<circle cx="120" cy="122" r="58" class="cv-cover-solid cv-st-accent-soft" stroke-width="1.2" />
+				<circle cx="120" cy="122" r="38" class="cv-cover-mid cv-st-accent" stroke-width="1.4" />
+				<circle
+					cx="120"
+					cy="122"
+					r="18"
+					class="cv-accent cv-st-accent-bright"
+					opacity=".28"
+					stroke-width="1.4"
+				/>
+				<circle cx="120" cy="122" r="5" class="cv-fg" />
+				<line x1="120" y1="36" x2="120" y2="208" class="cv-st-line" stroke-width="1" />
+				<line x1="34" y1="122" x2="206" y2="122" class="cv-st-line" stroke-width="1" />
+				<text x="120" y="75" class="cv-faint cov-svg-label">RING 0 · KERNEL</text>
+			</>
+		)
+	}
+	{
+		motif === 6 && (
+			<>
+				<rect width="240" height="300" class="cv-panel" />
+				<path
+					d="M54 206 L54 114 A66 66 0 0 1 186 114 L186 206 Z"
+					class="cv-cover-mid cv-st-accent-soft"
+					stroke-width="1.2"
+				/>
+				<path
+					d="M72 206 L72 118 A48 48 0 0 1 168 118 L168 206"
+					fill="none"
+					class="cv-st-accent"
+					stroke-width="1"
+					opacity=".6"
+				/>
+				<circle cx="120" cy="98" r="3" class="cv-fg" />
+				<circle cx="96" cy="84" r="1.5" class="cv-accent-bright" />
+				<circle cx="148" cy="86" r="1.5" class="cv-accent-bright" />
+				<rect x="96" y="122" width="48" height="60" class="cv-cover-solid cv-st-accent-bright" stroke-width="1.1" />
+				<line x1="104" y1="136" x2="136" y2="136" class="cv-st-accent-bright" stroke-width="1.2" />
+				<line x1="104" y1="146" x2="132" y2="146" class="cv-st-accent" stroke-width="1" />
+				<line x1="104" y1="156" x2="136" y2="156" class="cv-st-accent" stroke-width="1" />
+			</>
+		)
+	}
+	{
+		motif === 7 && (
+			<>
+				<rect width="240" height="300" class="cv-panel" />
+				<g transform="translate(132,118)" fill="none" class="cv-st-accent-soft">
+					<circle r="48" stroke-width="1.2" stroke-dasharray="10 6" />
+					<circle r="34" class="cv-st-accent" stroke-width="1.2" />
+					<circle r="14" class="cv-st-accent-bright" stroke-width="1" />
+				</g>
+				<g transform="translate(76,154)" fill="none" class="cv-st-line">
+					<circle r="28" stroke-width="1.2" stroke-dasharray="7 5" />
+					<circle r="14" class="cv-st-accent" stroke-width="1" />
+				</g>
+				<line
+					x1="36"
+					y1="186"
+					x2="204"
+					y2="74"
+					class="cv-st-accent-bright"
+					stroke-width="1"
+					opacity=".55"
+				/>
+				<circle cx="132" cy="118" r="4" class="cv-fg" />
+			</>
+		)
+	}
+</svg>

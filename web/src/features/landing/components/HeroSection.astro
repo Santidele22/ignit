@@ -1,0 +1,202 @@
+---
+/**
+ * Sección I · Hero brutalista + estantería orgánica (S3).
+ *
+ * El marcado server-rendered ya trae el conteo real de libros publicados, los
+ * CTAs, la tira de cuatro especificaciones, las tres repisas con sus etiquetas
+ * (de `shelfLayout.shelves`) y el micro-HUD pre-cargado con
+ * `shelfLayout.defaultHud`. Los lomos, las rendijas y el foco los dibuja
+ * `initLanding.ts` a partir de `data-shelf-layout`, que serializa el layout
+ * completo — por eso no hace falta ningún `<script is:inline>`.
+ *
+ * Todos los colores del SVG pasan por clases (`cv-*`, `eco-*`) definidas en
+ * `landing.css`, así que la escena sigue el mismo puente semántico que el resto
+ * de la landing en `noche-azul` y en `original`.
+ */
+import type { ShelfLayout } from '../lib/catalog';
+
+interface Props {
+	totalBooks: number;
+	shelfLayout: ShelfLayout;
+	authenticated: boolean;
+}
+
+const { totalBooks, shelfLayout, authenticated } = Astro.props;
+
+const liveLabel =
+	totalBooks === 0
+		? 'Catálogo abierto · listo para Vigilia'
+		: `${totalBooks} ${totalBooks === 1 ? 'libro publicado' : 'libros publicados'} · listos para Vigilia`;
+---
+
+<section class="capa s1 alumbrada" data-capa id="s1">
+	<div class="anim">
+		<div class="hero-frame">
+			<div class="hero-topbar">
+				<span>IGNIT · BIBLIOTECA COMUNITARIA · PWA OFFLINE</span>
+				<span class="hero-live">{liveLabel}</span>
+			</div>
+			<div class="hero-grid">
+				<div class="hero-left">
+					<div>
+						<h1 class="hero-title">
+							El lugar tranquilo<br />
+							<span class="bloque">para leer.</span>
+						</h1>
+						<p class="lead">
+							Un catálogo abierto donde cada libro fue analizado por seguridad, scrapeado y aprobado por una
+							persona. Instalás la app una vez, descargás solo lo que querés leer y seguís sin conexión en
+							cualquier pantalla.
+						</p>
+					</div>
+					<div class="acciones">
+						<a class="cta" href="#s2">Explorar catálogo</a>
+						{
+							authenticated ? (
+								<a class="cta-sec" href="/biblioteca">
+									Ir a mi biblioteca
+								</a>
+							) : (
+								<a class="cta-sec" href="#s6">
+									Instalar app (PWA)
+								</a>
+							)
+						}
+						<a class="quiet" href="#s3">Subir un libro</a>
+					</div>
+				</div>
+				<div class="hero-right">
+					<div class="hero-shelf-wrap">
+						<svg
+							id="shelfSvg"
+							viewBox="0 0 600 540"
+							preserveAspectRatio="xMidYMid slice"
+							role="img"
+							aria-label="Estantería interactiva de Ignit con tres repisas por categoría y libros reales del catálogo iluminados por una lámpara cenital"
+							data-shelf-layout={JSON.stringify(shelfLayout)}
+						>
+							<defs>
+								<linearGradient id="g-eco-pared" x1="0" y1="0" x2="0" y2="1">
+									<stop offset="0%" class="cv-panel-2" />
+									<stop offset="55%" class="cv-panel" />
+									<stop offset="100%" class="cv-deep" />
+								</linearGradient>
+								<linearGradient id="g-cono-luz" x1="0" y1="0" x2="0" y2="1">
+									<stop offset="0%" class="cv-accent-bright" stop-opacity=".22" />
+									<stop offset="45%" class="cv-accent" stop-opacity=".08" />
+									<stop offset="100%" class="cv-accent" stop-opacity="0" />
+								</linearGradient>
+								<linearGradient id="g-eco-fondo" x1="0" y1="0" x2="1" y2="0">
+									<stop offset="0%" class="cv-accent" stop-opacity="0" />
+									<stop offset="35%" class="cv-accent" stop-opacity=".24" />
+									<stop offset="65%" class="cv-accent" stop-opacity=".24" />
+									<stop offset="100%" class="cv-accent" stop-opacity="0" />
+								</linearGradient>
+								<linearGradient id="g-eco-silueta" x1="0" y1="0" x2="0" y2="1">
+									<stop offset="0%" class="cv-cover-solid" />
+									<stop offset="100%" class="cv-panel" />
+								</linearGradient>
+								<linearGradient id="g-eco-real" x1="0" y1="0" x2="0" y2="1">
+									<stop offset="0%" class="cv-cover-mid" />
+									<stop offset="100%" class="cv-panel" />
+								</linearGradient>
+								<linearGradient id="g-eco-featured" x1="0" y1="0" x2="0" y2="1">
+									<stop offset="0%" class="cv-cover-strong" />
+									<stop offset="100%" class="cv-cover-solid" />
+								</linearGradient>
+								<linearGradient id="g-sombra-repisa" x1="0" y1="0" x2="0" y2="1">
+									<stop offset="0%" class="cv-deep" stop-opacity=".85" />
+									<stop offset="100%" class="cv-deep" stop-opacity="0" />
+								</linearGradient>
+								<radialGradient id="g-eco-foco" cx="50%" cy="50%" r="50%">
+									<stop offset="0%" class="cv-accent-bright" stop-opacity=".4" />
+									<stop offset="52%" class="cv-accent" stop-opacity=".14" />
+									<stop offset="100%" class="cv-accent" stop-opacity="0" />
+								</radialGradient>
+								<linearGradient id="g-eco-barre" x1="0" y1="0" x2="1" y2="0">
+									<stop offset="0%" class="cv-accent-bright" stop-opacity="0" />
+									<stop offset="50%" class="cv-accent-bright" stop-opacity=".13" />
+									<stop offset="100%" class="cv-accent-bright" stop-opacity="0" />
+								</linearGradient>
+								<filter id="g-eco-suave" x="-20%" y="-20%" width="140%" height="140%">
+									<feGaussianBlur stdDeviation="3.5" />
+								</filter>
+							</defs>
+
+							<!-- Pared y fondo atmosférico -->
+							<rect width="600" height="540" fill="url(#g-eco-pared)" />
+							<rect x="0" y="20" width="600" height="460" fill="url(#g-eco-fondo)" class="respira" />
+
+							<!-- Lámpara cenital + cono de luz -->
+							<polygon points="180,0 420,0 590,480 10,480" fill="url(#g-cono-luz)" class="respira" />
+							<rect x="210" y="0" width="180" height="3" class="eco-lamp-bar" opacity=".8" />
+							<rect x="180" y="3" width="240" height="12" fill="url(#g-cono-luz)" filter="url(#g-eco-suave)" />
+
+							<!-- Barrido autónomo suave -->
+							<g class="barre" aria-hidden="true">
+								<rect x="-180" y="0" width="170" height="500" fill="url(#g-eco-barre)" />
+							</g>
+
+							<!-- Rendijas difuminadas + lomos generados -->
+							<g id="eco-rendijas" filter="url(#g-eco-suave)"></g>
+							<g id="estante-spines"></g>
+
+							<!-- Charco de luz reactivo al puntero / autónomo -->
+							<ellipse
+								id="eco-foco"
+								cx="260"
+								cy="140"
+								rx="120"
+								ry="135"
+								fill="url(#g-eco-foco)"
+								opacity=".55"
+								style="pointer-events:none"
+							></ellipse>
+
+							<!-- Tres repisas de borde a borde + sombras + etiquetas -->
+							{
+								shelfLayout.shelves.map((shelf) => (
+									<g aria-hidden="true">
+										<rect x="0" y={shelf.base} width="600" height="10" class="eco-board" />
+										<rect x="0" y={shelf.base + 10} width="600" height="22" fill="url(#g-sombra-repisa)" />
+										<text x="20" y={shelf.base + 8} class="eco-label">{shelf.leftLabel}</text>
+										<text x="580" y={shelf.base + 8} class="eco-label eco-label-end">{shelf.rightLabel}</text>
+									</g>
+								))
+							}
+
+							<!-- Motas de polvo en primer plano -->
+							<g class="cv-accent-bright" style="pointer-events:none">
+								<circle class="mota-fg" cx="130" cy="92" r="1.5" opacity=".38" />
+								<circle class="mota-fg" cx="390" cy="118" r="1.2" opacity=".32" style="animation-delay:-3s" />
+								<circle class="mota-fg" cx="250" cy="240" r="1.7" opacity=".34" style="animation-delay:-6s" />
+								<circle class="mota-fg" cx="480" cy="266" r="1.3" opacity=".3" style="animation-delay:-2s" />
+								<circle class="mota-fg" cx="185" cy="390" r="1.4" opacity=".28" style="animation-delay:-4s" />
+								<circle class="mota-fg" cx="440" cy="402" r="1.6" opacity=".35" style="animation-delay:-8s" />
+							</g>
+						</svg>
+
+						<!-- Micro-HUD brutalista conectado al lomo activo -->
+						<div class="shelf-hud" id="shelfHud" aria-live="polite">
+							<div class="shelf-hud-left">
+								<span class="shelf-hud-kicker" id="hudKicker">{shelfLayout.defaultHud.kicker}</span>
+								<span class="shelf-hud-title" id="hudTitle">{shelfLayout.defaultHud.title}</span>
+							</div>
+							<span class="shelf-hud-meta" id="hudMeta">{shelfLayout.defaultHud.meta}</span>
+						</div>
+					</div>
+					<div class="hero-scene-bar">
+						<span>pasá el mouse por un lomo</span>
+						<b>donde pasa la luz, se lee</b>
+					</div>
+				</div>
+			</div>
+			<div class="hero-specs" role="list" aria-label="Características de Ignit">
+				<div role="listitem"><span>curación</span><b>Revisión humana real</b></div>
+				<div role="listitem"><span>descarga</span><b>Selectiva · ~300 KB/libro</b></div>
+				<div role="listitem"><span>acceso</span><b>Leer sin cuenta</b></div>
+				<div role="listitem"><span>continuidad</span><b>Offline + sync PC ↔ Celu</b></div>
+			</div>
+		</div>
+	</div>
+</section>

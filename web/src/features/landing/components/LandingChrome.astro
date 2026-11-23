@@ -1,0 +1,14 @@
+---
+/**
+ * Capa ambiental de la landing (S2): polvo en Canvas 2D, lámpara reactiva al
+ * puntero, hilo de progreso de scroll y aguja lateral de estaciones.
+ *
+ * El marcado sólo declara los nodos; `initLanding.ts` (runtime empaquetado,
+ * `script-src 'self'`) los anima y respeta `prefers-reduced-motion: reduce`.
+ */
+---
+
+<canvas id="escena" aria-hidden="true"></canvas>
+<div id="lampara" aria-hidden="true"></div>
+<div class="hiloglobal" aria-hidden="true"><i id="hilo"></i></div>
+<div class="mecha" aria-hidden="true"><i id="mecha-aguja"></i></div>
