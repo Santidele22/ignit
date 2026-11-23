@@ -1,0 +1,142 @@
+---
+import '../../features/book/reader/reader-tokens.css';
+import '../../features/book/reader/reader-chrome.css';
+import '../../features/book/reader/reader-stage.css';
+import '../../features/book/reader/reader-panels.css';
+import '../../features/book/reader/reader-vigilia.css';
+import { Font } from 'astro:assets';
+import { SITE_NAME } from '../../app/config/site';
+import { getServerSession } from '../../features/auth/api/serverSession';
+import { LOGIN_PATH } from '../../features/auth/paths';
+import {
+	fetchBookById,
+	fetchBookReadingState,
+} from '../../features/book/api/books';
+import ReaderAtmosphere from '../../features/book/reader/ReaderAtmosphere.astro';
+import ReaderDecks from '../../features/book/reader/ReaderDecks.astro';
+import ReaderFooter from '../../features/book/reader/ReaderFooter.astro';
+import ReaderMargins from '../../features/book/reader/ReaderMargins.astro';
+import ReaderStage from '../../features/book/reader/ReaderStage.astro';
+import ReaderTopbar from '../../features/book/reader/ReaderTopbar.astro';
+import ReaderVigiliaOverlays from '../../features/book/reader/ReaderVigiliaOverlays.astro';
+
+const rawId = Astro.params.id ?? '';
+const bookId = Number(rawId);
+const serverOrigin = Astro.url.origin;
+
+if (!Number.isInteger(bookId) || bookId <= 0) {
+	return Astro.redirect('/');
+}
+
+const session = await getServerSession(Astro.request.headers.get('cookie'));
+const readerAuthOptions = session.authenticated
+	? { serverOrigin, bearerToken: session.bearerToken, cookie: session.cookie }
+	: { serverOrigin };
+
+const [book, initialState] = await Promise.all([
+	fetchBookById(bookId, readerAuthOptions),
+	session.authenticated ? fetchBookReadingState(bookId, readerAuthOptions) : Promise.resolve(null),
+]);
+
+if (!book) {
+	if (!session.authenticated) {
+		const redirect = Astro.url.pathname + Astro.url.search;
+		return Astro.redirect(`${LOGIN_PATH}?redirect=${encodeURIComponent(redirect)}`);
+	}
+	Astro.response.status = 404;
+}
+
+const initialPage = Math.max(1, initialState?.progress?.page ?? 1);
+const initialPct =
+	initialState?.progress?.pct !== undefined
+		? Math.min(100, Math.max(0, Math.round(initialState.progress.pct)))
+		: 0;
+const initialWords = initialState?.words ?? [];
+const downloadUrl = `/api/books/${bookId}/download`;
+
+const isOwnerLibrary = Boolean(session.authenticated && book?.isOwner);
+const backHref = isOwnerLibrary ? '/biblioteca' : '/';
+const backLabel = isOwnerLibrary ? '← mi biblioteca' : '← explorar';
+const footerBackLabel = isOwnerLibrary ? 'Volver a mi biblioteca' : 'Volver al catálogo';
+const loginHref = `${LOGIN_PATH}?redirect=${encodeURIComponent(Astro.url.pathname + Astro.url.search)}`;
+const userId = session.authenticated ? (session.user.id ?? session.user.email) : 'anon';
+
+const pageTitle = book
+	? `${book.title} — Vigilia de lectura — ${SITE_NAME}`
+	: `Libro no encontrado — ${SITE_NAME}`;
+const pageDescription = book
+	? `Lectura inmersiva de ${book.title} (${book.author}).`
+	: 'El libro solicitado no está disponible.';
+---
+
+<!doctype html>
+<html lang="es">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<meta name="robots" content="noindex" />
+	<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+	<link rel="icon" href="/favicon.ico" />
+	<title>{pageTitle}</title>
+	<meta name="description" content={pageDescription} />
+	<Font cssVariable="--font-shippori" preload />
+	<Font cssVariable="--font-zen" preload />
+	<Font cssVariable="--font-geist-mono" />
+</head>
+<body
+	class="vigilia-body"
+	data-mood="espera"
+	data-font="serif"
+	data-align="left"
+	data-focus="wide"
+	data-zen="off"
+	data-has-book={book ? '1' : '0'}
+	data-can-sync={session.authenticated ? 'true' : 'false'}
+	data-user-id={userId}
+	data-book-id={String(bookId)}
+	data-book-status={book?.status ?? ''}
+	data-book-title={book?.title ?? ''}
+	data-book-author={book?.author ?? ''}
+	data-download-url={downloadUrl}
+	data-pdf-pages={String(initialPage)}
+	data-initial-state={JSON.stringify(
+		initialState ?? {
+			bookId: String(bookId),
+			marks: [],
+			words: initialWords,
+			progress: { page: initialPage, pct: initialPct },
+		},
+	)}
+	style={`--prog-pct: ${initialPct}%; --reader-scale: 1`}
+>
+
+	<ReaderAtmosphere />
+
+	<ReaderTopbar
+		title={book?.title ?? null}
+		author={book?.author ?? null}
+		initialPage={initialPage}
+		initialPct={initialPct}
+		backHref={backHref}
+		backLabel={backLabel}
+		canSync={session.authenticated}
+		loginHref={loginHref}
+	/>
+
+	<ReaderStage available={Boolean(book)} title={book?.title ?? null} />
+
+	<ReaderMargins words={initialWords} />
+
+	<ReaderDecks />
+
+	<ReaderVigiliaOverlays backHref={backHref} backLabel={footerBackLabel} />
+
+	<ReaderFooter backHref={backHref} backLabel={footerBackLabel} />
+
+	<script>
+		import { initReader } from '../../widgets/reading/init';
+
+		initReader();
+	</script>
+</body>
+</html>

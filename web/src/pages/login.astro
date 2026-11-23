@@ -1,0 +1,55 @@
+---
+import { Font } from 'astro:assets';
+import '../app/styles/global.css';
+import { SITE_NAME } from '../app/config/site';
+import LoginForm from '../features/auth/LoginForm';
+import ThemeScript from '../shared/ui/ThemeScript.astro';
+---
+
+<!doctype html>
+<html lang="es">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" href="/favicon.ico" />
+		<meta name="generator" content={Astro.generator} />
+		<meta name="robots" content="noindex" />
+		<title>Iniciar sesión — {SITE_NAME}</title>
+		<Font cssVariable="--font-shippori" preload />
+		<Font cssVariable="--font-zen" preload />
+		<Font cssVariable="--font-geist-mono" />
+		<ThemeScript />
+	</head>
+	<body class="bg-background font-sans text-foreground antialiased">
+		<main class="flex min-h-dvh items-center justify-center px-4 py-12">
+			<div class="w-full max-w-sm">
+				<a href="/" class="flex items-center justify-center gap-2.5">
+					<span class="hanko size-8 rounded-[5px] font-mono text-[11px]" aria-hidden="true">IG</span>
+					<span class="text-left leading-none">
+						<span class="block font-mincho text-lg font-semibold tracking-tight">{SITE_NAME}</span>
+						<span class="block text-[9px] tracking-[0.35em] text-muted-foreground">VIGILIA</span>
+					</span>
+				</a>
+				<section class="mt-8 rounded-lg border border-border bg-card p-6 shadow-sm sm:p-8" aria-labelledby="login-title">
+					<p class="text-[11px] font-medium tracking-[0.2em] text-muted-foreground">ACCESO</p>
+					<h1 id="login-title" class="mt-2 font-mincho text-2xl font-semibold tracking-tight">Inicia sesión</h1>
+					<p class="mt-2 text-sm text-muted-foreground">
+						Entrá para acceder a tu biblioteca privada y sincronizar tu progreso de lectura.
+					</p>
+					<LoginForm client:load />
+				</section>
+				<p class="mt-6 text-center text-xs text-muted-foreground">
+					¿Todavía no tenés cuenta?{' '}
+					<a href="/registro" class="font-medium text-aka underline decoration-border underline-offset-4 hover:decoration-aka">
+						Creá una acá
+					</a>
+					{' · '}
+					<a href="/" class="underline decoration-border underline-offset-4 transition-colors hover:text-aka">
+						Volver al catálogo
+					</a>
+				</p>
+			</div>
+		</main>
+	</body>
+</html>

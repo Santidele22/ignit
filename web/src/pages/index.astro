@@ -1,0 +1,131 @@
+---
+import { SITE_DESCRIPTION, SITE_NAME } from '../app/config/site';
+import BaseLayout from '../app/layouts/BaseLayout.astro';
+import BookCard from '../entities/book/BookCard.astro';
+import { getServerSession } from '../features/auth/api/serverSession';
+import { fetchBooksPage } from '../features/book/api/books';
+import { parseOffset } from '../shared/api/pagination';
+import EmptyState from '../shared/ui/EmptyState.astro';
+import Icon from '../shared/ui/Icon.astro';
+import PaginationControls from '../shared/ui/PaginationControls.astro';
+
+const PAGE_SIZE = 8;
+const rawKind = Astro.url.searchParams.get('kind');
+const activeKind = rawKind === 'tecnico' || rawKind === 'no_tecnico' ? rawKind : undefined;
+const offset = parseOffset(Astro.url.searchParams.get('offset'));
+const serverOrigin = Astro.url.origin;
+
+const [page, session] = await Promise.all([
+	fetchBooksPage(serverOrigin, offset, PAGE_SIZE, true, activeKind),
+	getServerSession(Astro.request.headers.get('cookie')),
+]);
+
+const downloadUrl = (id: number) => `/api/books/${id}/download`;
+const basePath = activeKind ? `/?kind=${activeKind}` : '/';
+
+const filters = [
+	{ label: 'Todos', href: '/', active: !activeKind },
+	{ label: 'Técnico', href: '/?kind=tecnico', active: activeKind === 'tecnico' },
+	{ label: 'No técnico', href: '/?kind=no_tecnico', active: activeKind === 'no_tecnico' },
+];
+---
+
+<BaseLayout title={`${SITE_NAME} — Lectura inmersiva y biblioteca PDF`} description={SITE_DESCRIPTION} session={session}>
+	<section class="border-b border-border bg-secondary/40">
+		<div class="mx-auto max-w-6xl px-5 py-14 sm:px-8 lg:py-20">
+			<p class="flex items-center gap-3 text-[12px] font-medium tracking-[0.25em] text-muted-foreground">
+				<span class="inline-block h-px w-8 bg-aka" aria-hidden="true"></span>
+				MODO VIGILIA · BIBLIOTECA MULTIUSUARIO
+			</p>
+			<h1 class="mt-4 max-w-3xl font-mincho text-4xl font-semibold tracking-tight sm:text-5xl">
+				Leé tus PDFs sin distracciones y guardá tu progreso en la nube.
+			</h1>
+			<p class="mt-4 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
+				Subí libros a tu biblioteca privada o compartilos en el catálogo público. Subrayados, glosario, capítulos y reloj de vigilia en un solo espacio.
+			</p>
+			<div class="mt-8 flex flex-wrap items-center gap-3">
+				{session.authenticated ? (
+					<a
+						href="/biblioteca"
+						class="inline-flex items-center gap-2 rounded-sm bg-foreground px-5 py-2.5 text-sm font-medium text-background transition-colors hover:bg-aka hover:text-[#fdf8ee]"
+					>
+						<Icon name="book-open" class="size-4" />
+						Ir a mi biblioteca
+					</a>
+				) : (
+					<>
+						<a
+							href="/registro"
+							class="inline-flex items-center gap-2 rounded-sm bg-foreground px-5 py-2.5 text-sm font-medium text-background transition-colors hover:bg-aka hover:text-[#fdf8ee]"
+						>
+							Crear cuenta gratis
+						</a>
+						<a
+							href="/login"
+							class="inline-flex items-center gap-2 rounded-sm border border-border bg-card px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:border-aka/60 hover:text-aka"
+						>
+							Ya tengo cuenta
+						</a>
+					</>
+				)}
+			</div>
+		</div>
+	</section>
+
+	<section class="mx-auto max-w-6xl px-5 py-14 sm:px-8" aria-labelledby="catalogo-title">
+		<div class="flex flex-wrap items-end justify-between gap-6">
+			<div>
+				<p class="text-[12px] font-medium tracking-[0.25em] text-muted-foreground">CATÁLOGO PÚBLICO</p>
+				<h2 id="catalogo-title" class="mt-2 font-mincho text-3xl font-semibold tracking-tight">Lecturas compartidas</h2>
+			</div>
+			<nav class="flex flex-wrap items-center gap-2" aria-label="Filtrar catálogo por tipo">
+				{filters.map((item) => (
+					<a
+						href={item.href}
+						aria-current={item.active ? 'page' : undefined}
+						class:list={[
+							'rounded-sm border px-3.5 py-1.5 text-xs font-medium transition-colors',
+							item.active
+								? 'border-aka bg-aka text-[#fdf8ee]'
+								: 'border-border bg-card text-muted-foreground hover:border-aka/50 hover:text-aka',
+						]}
+					>
+						{item.label}
+					</a>
+				))}
+			</nav>
+		</div>
+
+		{page === null && (
+			<EmptyState
+				icon="book-open"
+				class="mt-10"
+				title="No se pudo cargar el catálogo"
+				description="La API no respondió ahora mismo. Reintentá en unos minutos."
+			/>
+		)}
+		{page !== null && page.total === 0 && (
+			<EmptyState
+				icon="book-open"
+				class="mt-10"
+				title="Todavía no hay libros públicos"
+				description="Creá una cuenta y subí tu primer PDF desde Mi biblioteca, o publicalo para compartirlo acá."
+			/>
+		)}
+		{page !== null && page.total > 0 && page.items.length === 0 && (
+			<p class="mt-10 border border-border bg-card p-6 text-sm text-muted-foreground">
+				No hay libros en esta página. <a href={basePath} class="font-medium text-aka hover:underline">Volver al principio</a>.
+			</p>
+		)}
+		{page !== null && page.items.length > 0 && (
+			<>
+				<div class="mt-10 grid gap-6 md:grid-cols-2">
+					{page.items.map((book) => (
+						<BookCard book={book} downloadUrl={downloadUrl(book.id)} headingLevel="h3" canRead={true} />
+					))}
+				</div>
+				<PaginationControls basePath={basePath} total={page.total} offset={page.offset} limit={PAGE_SIZE} />
+			</>
+		)}
+	</section>
+</BaseLayout>

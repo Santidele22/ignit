@@ -1,0 +1,18 @@
+---
+import LibraryLayout from '../app/layouts/LibraryLayout.astro';
+import { getServerSession } from '../features/auth/api/serverSession';
+import BooksEditorPanel from '../features/book/BooksEditorPanel';
+
+const session = await getServerSession(Astro.request.headers.get('cookie'));
+---
+
+<LibraryLayout title="Mi biblioteca — Ignit" session={session}>
+	<header class="border-b border-border pb-6">
+		<p class="text-[11px] font-medium tracking-[0.25em] text-muted-foreground">BIBLIOTECA PERSONAL</p>
+		<h1 class="mt-2 font-mincho text-3xl font-semibold tracking-tight">Tus libros y PDFs</h1>
+		<p class="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+			Subí tus PDFs, organizá tu lectura en privado o publicalos en el catálogo de Ignit. Tu progreso, subrayados y glosario se sincronizan por usuario.
+		</p>
+	</header>
+	<BooksEditorPanel client:load />
+</LibraryLayout>
