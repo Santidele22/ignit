@@ -1,4 +1,4 @@
-import { Show, createEffect, createSignal } from 'solid-js';
+import { Show, createEffect, createSignal, onCleanup } from 'solid-js';
 import type { Book } from '../../../entities/book/types';
 import { deleteBook, updateBook, uploadBookFile } from '../../book/api/books-admin';
 import {
@@ -213,6 +213,18 @@ export default function EditBookModal(props: EditBookModalProps) {
 		queueMicrotask(() => titleInput?.focus());
 	});
 
+	createEffect(() => {
+		if (props.book === null) return;
+		const onWindowKeyDown = (event: KeyboardEvent) => {
+			if (event.key === 'Escape') {
+				event.preventDefault();
+				close();
+			}
+		};
+		window.addEventListener('keydown', onWindowKeyDown);
+		onCleanup(() => window.removeEventListener('keydown', onWindowKeyDown));
+	});
+
 	return (
 		<div
 			ref={backdrop}
@@ -221,6 +233,7 @@ export default function EditBookModal(props: EditBookModalProps) {
 			role="dialog"
 			aria-modal="true"
 			aria-labelledby="editTitle"
+			tabIndex={-1}
 			onKeyDown={handleKeyDown}
 			onClick={(event) => {
 				if (event.target === event.currentTarget) close();

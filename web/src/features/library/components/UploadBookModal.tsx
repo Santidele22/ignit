@@ -1,4 +1,4 @@
-import { Show, createEffect, createSignal } from 'solid-js';
+import { Show, createEffect, createSignal, onCleanup } from 'solid-js';
 import type { BookKind } from '../../../entities/book/types';
 import { createBookReturning, uploadBookFile } from '../../book/api/books-admin';
 import type { AdminBookRow } from '../../book/api/books-admin';
@@ -31,6 +31,7 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 	const [description, setDescription] = createSignal('');
 	const [published, setPublished] = createSignal(false);
 	const [file, setFile] = createSignal<File | null>(null);
+	const [createdRow, setCreatedRow] = createSignal<AdminBookRow | null>(null);
 	const [submitting, setSubmitting] = createSignal(false);
 	const [error, setError] = createSignal<string | null>(null);
 
@@ -47,6 +48,7 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 		setDescription('');
 		setPublished(false);
 		setFile(null);
+		setCreatedRow(null);
 		setError(null);
 		if (fileInput) fileInput.value = '';
 	}
@@ -106,13 +108,16 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 			published: published(),
 		});
 
-		let created: AdminBookRow;
-		try {
-			created = await createBookReturning(body);
-		} catch (cause) {
-			setError(cause instanceof Error ? cause.message : 'No se pudo crear el libro.');
-			setSubmitting(false);
-			return;
+		let created = createdRow();
+		if (!created) {
+			try {
+				created = await createBookReturning(body);
+				setCreatedRow(created);
+			} catch (cause) {
+				setError(cause instanceof Error ? cause.message : 'No se pudo crear el libro.');
+				setSubmitting(false);
+				return;
+			}
 		}
 
 		if (!selected) {
@@ -131,7 +136,7 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 		} catch (cause) {
 			const message = cause instanceof Error ? cause.message : 'No se pudo subir el PDF.';
 			setError(
-				`«${created.title}» se creó, pero el PDF no se pudo subir: ${message} Reintentalo desde Editar.`,
+				`«${created.title}» se creó, pero el PDF no se pudo subir: ${message} Podés reintentar el envío acá o desde Editar.`,
 			);
 			props.onCreated(created, 'file-failed');
 		} finally {
@@ -180,6 +185,18 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 		queueMicrotask(() => trigger?.focus?.());
 	});
 
+	createEffect(() => {
+		if (!props.open) return;
+		const onWindowKeyDown = (event: KeyboardEvent) => {
+			if (event.key === 'Escape') {
+				event.preventDefault();
+				close();
+			}
+		};
+		window.addEventListener('keydown', onWindowKeyDown);
+		onCleanup(() => window.removeEventListener('keydown', onWindowKeyDown));
+	});
+
 	return (
 		<div
 			ref={backdrop}
@@ -188,6 +205,7 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 			role="dialog"
 			aria-modal="true"
 			aria-labelledby="uploadTitle"
+			tabIndex={-1}
 			onKeyDown={handleKeyDown}
 			onClick={(event) => {
 				if (event.target === event.currentTarget) close();

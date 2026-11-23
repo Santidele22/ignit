@@ -88,4 +88,23 @@ describe('resolveReadingDocument (reader IndexedDB fallback)', () => {
 			}),
 		).rejects.toThrow('500 Server Error');
 	});
+
+	it('preserves original remote error when online fetch fails and IndexedDB rejects', async () => {
+		const fetchRemote = vi.fn().mockRejectedValue(new Error('HTTP 503 Service Unavailable'));
+		const getCached = vi.fn().mockRejectedValue(new Error('IDB blocked'));
+
+		await expect(
+			resolveReadingDocument(9, true, { isOnline: () => true, fetchRemote, getCached }),
+		).rejects.toThrow('HTTP 503 Service Unavailable');
+	});
+
+	it('throws clean Spanish offline message when offline and IndexedDB rejects', async () => {
+		const fetchRemote = vi.fn();
+		const getCached = vi.fn().mockRejectedValue(new Error('IDB corrupted'));
+
+		await expect(
+			resolveReadingDocument(9, false, { isOnline: () => false, fetchRemote, getCached }),
+		).rejects.toThrow('Sin conexión y este libro no está descargado en tu dispositivo.');
+		expect(fetchRemote).not.toHaveBeenCalled();
+	});
 });

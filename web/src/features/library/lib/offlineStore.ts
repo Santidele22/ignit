@@ -9,6 +9,7 @@ export interface OfflineBookRecord {
 	title: string;
 	author: string;
 	kind: BookKind;
+	published?: boolean;
 	pdfPages: number;
 	bytes: number;
 	kb: number;
@@ -17,7 +18,7 @@ export interface OfflineBookRecord {
 }
 
 export interface OfflineBookPutInput {
-	book: Pick<Book, 'id' | 'title' | 'author' | 'kind'>;
+	book: Pick<Book, 'id' | 'title' | 'author' | 'kind'> & { published?: boolean };
 	reading: BookReadingDocument;
 	savedAt?: number;
 }
@@ -75,53 +76,51 @@ function openOfflineDb(factory: IDBFactory): Promise<IDBDatabase> {
 	});
 }
 
-function runTx<T>(
+async function runTx<T>(
 	factory: IDBFactory,
 	mode: IDBTransactionMode,
 	work: (store: IDBObjectStore) => IDBRequest<T>,
 ): Promise<T> {
-	return openOfflineDb(factory).then(
-		(db) =>
-			new Promise<T>((resolve, reject) => {
-				let settled = false;
-				const tx = db.transaction(OFFLINE_STORE_NAME, mode);
-				const store = tx.objectStore(OFFLINE_STORE_NAME);
-				const req = work(store);
-				let resultValue: T;
+	const db = await openOfflineDb(factory);
+	return new Promise<T>((resolve, reject) => {
+		let settled = false;
+		const finishError = (err: unknown) => {
+			if (!settled) {
+				settled = true;
+				db.close();
+				reject(err);
+			}
+		};
 
-				req.onsuccess = () => {
-					resultValue = req.result;
-				};
-				req.onerror = () => {
-					if (!settled) {
-						settled = true;
-						db.close();
-						reject(req.error ?? new Error('Error en IndexedDB.'));
-					}
-				};
-				tx.oncomplete = () => {
-					if (!settled) {
-						settled = true;
-						db.close();
-						resolve(resultValue);
-					}
-				};
-				tx.onerror = () => {
-					if (!settled) {
-						settled = true;
-						db.close();
-						reject(tx.error ?? new Error('Transacción de IndexedDB fallida.'));
-					}
-				};
-				tx.onabort = () => {
-					if (!settled) {
-						settled = true;
-						db.close();
-						reject(tx.error ?? new Error('Transacción de IndexedDB abortada.'));
-					}
-				};
-			}),
-	);
+		try {
+			const tx = db.transaction(OFFLINE_STORE_NAME, mode);
+			const store = tx.objectStore(OFFLINE_STORE_NAME);
+			const req = work(store);
+			let resultValue: T;
+
+			req.onsuccess = () => {
+				resultValue = req.result;
+			};
+			req.onerror = () => {
+				finishError(req.error ?? new Error('Error en IndexedDB.'));
+			};
+			tx.oncomplete = () => {
+				if (!settled) {
+					settled = true;
+					db.close();
+					resolve(resultValue);
+				}
+			};
+			tx.onerror = () => {
+				finishError(tx.error ?? new Error('Transacción de IndexedDB fallida.'));
+			};
+			tx.onabort = () => {
+				finishError(tx.error ?? new Error('Transacción de IndexedDB abortada.'));
+			};
+		} catch (err) {
+			finishError(err);
+		}
+	});
 }
 
 export function createIndexedDbAdapter(factory?: IDBFactory | null): OfflineStorageAdapter | null {
@@ -187,6 +186,7 @@ export function createOfflineBookStore(adapter: OfflineStorageAdapter | null): O
 				title: input.book.title,
 				author: input.book.author,
 				kind: input.book.kind,
+				...(typeof input.book.published === 'boolean' ? { published: input.book.published } : {}),
 				pdfPages: Math.max(1, input.reading.pdfPages || 1),
 				bytes,
 				kb: bytesToKb(bytes),

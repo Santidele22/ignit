@@ -150,7 +150,7 @@ export function mergeSalaBooks(input: MergeSalaBooksInput): SalaBook[] {
 				status: 'reading',
 				statusLabel: 'Leyendo',
 				kind: rec.kind,
-				published: true,
+				published: rec.published === true,
 				hasFile: true,
 				fileSizeBytes: rec.bytes,
 			});

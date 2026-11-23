@@ -210,4 +210,32 @@ describe('sala domain helpers', () => {
 		expect(validatePdfUpload(emptyPdf)).toMatch(/vacío/i);
 		expect(validatePdfUpload(okPdf, 2)).toMatch(/límite/i);
 	});
+
+	it('enforces exact 50 MB boundary, clamps malformed snapshots, and keeps offline-only private books out of public catalog', () => {
+		const exact = { name: 'DOC.PDF', type: '', size: 50 * 1024 * 1024 } as File;
+		const over = { name: 'DOC.PDF', type: 'application/pdf', size: 50 * 1024 * 1024 + 1 } as File;
+		expect(validatePdfUpload(exact)).toBeNull();
+		expect(validatePdfUpload(over)).toBe('El archivo supera el límite de 50 MB.');
+
+		const entries: Record<string, string> = {
+			'ignit:book:u1:0': JSON.stringify({ progress: { page: 1, pct: 50 }, updatedAt: 1 }),
+			'ignit:book:u1:5': JSON.stringify({ progress: { page: -4, pct: 180 }, updatedAt: 99 }),
+		};
+		const keys = Object.keys(entries);
+		const snaps = readLocalReadingSnapshots(
+			{ length: keys.length, key: (i) => keys[i] ?? null, getItem: (k) => entries[k] ?? null },
+			'u1',
+		);
+		expect(snaps.get(5)).toEqual({ bookId: 5, page: 1, pct: 100, updatedAt: 99 });
+		expect(computeStorageMeter([{ kb: 1 }]).barPercent).toBe(4);
+		expect(computeStorageMeter([{ kb: 99999 }]).barPercent).toBe(100);
+
+		const merged = mergeSalaBooks({
+			ownedBooks: [],
+			catalogBooks: [],
+			offlineRecords: [makeOffline(77, 120)],
+			localSnapshots: new Map(),
+		});
+		expect(merged[0]?.published).toBe(false);
+	});
 });

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { BookReadingDocument } from '../../../entities/book/types';
 import {
 	bytesToKb,
+	createIndexedDbAdapter,
 	createMemoryOfflineAdapter,
 	createOfflineBookStore,
 	measureReadingBytes,
@@ -84,5 +85,107 @@ describe('offlineStore', () => {
 				reading: sampleReading('1'),
 			}),
 		).rejects.toThrow(/IndexedDB/i);
+	});
+
+	it('executes full IndexedDB lifecycle via IDBFactory and closes db on error', async () => {
+		const stores = new Map<string, Map<number, unknown>>();
+		let closeCount = 0;
+		const makeReq = <T,>(exec: () => T) => {
+			const req: Record<string, unknown> = { result: undefined, error: null, onsuccess: null, onerror: null };
+			queueMicrotask(() => {
+				try {
+					req.result = exec();
+					if (typeof req.onsuccess === 'function') (req.onsuccess as () => void)();
+				} catch (err) {
+					req.error = err;
+					if (typeof req.onerror === 'function') (req.onerror as () => void)();
+				}
+			});
+			return req as unknown as IDBRequest<T>;
+		};
+		const factory = {
+			open: () => {
+				const openReq: Record<string, unknown> = {
+					result: null,
+					error: null,
+					onupgradeneeded: null,
+					onsuccess: null,
+					onerror: null,
+				};
+				openReq.result = {
+					objectStoreNames: { contains: (n: string) => stores.has(n) },
+					createObjectStore: (n: string) => {
+						if (!stores.has(n)) stores.set(n, new Map());
+					},
+					close: () => {
+						closeCount += 1;
+					},
+					transaction: (storeName: string) => {
+						const tx: Record<string, unknown> = { error: null, oncomplete: null, onerror: null, onabort: null };
+						const finish = () =>
+							queueMicrotask(() => {
+								if (typeof tx.oncomplete === 'function') (tx.oncomplete as () => void)();
+							});
+						tx.objectStore = () => {
+							const map = stores.get(storeName)!;
+							return {
+								put: (rec: { bookId: number }) =>
+									makeReq(() => {
+										map.set(rec.bookId, rec);
+										finish();
+										return rec.bookId;
+									}),
+								get: (k: number) =>
+									makeReq(() => {
+										const v = map.get(k);
+										finish();
+										return v;
+									}),
+								getAll: () =>
+									makeReq(() => {
+										const all = [...map.values()];
+										finish();
+										return all;
+									}),
+								delete: (k: number) =>
+									makeReq(() => {
+										map.delete(k);
+										finish();
+										return undefined;
+									}),
+								clear: () =>
+									makeReq(() => {
+										map.clear();
+										finish();
+										return undefined;
+									}),
+							};
+						};
+						return tx;
+					},
+				};
+				queueMicrotask(() => {
+					if (!stores.has('books') && typeof openReq.onupgradeneeded === 'function') {
+						(openReq.onupgradeneeded as () => void)();
+					}
+					if (typeof openReq.onsuccess === 'function') (openReq.onsuccess as () => void)();
+				});
+				return openReq;
+			},
+		} as unknown as IDBFactory;
+
+		const store = createOfflineBookStore(createIndexedDbAdapter(factory));
+		const saved = await store.put({
+			book: { id: 42, title: 'Libro IDB', author: 'Autora', kind: 'tecnico', published: false },
+			reading: sampleReading('42'),
+			savedAt: 100,
+		});
+		expect(saved.published).toBe(false);
+		expect((await store.get(42))?.title).toBe('Libro IDB');
+		expect((await store.list()).map((r) => r.bookId)).toEqual([42]);
+		await store.remove(42);
+		expect(await store.get(42)).toBeNull();
+		await store.clear();
+		expect(closeCount).toBeGreaterThanOrEqual(5);
 	});
 });
