@@ -5,7 +5,7 @@
   "compatibility_date": "2026-10-26",
   "vars": {
     "BACKEND_URL": "https://ignit-api.onrender.com",
-    "NEON_AUTH_BASE_URL": ""
+    "NEON_AUTH_BASE_URL": "https://ep-orange-dust-bevbvwtp.neonauth.c-9.us-east-2.aws.neon.tech/neondb/auth"
   },
   "observability": {
     "enabled": true
@@ -14,7 +14,7 @@
     "preview": {
       "vars": {
         "BACKEND_URL": "http://localhost:3000",
-        "NEON_AUTH_BASE_URL": ""
+        "NEON_AUTH_BASE_URL": "https://ep-orange-dust-bevbvwtp.neonauth.c-9.us-east-2.aws.neon.tech/neondb/auth"
       }
     }
   }

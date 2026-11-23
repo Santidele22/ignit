@@ -9,7 +9,7 @@ const apiBaseUrl = process.env.PUBLIC_API_BASE_URL?.replace(/\/+$/, '') ?? '';
 const apiOrigin = /^https?:\/\//i.test(apiBaseUrl) ? new URL(apiBaseUrl).origin : '';
 
 export default defineConfig({
-	site: 'https://ignit-web.workers.dev',
+	site: 'https://ignit-web.ignit677.workers.dev',
 	integrations: [solidJs()],
 	adapter: cloudflare(),
 	output: 'server',

@@ -7,6 +7,7 @@ services:
     runtime: node
     plan: free
     region: ohio
+    rootDir: backend
     buildCommand: pnpm install --frozen-lockfile --prod=false && pnpm build
     startCommand: node dist/main
     healthCheckPath: /session-mode
