@@ -1,0 +1,47 @@
+---
+/**
+ * Selector compacto de paleta para el header global (noche-azul palette S5).
+ *
+ * Dos únicas fuentes de verdad, ambas compartidas con el deck del lector:
+ * `data-palette-option` en cada botón e `initPaletteControls()` de
+ * `shared/lib/palette`. El marcado ya refleja el estado por defecto
+ * (`noche-azul`), así que no hay parpadeo antes de que corra el script; el
+ * script sólo re-sincroniza con la preferencia guardada y cablea los clics,
+ * incluida la sincronización entre pestañas y entre controles.
+ *
+ * El `<script>` va empaquetado (sin `is:inline`) a propósito: Astro lo sirve
+ * como módulo propio bajo `script-src 'self'`, así que no hay que sumar ningún
+ * hash de CSP nuevo en `astro.config.mjs`.
+ */
+---
+
+<div
+	role="group"
+	aria-label="Paleta de colores"
+	class="inline-flex shrink-0 items-stretch rounded-sm border border-border bg-card"
+>
+	<button
+		type="button"
+		data-palette-option="noche-azul"
+		aria-pressed="true"
+		data-on="true"
+		class="border-r border-border px-2 py-1.5 font-mono text-[10px] tracking-[0.12em] uppercase text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring aria-pressed:bg-aka aria-pressed:font-semibold aria-pressed:text-aka-foreground aria-pressed:hover:text-aka-foreground sm:px-2.5"
+	>
+		Noche azul
+	</button>
+	<button
+		type="button"
+		data-palette-option="original"
+		aria-pressed="false"
+		data-on="false"
+		class="px-2 py-1.5 font-mono text-[10px] tracking-[0.12em] uppercase text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring aria-pressed:bg-aka aria-pressed:font-semibold aria-pressed:text-aka-foreground aria-pressed:hover:text-aka-foreground sm:px-2.5"
+	>
+		Original
+	</button>
+</div>
+
+<script>
+	import { initPaletteControls } from '../lib/palette';
+
+	initPaletteControls();
+</script>

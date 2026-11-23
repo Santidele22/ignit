@@ -16,7 +16,7 @@ export const adminHintClass = 'mt-1.5 text-[11px] leading-relaxed text-muted-for
 export const adminCardClass = 'border border-border bg-card p-6';
 
 export const adminPrimaryButtonClass =
-	'inline-flex h-10 items-center justify-center rounded-md bg-foreground px-5 text-sm font-medium text-background transition-colors hover:bg-aka hover:text-[#fdf8ee] disabled:cursor-not-allowed disabled:opacity-60';
+	'inline-flex h-10 items-center justify-center rounded-md bg-foreground px-5 text-sm font-medium text-background transition-colors hover:bg-aka hover:text-aka-foreground disabled:cursor-not-allowed disabled:opacity-60';
 
 export const adminRowButtonClass =
 	'inline-flex h-9 items-center justify-center rounded-md border border-border bg-card px-3 text-[12px] font-medium text-muted-foreground transition-colors hover:border-aka hover:text-aka disabled:cursor-not-allowed disabled:opacity-60';

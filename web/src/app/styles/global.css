@@ -23,6 +23,7 @@
   --color-ring: var(--ring);
   --color-aka: var(--aka);
   --color-aka-deep: var(--aka-deep);
+  --color-aka-foreground: var(--aka-foreground);
   --color-ink-soft: var(--ink-soft);
   --font-sans: var(--font-zen);
   --font-mincho: var(--font-shippori);
@@ -55,6 +56,7 @@
   --ring: #c73e3a;
   --aka: #c73e3a;
   --aka-deep: #a02f2b;
+  --aka-foreground: #fdf8ee;
   --ink-soft: #57503f;
 }
 
@@ -79,7 +81,38 @@
   --ring: #d95448;
   --aka: #d95448;
   --aka-deep: #c73e3a;
+  --aka-foreground: #fdf8ee;
   --ink-soft: #b3a78e;
+}
+
+/* Noche azul (design/ignit-inmersiva/04-lampara-brutalista.html): always dark
+   blue monochrome, faithful to the artboard. It sits AFTER `.dark` because the
+   boot script adds `.dark` for this palette too; the attribute selector both
+   overrides `:root` (same element) and always wins over `.dark`, so the OS
+   light mode can never leak warm paper into it (noche-azul palette S1/S3). */
+html[data-palette="noche-azul"] {
+  --background: #04050a;
+  --foreground: #e6edf7;
+  --card: #060810;
+  --card-foreground: #e6edf7;
+  --popover: #080c17;
+  --popover-foreground: #e6edf7;
+  --primary: #e6edf7;
+  --primary-foreground: #04050a;
+  --secondary: #080c17;
+  --secondary-foreground: #e6edf7;
+  --muted: #0b1020;
+  --muted-foreground: #8296b8;
+  --accent: #10172b;
+  --accent-foreground: #e6edf7;
+  --destructive: #d96b73;
+  --border: #232941;
+  --input: #344064;
+  --ring: #9fc0ee;
+  --aka: #5f86c9;
+  --aka-deep: #43649e;
+  --aka-foreground: #04050a;
+  --ink-soft: #b9c6dd;
 }
 
 @layer base {
@@ -99,7 +132,7 @@
 
   ::selection {
     background: var(--aka);
-    color: #fdfbf5;
+    color: var(--aka-foreground);
   }
 }
 
@@ -116,12 +149,18 @@ body::after {
   opacity: 0.6;
 }
 
+/* Blue-black is already grainy to the eye: keep the veil subtle so it does not
+   turn into visible static on the noche-azul surfaces. */
+html[data-palette="noche-azul"] body::after {
+  opacity: 0.5;
+}
+
 .hanko {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   background: var(--aka);
-  color: #fdf8ee;
+  color: var(--aka-foreground);
   box-shadow: 0 1px 0 0 rgb(0 0 0 / 0.15) inset;
 }
 
@@ -229,5 +268,5 @@ body::after {
 [data-project-chip][data-project-active]:hover {
 	border-color: var(--aka);
 	background: var(--aka);
-	color: #fdf8ee;
+	color: var(--aka-foreground);
 }

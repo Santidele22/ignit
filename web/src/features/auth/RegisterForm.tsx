@@ -101,7 +101,7 @@ export default function RegisterForm() {
 			<button
 				type="submit"
 				disabled={pending()}
-				class="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-foreground px-6 text-sm font-medium text-background transition-colors hover:bg-aka hover:text-[#fdf8ee] disabled:cursor-wait disabled:opacity-60"
+				class="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-foreground px-6 text-sm font-medium text-background transition-colors hover:bg-aka hover:text-aka-foreground disabled:cursor-wait disabled:opacity-60"
 			>
 				{pending() ? 'Creando cuenta…' : 'Crear cuenta'}
 			</button>

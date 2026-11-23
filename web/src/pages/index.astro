@@ -47,7 +47,7 @@ const filters = [
 				{session.authenticated ? (
 					<a
 						href="/biblioteca"
-						class="inline-flex items-center gap-2 rounded-sm bg-foreground px-5 py-2.5 text-sm font-medium text-background transition-colors hover:bg-aka hover:text-[#fdf8ee]"
+						class="inline-flex items-center gap-2 rounded-sm bg-foreground px-5 py-2.5 text-sm font-medium text-background transition-colors hover:bg-aka hover:text-aka-foreground"
 					>
 						<Icon name="book-open" class="size-4" />
 						Ir a mi biblioteca
@@ -56,7 +56,7 @@ const filters = [
 					<>
 						<a
 							href="/registro"
-							class="inline-flex items-center gap-2 rounded-sm bg-foreground px-5 py-2.5 text-sm font-medium text-background transition-colors hover:bg-aka hover:text-[#fdf8ee]"
+							class="inline-flex items-center gap-2 rounded-sm bg-foreground px-5 py-2.5 text-sm font-medium text-background transition-colors hover:bg-aka hover:text-aka-foreground"
 						>
 							Crear cuenta gratis
 						</a>
@@ -86,7 +86,7 @@ const filters = [
 						class:list={[
 							'rounded-sm border px-3.5 py-1.5 text-xs font-medium transition-colors',
 							item.active
-								? 'border-aka bg-aka text-[#fdf8ee]'
+								? 'border-aka bg-aka text-aka-foreground'
 								: 'border-border bg-card text-muted-foreground hover:border-aka/50 hover:text-aka',
 						]}
 					>
