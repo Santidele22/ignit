@@ -1,6 +1,6 @@
 # Render blueprint — https://render.com/docs/blueprint-spec
 # Repo on GitHub: Santidele22/ignit (existing GitHub account).
-# Deploy on Render under ignit2026@gmail.com; fill `sync: false` secrets in Render.
+# Deploy on Render under ignit677@gmail.com; fill `sync: false` secrets in Render.
 services:
   - type: web
     name: ignit-api
