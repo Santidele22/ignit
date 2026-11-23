@@ -6,7 +6,7 @@ Extraído de `personal-page` bajo estrategia **Strangler Fig** como proyecto tot
 
 ## Arquitectura
 
-- **`backend/`**: API REST en NestJS + TypeORM + Better Auth / Neon Auth (`PostgreSQL` en producción, `SQLite` en local/tests) + almacenamiento S3/R2/B2 o disco local para PDFs y sidecars de texto extraído (`reading.json`).
+- **`backend/`**: API REST en NestJS + TypeORM + Better Auth / Neon Auth (`PostgreSQL` en producción, `SQLite` en local/tests) + almacenamiento en Neon Object Storage en producción (bucket privado declarado en `backend/neon.ts`, sin R2 ni AWS S3 externos) o disco local en desarrollo para PDFs y sidecars de texto extraído (`reading.json`).
 - **`web/`**: Aplicación SSR en Astro 7.4 + islas SolidJS + Tailwind CSS v4 preparada para Cloudflare Workers.
   - `/` — Catálogo público de libros publicados (`published = true`) con filtro técnico / no técnico y paginación.
   - `/lecturas/[id]` — Lector inmersivo *Vigilia* (autenticado con sincronización en la nube por usuario, o anónimo local con `localStorage` para libros publicados).
@@ -42,29 +42,29 @@ cd backend && pnpm test && pnpm build
 cd ../web && pnpm test && pnpm build
 ```
 
-## Checklist de despliegue independiente (`ignit2026@gmail.com`)
+## Checklist de despliegue independiente
 
-Para mantener Ignit 100% aislado de otros proyectos (cuotas free-tier separadas, credenciales propias y dominio propio):
+Para mantener Ignit 100% aislado en base de datos, almacenamiento y despliegue:
 
-1. **Cuenta de proyecto**: Crear o usar `ignit2026@gmail.com` para:
-   - GitHub (repositorio `ignit`)
-   - Neon (proyecto `ignit`, base Postgres + Neon Auth con registro público habilitado)
-   - Render (Web Service `ignit-api` con `backend/render.yaml`)
-   - Cloudflare (Workers `ignit-web` con `web/wrangler.jsonc` + KV opcional / R2 bucket `ignit-books`)
+1. **Cuentas**:
+   - **GitHub** (tu cuenta actual `Santidele22`): repositorio `Santidele22/ignit`.
+   - **`ignit2026@gmail.com`**: cuentas dedicadas para **Neon** (proyecto `ignit`), **Render** (`ignit-api`) y **Cloudflare** (Workers `ignit-web`).
 2. **Git & Remote**:
    ```bash
-   git remote add origin git@github.com:<org-o-usuario>/ignit.git
+   git remote add origin git@github.com:Santidele22/ignit.git
    git push -u origin main
    ```
-3. **Base de datos y Auth (Neon)**:
-   - Habilitar **Neon Auth** con sign-up por email/contraseña habilitado.
-   - Copiar `DATABASE_URL` (pooled), `DATABASE_URL_UNPOOLED` (directa), `NEON_AUTH_BASE_URL` y `NEON_AUTH_JWKS_URL`.
-   - Si usás Better Auth self-hosted (`AUTH_MODE=better`), ejecutar las migraciones de auth con `backend/src/auth/run-auth-migrations.ts` y sincronizar esquema TypeORM en el primer despliegue.
-4. **Object Storage (R2 / B2 / Neon Object Storage)**:
-   - Crear bucket `ignit-books` y configurar `BOOKS_STORAGE=s3`, `BOOKS_S3_BUCKET=ignit-books`, `AWS_REGION`, `AWS_ENDPOINT_URL_S3`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`.
-5. **Backend (Render)**:
-   - Conectar Blueprint `backend/render.yaml`.
-   - Completar secretos `sync: false`: `DATABASE_URL`, `DATABASE_URL_UNPOOLED`, `NEON_AUTH_BASE_URL`, `NEON_AUTH_JWKS_URL`, `AWS_*`, `BETTER_AUTH_URL` (URL pública de Render) y `CORS_ORIGINS` (URL pública del Worker en Cloudflare).
-6. **Frontend (Cloudflare Workers)**:
-   - Actualizar `web/wrangler.jsonc` (`BACKEND_URL`, `NEON_AUTH_BASE_URL`) y `web/astro.config.mjs` (`site` y `PUBLIC_API_BASE_URL` si aplica).
+3. **Base de datos, Auth y Storage en Neon (`ignit2026@gmail.com`)**:
+   - Habilitar **Neon Auth** con registro público (email/contraseña) y copiar `DATABASE_URL` (pooled), `DATABASE_URL_UNPOOLED` (directa), `NEON_AUTH_BASE_URL` y `NEON_AUTH_JWKS_URL`.
+   - **Storage integrado en Neon (sin R2 ni AWS S3 externos)**: el bucket privado `books` se declara en `backend/neon.ts`; ejecutar `neon env pull` sobre la branch de producción para obtener `AWS_ENDPOINT_URL_S3`, `AWS_ACCESS_KEY_ID` y `AWS_SECRET_ACCESS_KEY` (con `BOOKS_STORAGE=s3` y `BOOKS_S3_BUCKET=books`).
+   - Sincronizar tablas TypeORM (`users`, `books`, `reading_states`) una sola vez antes del primer arranque:
+     ```bash
+     cd backend && DB_MODE=prod DATABASE_URL="$DATABASE_URL_UNPOOLED" pnpm db:sync
+     ```
+   - Si alguna vez usás Better Auth self-hosted (`AUTH_MODE=better`), ejecutar también las migraciones de auth con `backend/src/auth/run-auth-migrations.ts`.
+4. **Backend en Render (`ignit2026@gmail.com`)**:
+   - Conectar Blueprint `backend/render.yaml` desde `Santidele22/ignit`.
+   - Completar las variables `sync: false`: `DATABASE_URL`, `DATABASE_URL_UNPOOLED`, `NEON_AUTH_BASE_URL`, `NEON_AUTH_JWKS_URL`, `AWS_ENDPOINT_URL_S3`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `BETTER_AUTH_URL` (URL pública de Render) y `CORS_ORIGINS` (URL pública del Worker en Cloudflare).
+5. **Frontend en Cloudflare Workers (`ignit2026@gmail.com`)**:
+   - Actualizar `web/wrangler.jsonc` (`BACKEND_URL`, `NEON_AUTH_BASE_URL`) y `web/astro.config.mjs` (`site` con la URL del Worker).
    - Ejecutar `cd web && pnpm deploy`.

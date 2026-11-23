@@ -1,5 +1,6 @@
 # Render blueprint — https://render.com/docs/blueprint-spec
-# Deploy under the ignit2026@gmail.com account; fill `sync: false` secrets in Render.
+# Repo on GitHub: Santidele22/ignit (existing GitHub account).
+# Deploy on Render under ignit2026@gmail.com; fill `sync: false` secrets in Render.
 services:
   - type: web
     name: ignit-api
@@ -30,10 +31,14 @@ services:
         sync: false
       - key: DATABASE_URL_UNPOOLED
         sync: false
+      # PDFs and `reading.json` sidecars persist in Neon's built-in private
+      # Object Storage bucket (`buckets.books` in backend/neon.ts), NOT external
+      # Cloudflare R2 or AWS S3. AWS_* values come from `neon env pull` on the
+      # production branch; BOOKS_DOWNLOAD_URL_TTL defaults to 120s.
       - key: BOOKS_STORAGE
         value: 's3'
       - key: BOOKS_S3_BUCKET
-        value: 'ignit-books'
+        value: 'books'
       - key: AWS_REGION
         value: 'us-east-2'
       - key: AWS_ENDPOINT_URL_S3
