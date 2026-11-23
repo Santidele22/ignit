@@ -19,6 +19,7 @@ import ReaderMargins from '../../features/book/reader/ReaderMargins.astro';
 import ReaderStage from '../../features/book/reader/ReaderStage.astro';
 import ReaderTopbar from '../../features/book/reader/ReaderTopbar.astro';
 import ReaderVigiliaOverlays from '../../features/book/reader/ReaderVigiliaOverlays.astro';
+import ThemeScript from '../../shared/ui/ThemeScript.astro';
 
 const rawId = Astro.params.id ?? '';
 const bookId = Number(rawId);
@@ -82,6 +83,7 @@ const pageDescription = book
 	<Font cssVariable="--font-shippori" preload />
 	<Font cssVariable="--font-zen" preload />
 	<Font cssVariable="--font-geist-mono" />
+	<ThemeScript />
 </head>
 <body
 	class="vigilia-body"
