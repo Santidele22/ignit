@@ -111,7 +111,10 @@ export default function BibliotecaApp(props: BibliotecaAppProps) {
 	);
 	const deviceBooks = createMemo(() => salaBooks().filter((book) => book.isOffline));
 	const libraryBooks = createMemo(() => salaBooks().filter((book) => book.inLibrary || book.isOffline));
-	const catalogView = createMemo(() => filterSalaCatalog(salaBooks(), catFilter(), searchQuery()));
+	const publicCatalogBooks = createMemo(() => salaBooks().filter((book) => book.published));
+	const catalogView = createMemo(() =>
+		filterSalaCatalog(publicCatalogBooks(), catFilter(), searchQuery()),
+	);
 	const aporteRows = createMemo(() => deriveAporteRows(salaBooks()));
 	// Continuity only considers the user's own shelf (owned, downloaded or read),
 	// so a fresh account gets the empty card instead of a random catalog book.
@@ -121,7 +124,7 @@ export default function BibliotecaApp(props: BibliotecaAppProps) {
 	const counts = createMemo<Record<SalaTabId, number>>(() => ({
 		device: deviceBooks().length,
 		library: libraryBooks().length,
-		catalog: salaBooks().length,
+		catalog: publicCatalogBooks().length,
 		submissions: aporteRows().length,
 	}));
 
@@ -164,7 +167,10 @@ export default function BibliotecaApp(props: BibliotecaAppProps) {
 			}
 		}
 
-		if (props.initialOwnedBooks.length === 0 || props.initialCatalogBooks.length === 0) {
+		if (
+			(props.initialOwnedBooks.length === 0 || props.initialCatalogBooks.length === 0) &&
+			(typeof navigator === 'undefined' || navigator.onLine !== false)
+		) {
 			await refreshLists();
 		}
 	}
@@ -295,7 +301,11 @@ export default function BibliotecaApp(props: BibliotecaAppProps) {
 				userLabel={props.userLabel}
 				onTabChange={(tab) => setActiveTab(tab)}
 				onToggleOffline={() => {
-					const next = !isOffline();
+					if (navigatorOffline()) {
+						announce('Sin conexión de red en el navegador');
+						return;
+					}
+					const next = !testOffline();
 					setTestOffline(next);
 					setActionError(null);
 					announce(next ? 'Modo sin conexión activado' : 'Modo en línea activado');
