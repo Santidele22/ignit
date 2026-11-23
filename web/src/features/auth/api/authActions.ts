@@ -1,6 +1,6 @@
 import { getManagedAuthClient } from '../../../shared/api/managedAuthClient';
 import { getAuthClient } from './authClient';
-import { signInWithDev, signOutWithDev } from './devAuth';
+import { signInWithDev, signOutWithDev, signUpWithDev } from './devAuth';
 import { refreshSession } from './session';
 import { getAuthMode } from './sessionMode';
 
@@ -30,20 +30,19 @@ export async function signUpWithEmail(
 	password: string,
 ): Promise<{ error: AuthActionError }> {
 	const mode = await getAuthMode();
+	const cleanName = name.trim();
+	const cleanEmail = email.trim();
+
 	if (mode === 'dev') {
-		return {
-			error: {
-				status: 400,
-				message:
-					'En modo dev local el registro público está desactivado; usá las credenciales configuradas en backend/.env.',
-			},
-		};
+		const res = await signUpWithDev(cleanName, cleanEmail, password);
+		if (!res.error) await refreshSession();
+		return res;
 	}
 
 	const client = mode === 'neon' ? await getManagedAuthClient() : getAuthClient();
 	const res = await client.signUp.email({
-		name: name.trim(),
-		email: email.trim(),
+		name: cleanName,
+		email: cleanEmail,
 		password,
 	});
 	return { error: (res.error as AuthActionError) ?? null };

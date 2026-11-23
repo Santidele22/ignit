@@ -21,6 +21,7 @@ Extraído de `personal-page` bajo estrategia **Strangler Fig** como proyecto tot
    cp backend/.env.example backend/.env
    cp web/.env.example web/.env
    ```
+   El backend también carga `backend/.env.local` (con prioridad sobre `backend/.env`), por lo que podés usar cualquiera de los dos. Para trabajar 100% en local sobre SQLite (sin Neon ni Better Auth) con múltiples cuentas en `/registro` y `/login`, configurá `AUTH_MODE=dev`, `ADMIN_EMAIL`, `ADMIN_PASSWORD` y `DEV_SESSION_SECRET` en `backend/.env` (o `backend/.env.local`).
 2. Instalar dependencias:
    ```bash
    cd backend && pnpm install

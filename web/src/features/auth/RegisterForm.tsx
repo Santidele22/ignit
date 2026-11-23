@@ -8,6 +8,9 @@ const CONNECTION_ERROR = 'No se pudo conectar con el servidor. Inténtalo de nue
 
 function signUpErrorMessage(error: AuthActionError): string {
 	if (error?.status === 429) return TOO_MANY_ATTEMPTS;
+	if (error?.status === 409) {
+		return error?.message || 'Ya existe una cuenta registrada con ese correo.';
+	}
 	if (error?.status === 422 || error?.status === 400) {
 		return error?.message || 'El correo ya está registrado o la contraseña no cumple el mínimo (8 caracteres).';
 	}

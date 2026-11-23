@@ -8,18 +8,18 @@ import {
   signDevSession,
   verifyDevSession,
 } from './dev-session.js';
-import type { DevSessionPayload } from './dev-session.js';
+import type { DevRole, DevSessionPayload } from './dev-session.js';
 import { type DevLoginLimit, DevLoginLimiter, devLoginLimitConfig } from './dev-login-limiter.js';
 
 /** Key the per-IP login limiter falls back to when the IP is missing. */
 const LOGIN_LIMIT_UNKNOWN_IP = 'unknown';
 
-/** The single account of the interim mode: the hardcoded `.env` credentials. */
+/** Authenticated user in local `AUTH_MODE=dev` (either `.env` admin or local account). */
 export type DevUser = {
   id: string;
   email: string;
   name: string;
-  role: 'admin';
+  role: DevRole;
 };
 
 function nowSeconds(): number {
@@ -91,6 +91,14 @@ export class DevAuthService {
     this.loginLimiter.reset(ip ?? LOGIN_LIMIT_UNKNOWN_IP);
   }
 
+  /** Whether `email` matches the configured `.env` administrator email. */
+  isAdminEmail(email: string): boolean {
+    return (
+      this.adminEmail.length > 0 &&
+      email.trim().toLowerCase() === this.adminEmail
+    );
+  }
+
   /**
    * Emails are compared without case or surrounding spaces; the password is
    * compared byte for byte. Both comparisons are timing safe.
@@ -106,12 +114,21 @@ export class DevAuthService {
   }
 
   /** Signs a new session and returns its cookie plus the user it represents. */
-  createSession(secure: boolean): { cookie: string; user: DevUser } {
-    const payload: DevSessionPayload = {
+  createSession(
+    secure = false,
+    user?: DevUser,
+  ): { cookie: string; user: DevUser } {
+    const subject: DevUser = user ?? {
       id: 'dev-admin',
       email: this.adminEmail,
       name: this.adminName,
       role: 'admin',
+    };
+    const payload: DevSessionPayload = {
+      id: subject.id,
+      email: subject.email,
+      name: subject.name,
+      role: subject.role,
       exp: nowSeconds() + this.sessionTtl,
     };
 
@@ -139,7 +156,11 @@ export class DevAuthService {
 
     const payload = verifyDevSession(token, this.sessionSecret, nowSeconds());
 
-    if (!payload || payload.email !== this.adminEmail) {
+    if (!payload) {
+      return null;
+    }
+
+    if (payload.role === 'admin' && payload.email !== this.adminEmail) {
       return null;
     }
 
@@ -152,6 +173,15 @@ export class DevAuthService {
   }
 
   private toUser(payload: DevSessionPayload): DevUser {
+    if (payload.role === 'user') {
+      return {
+        id: payload.id as string,
+        email: payload.email,
+        name: payload.name ?? payload.email,
+        role: 'user',
+      };
+    }
+
     return {
       id: payload.id ?? 'dev-admin',
       email: payload.email,

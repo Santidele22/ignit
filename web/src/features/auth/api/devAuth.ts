@@ -1,16 +1,47 @@
-import { getJson, postJson } from '../../../shared/api/http';
+import { getJson, postJson, resolveApiUrl } from '../../../shared/api/http';
 import type { AuthSession, DevSessionSnapshot } from '../types';
 
-/**
- * Message Nest answers with when the interim credentials do not match. The
- * shared `postJson` helper throws the API message instead of the status, so the
- * message of this single-account login is the signal: a wrong email or password
- * is the only `Unauthorized` it can answer.
- */
-const DEV_UNAUTHORIZED = 'Unauthorized';
+/** Result shape of the dev auth actions, mirroring the Better Auth client's `error`. */
+export type DevAuthResult = { error: { status: number; message?: string } | null };
+export type DevSignInResult = DevAuthResult;
 
-/** Result shape of the dev sign-in, mirroring the Better Auth client's `error`. */
-export type DevSignInResult = { error: { status: number } | null };
+async function postDevAuth(path: string, body: Record<string, string>): Promise<DevAuthResult> {
+	const url = await resolveApiUrl(path);
+	const response = await fetch(url, {
+		method: 'POST',
+		credentials: 'include',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify(body),
+	});
+
+	if (response.ok) {
+		return { error: null };
+	}
+
+	const payload = (await response.json().catch(() => null)) as {
+		message?: string | string[];
+	} | null;
+	const message = Array.isArray(payload?.message) ? payload.message[0] : payload?.message;
+
+	return {
+		error: {
+			status: response.status,
+			...(typeof message === 'string' && message.length > 0 ? { message } : {}),
+		},
+	};
+}
+
+/**
+ * Registers a local test account against `POST /api/auth/dev-register`
+ * (`AUTH_MODE=dev`). Sets the signed HttpOnly session cookie on success.
+ */
+export async function signUpWithDev(
+	name: string,
+	email: string,
+	password: string,
+): Promise<DevAuthResult> {
+	return postDevAuth('/auth/dev-register', { name, email, password });
+}
 
 /**
  * Signs in against the interim dev API (`AUTH_MODE=dev`). The API sets the
@@ -21,17 +52,7 @@ export async function signInWithDev(
 	email: string,
 	password: string,
 ): Promise<DevSignInResult> {
-	try {
-		await postJson('/auth/dev-login', { email, password });
-
-		return { error: null };
-	} catch (error) {
-		if (error instanceof Error && error.message === DEV_UNAUTHORIZED) {
-			return { error: { status: 401 } };
-		}
-
-		throw error;
-	}
+	return postDevAuth('/auth/dev-login', { email, password });
 }
 
 /** Session snapshot of the interim dev API; `null` when there is no session. */

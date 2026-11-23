@@ -89,6 +89,20 @@ describe('DevAuthService', () => {
       expect(session.cookie).toContain('Max-Age=120');
       expect(session.user.name).toBe('Santi');
     });
+
+    it('signs and reads back a local multi-account user session', () => {
+      const localUser = {
+        id: 'user-alice',
+        email: 'alice@example.com',
+        name: 'Alice',
+        role: 'user' as const,
+      };
+
+      const session = service.createSession(false, localUser);
+
+      expect(session.user).toEqual(localUser);
+      expect(service.readSession(cookiePair(session.cookie))).toEqual(localUser);
+    });
   });
 
   describe('readSession', () => {

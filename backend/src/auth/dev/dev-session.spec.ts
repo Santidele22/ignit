@@ -73,9 +73,24 @@ describe('signDevSession / verifyDevSession', () => {
     }
   });
 
+  it('round-trips a signed local user payload with an explicit id', () => {
+    const userPayload: DevSessionPayload = {
+      id: 'user-123',
+      email: 'reader@example.com',
+      name: 'Reader',
+      role: 'user',
+      exp: now + 3600,
+    };
+    const token = signDevSession(userPayload, secret);
+
+    expect(verifyDevSession(token, secret, now)).toEqual(userPayload);
+  });
+
   it('rejects a correctly signed payload that is not a dev session', () => {
     for (const value of [
       { email: 'admin@example.com', role: 'user', exp: now + 60 },
+      { id: 'dev-admin', email: 'reader@example.com', role: 'user', exp: now + 60 },
+      { id: 'user-1', email: 'reader@example.com', role: 'guest', exp: now + 60 },
       { email: 'admin@example.com', role: 'admin' },
       { email: '', role: 'admin', exp: now + 60 },
       { email: 'admin@example.com', role: 'admin', exp: 'soon' },

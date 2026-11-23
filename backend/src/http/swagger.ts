@@ -32,7 +32,7 @@ export function buildSwaggerConfig() {
         '### Authentication (`AUTH_MODE`)',
         '- **neon** (production): send `Authorization: Bearer <JWT>` verified against Neon Auth JWKS.',
         '- **better**: Better Auth mounts `/api/auth/*` (with public email/password sign-up enabled) and uses the `better-auth.session_token` cookie.',
-        '- **dev**: interim credential endpoints at `/api/auth/dev-login`, `/api/auth/dev-session`, `/api/auth/dev-logout` using an HMAC-signed cookie.',
+        '- **dev**: local multi-account endpoints at `/api/auth/dev-register`, `/api/auth/dev-login`, `/api/auth/dev-session`, `/api/auth/dev-logout` using an HMAC-signed cookie.',
         '- **SQLite fallback (`ALLOW_NO_AUTH=true`)**: no auth guard is mounted (local dev / tests only).',
       ].join('\n'),
     )

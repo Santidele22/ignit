@@ -47,7 +47,7 @@ if (startupError) {
           }),
         ]
       : []),
-    ...(devAuthMounted ? [DevAuthModule] : []),
+    ...(devAuthMounted ? [DevAuthModule.register()] : []),
   ],
   controllers: [
     ...(betterAuthMounted ? [AuthController] : []),

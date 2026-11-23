@@ -54,8 +54,12 @@ async function readSession(): Promise<void> {
 
 	try {
 		const mode = await getAuthMode();
-		const client = mode === 'neon' ? await getManagedAuthClient() : getAuthClient();
-		next = mode === 'dev' ? await readDevSession() : await readBetterAuthSession(client);
+		if (mode === 'dev') {
+			next = await readDevSession();
+		} else {
+			const client = mode === 'neon' ? await getManagedAuthClient() : getAuthClient();
+			next = await readBetterAuthSession(client);
+		}
 	} catch {
 		next = null;
 	}

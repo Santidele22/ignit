@@ -27,6 +27,7 @@ export type { AuthMode } from '../../shared/api/sessionMode';
 /** Snapshot the interim dev API returns from `/auth/dev-session`. */
 export type DevSessionSnapshot = {
 	user: {
+		id?: string;
 		email: string;
 		name?: string;
 		role: string;

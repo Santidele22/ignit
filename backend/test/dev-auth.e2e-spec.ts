@@ -177,4 +177,146 @@ describe('Dev auth (e2e)', () => {
       .expect(429);
     expect(Number(blocked.headers['retry-after'])).toBeGreaterThan(0);
   });
+
+  it('registers multiple local accounts, isolates their libraries, and supports dev-login', async () => {
+    const alice = request.agent(server());
+    const aliceReg = await alice
+      .post('/api/auth/dev-register')
+      .send({ name: 'Alice', email: 'Alice@Example.com', password: 'password-alice' })
+      .expect(201);
+
+    expect(aliceReg.body.user).toMatchObject({
+      email: 'alice@example.com',
+      name: 'Alice',
+      role: 'user',
+    });
+    expect(typeof aliceReg.body.user.id).toBe('string');
+    expect(setCookie(aliceReg)).toContain(`${DEV_SESSION_COOKIE}=`);
+    expect(setCookie(aliceReg)).toContain('HttpOnly');
+
+    const aliceBook = await alice
+      .post('/books')
+      .send({ ...bookInput, title: 'Alice Book', published: false })
+      .expect(201);
+    expect(aliceBook.body.ownerId).toBe(aliceReg.body.user.id);
+
+    const bob = request.agent(server());
+    const bobReg = await bob
+      .post('/api/auth/dev-register')
+      .send({ name: 'Bob', email: 'bob@example.com', password: 'password-bob' })
+      .expect(201);
+    expect(bobReg.body.user.id).not.toBe(aliceReg.body.user.id);
+
+    const bobMine = await bob.get('/books?mine=true').expect(200);
+    expect(bobMine.body).toEqual([]);
+
+    const aliceMine = await alice.get('/books?mine=true').expect(200);
+    expect(aliceMine.body).toHaveLength(1);
+    expect(aliceMine.body[0].title).toBe('Alice Book');
+
+    // Logout and sign back in with the registered credentials.
+    await alice.post('/api/auth/dev-logout').expect(200);
+    await alice.get('/api/auth/dev-session').expect(401);
+
+    await alice
+      .post('/api/auth/dev-login')
+      .send({ email: 'alice@example.com', password: 'wrong-password' })
+      .expect(401);
+
+    const relogin = await alice
+      .post('/api/auth/dev-login')
+      .send({ email: 'ALICE@example.com', password: 'password-alice' })
+      .expect(200);
+    expect(relogin.body.user).toEqual(aliceReg.body.user);
+
+    const session = await alice.get('/api/auth/dev-session').expect(200);
+    expect(session.body.user).toEqual(aliceReg.body.user);
+  });
+
+  it('rejects duplicate, admin-reserved, or invalid dev-register payloads without creating accounts', async () => {
+    await request(server())
+      .post('/api/auth/dev-register')
+      .send({ name: 'Short Pass', email: 'short@example.com', password: '123' })
+      .expect(400);
+
+    await request(server())
+      .post('/api/auth/dev-register')
+      .send({ name: 'Admin Clone', email: ADMIN_EMAIL, password: 'password-1234' })
+      .expect(409);
+
+    await request(server())
+      .post('/api/auth/dev-register')
+      .send({ name: 'First', email: 'dup@example.com', password: 'password-1234' })
+      .expect(201);
+
+    await request(server())
+      .post('/api/auth/dev-register')
+      .send({ name: 'Second', email: 'DUP@example.com', password: 'password-5678' })
+      .expect(409);
+
+    await request(server())
+      .post('/api/auth/dev-login')
+      .send({ email: 'short@example.com', password: '123' })
+      .expect(401);
+  });
+
+  it('blocks role escalation, cross-user private book access, blank names, and throttles failed local logins', async () => {
+    await request(server())
+      .post('/api/auth/dev-register')
+      .send({ name: '   ', email: 'blank-name@example.com', password: 'password-1234' })
+      .expect(400);
+
+    const alice = request.agent(server());
+    const aliceReg = await alice
+      .post('/api/auth/dev-register')
+      .send({
+        name: 'Alice',
+        email: 'alice-sec@example.com',
+        password: 'password-alice',
+        role: 'admin',
+        id: 'dev-admin',
+      })
+      .expect(201);
+    expect(aliceReg.body.user.role).toBe('user');
+    expect(aliceReg.body.user.id).not.toBe('dev-admin');
+
+    const alicePrivate = await alice
+      .post('/books')
+      .send({ ...bookInput, title: 'Secret', published: false })
+      .expect(201);
+
+    const bob = request.agent(server());
+    await bob
+      .post('/api/auth/dev-register')
+      .send({ name: 'Bob', email: 'bob-sec@example.com', password: 'password-bob' })
+      .expect(201);
+
+    await bob.get(`/books/${alicePrivate.body.id}`).expect(404);
+    await bob.patch(`/books/${alicePrivate.body.id}`).send({ title: 'X' }).expect(404);
+    await bob.delete(`/books/${alicePrivate.body.id}`).expect(404);
+
+    const now = Math.floor(Date.now() / 1000);
+    for (const spoofedId of ['dev-admin', ' dev-admin ']) {
+      const spoofed = signDevSession(
+        { id: spoofedId, email: 'bob-sec@example.com', name: 'Bob', role: 'user', exp: now + 600 },
+        DEV_SESSION_SECRET,
+      );
+      await request(server())
+        .get('/api/auth/dev-session')
+        .set('Cookie', `${DEV_SESSION_COOKIE}=${spoofed}`)
+        .expect(401);
+    }
+
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      await request(server())
+        .post('/api/auth/dev-login')
+        .send({ email: 'alice-sec@example.com', password: 'wrong-password' })
+        .expect(401);
+    }
+    const blocked = await request(server())
+      .post('/api/auth/dev-login')
+      .send({ email: 'alice-sec@example.com', password: 'password-alice' })
+      .expect(429);
+    expect(Number(blocked.headers['retry-after'])).toBeGreaterThan(0);
+  });
 });

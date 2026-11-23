@@ -24,6 +24,18 @@ export function noAuthStartupError(
     return null;
   }
 
+  if (env.DB_MODE === 'dev') {
+    return (
+      '[auth] Refusing to boot without an auth stack: DB_MODE=dev uses ' +
+      'local SQLite (ignoring DATABASE_URL, so Better Auth is not mounted) ' +
+      'and no AUTH_MODE=dev credentials are set, so no guard would run and ' +
+      'every mutation would be open. Set AUTH_MODE=dev with ADMIN_EMAIL, ' +
+      'ADMIN_PASSWORD and DEV_SESSION_SECRET, switch to DB_MODE=dev-neon ' +
+      'with DATABASE_URL, or explicitly opt out with ALLOW_NO_AUTH=true ' +
+      '(tests and local dev only).'
+    );
+  }
+
   return (
     '[auth] Refusing to boot without an auth stack: no DATABASE_URL ' +
     '(Better Auth) and no AUTH_MODE=dev credentials, so no guard would run ' +

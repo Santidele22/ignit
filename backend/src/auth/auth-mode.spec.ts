@@ -176,4 +176,29 @@ describe('noAuthStartupError', () => {
     // Anything else than the exact opt-out keeps the boot fail-closed.
     expect(noAuthStartupError({ ALLOW_NO_AUTH: 'yes' }, false)).not.toBeNull();
   });
+
+  it('explains that DB_MODE=dev ignores DATABASE_URL instead of blaming a missing URL', () => {
+    const message = noAuthStartupError(
+      { DB_MODE: 'dev', DATABASE_URL: 'postgresql://app:app@localhost:5432/ignit' },
+      false,
+    );
+
+    expect(message).toContain('Refusing to boot');
+    expect(message).toContain('DB_MODE=dev');
+    expect(message).toContain('SQLite');
+    expect(message).toContain('DB_MODE=dev-neon');
+    expect(message).toContain('AUTH_MODE=dev');
+    expect(message).toContain('ALLOW_NO_AUTH=true');
+    expect(message).not.toContain('no DATABASE_URL');
+    expect(
+      noAuthStartupError(
+        {
+          DB_MODE: 'dev',
+          DATABASE_URL: 'postgresql://app:app@localhost:5432/ignit',
+          ALLOW_NO_AUTH: 'true',
+        },
+        false,
+      ),
+    ).toBeNull();
+  });
 });

@@ -15,6 +15,7 @@ export {
 export {
   DEFAULT_DEV_SESSION_TTL,
   readDevSessionTtl,
+  type DevRole,
   type DevSessionPayload,
 } from './dev-session-payload.js';
 export { signDevSession, verifyDevSession } from './dev-session-token.js';

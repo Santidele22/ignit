@@ -30,6 +30,13 @@ need pnpm
 
 : "${DB_MODE:=dev}"
 export DB_MODE
+if [[ "$DB_MODE" == "dev" ]]; then
+  # Local SQLite dev does not mount Better Auth; opt into ALLOW_NO_AUTH=true
+  # unless the caller overrides it. When AUTH_MODE=dev credentials are set in
+  # backend/.env, dev auth still mounts and guards all routes normally.
+  : "${ALLOW_NO_AUTH=true}"
+  export ALLOW_NO_AUTH
+fi
 
 port_is_used() {
   (exec 3<>"/dev/tcp/127.0.0.1/$1") 2>/dev/null || return 1
@@ -39,8 +46,8 @@ port_is_ready() {
   curl -sf --max-time 2 "$1" >/dev/null 2>&1
 }
 
-if [[ ! -f "$BACKEND/.env" ]]; then
-  echo "error: backend/.env is missing. Copy backend/.env.example to backend/.env first." >&2
+if [[ ! -f "$BACKEND/.env" && ! -f "$BACKEND/.env.local" ]]; then
+  echo "error: backend/.env (or backend/.env.local) is missing. Copy backend/.env.example to backend/.env or backend/.env.local first." >&2
   exit 1
 fi
 
@@ -115,7 +122,10 @@ fi
 echo "" >&2
 MODE="$(curl -sf "http://localhost:3000/session-mode")"
 echo "    API ready:  http://localhost:3000  (session-mode: $MODE)" >&2
-echo "    App ready:  http://localhost:4321  (login: /login, biblioteca: /biblioteca)" >&2
+if [[ "$MODE" == *'"guarded":false'* ]]; then
+  echo "    Note:       auth is unmounted on SQLite. Set AUTH_MODE=dev, ADMIN_EMAIL, ADMIN_PASSWORD and DEV_SESSION_SECRET in backend/.env (or backend/.env.local) to enable local multi-account login/signup." >&2
+fi
+echo "    App ready:  http://localhost:4321  (login: /login, registro: /registro, biblioteca: /biblioteca)" >&2
 echo "    Ctrl+C stops both." >&2
 echo ""
 echo "==> starting Ignit Astro dev server on http://localhost:4321"

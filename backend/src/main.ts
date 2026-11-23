@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import './config/bootstrap-env.js';
 import { ClassSerializerInterceptor, ValidationPipe } from '@nestjs/common';
 import { NestFactory, Reflector } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';

@@ -5,15 +5,18 @@
  * parsing and the expiry predicate live next to the shape they describe.
  */
 
+export type DevRole = 'admin' | 'user';
+
 /**
- * Content of the signed dev session cookie. `role` is always `admin`: the
- * interim mode knows a single account, the one in the `.env`.
+ * Content of the signed dev session cookie. Supports the `.env` administrator
+ * (`role: 'admin'`) as well as locally registered multi-user test accounts
+ * (`role: 'user'`).
  */
 export type DevSessionPayload = {
   email: string;
   name?: string;
-  role: 'admin';
-  /** Stable id of the interim administrator, used as ownerId by the admin panels. */
+  role: DevRole;
+  /** Stable id of the signed-in account (required for `role: 'user'`). */
   id?: string;
   /** Expiry as a Unix timestamp in seconds. */
   exp: number;
@@ -43,14 +46,24 @@ export function isDevSessionPayload(
 
   const candidate = value as Partial<DevSessionPayload>;
 
+  if (candidate.role !== 'admin' && candidate.role !== 'user') {
+    return false;
+  }
+
+  const validId =
+    candidate.role === 'user'
+      ? typeof candidate.id === 'string' &&
+        candidate.id.trim().length > 0 &&
+        candidate.id.trim() !== 'dev-admin'
+      : candidate.id === undefined || typeof candidate.id === 'string';
+
   return (
     typeof candidate.email === 'string' &&
     candidate.email.length > 0 &&
-    candidate.role === 'admin' &&
     typeof candidate.exp === 'number' &&
     Number.isFinite(candidate.exp) &&
     (candidate.name === undefined || typeof candidate.name === 'string') &&
-    (candidate.id === undefined || typeof candidate.id === 'string')
+    validId
   );
 }
 
