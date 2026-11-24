@@ -16,10 +16,12 @@ Branch: `feat/admin-dashboard-determinista`
 ## Tasks
 
 - [x] T1 (S1) | inline | Structured per-tier pipeline report in `pdf-firewall.service.ts` (+ types), preserving rejection identity, with RED→GREEN spec tests | commit: `d1dbe69`
-- [x] T2 (S2, S3) | inline | Persist `firewall.json` sidecar at upload (accepted + rejected) and admin `GET /admin/books/:id/firewall`, with tests | commit: `9af884c`
+
+Slice boundary recorded after T4: 4 commits / 1.827 authored lines on the feature branch (larger than the ~400-line slice because each backend and web unit arrived with its own tests in the same behavior); delivery shape to choose at publishing time (candidates: chained PRs by unit).
+- [x] T2 (S2, S3) | inline | Persist `firewall.json` sidecar at upload (accepted + rejected) and admin `GET /admin/books/:id/firewall`, with tests | commit: `e2d3a0a`
 - [x] T3 (S5) | inline | Single-source editorial style reference module + admin `GET /admin/ai/style-reference`, with tests | commit: `74daf4b`
-- [x] T4 (S4, S6, S7-web) | inline | /admin UI: pipeline detail view per book and LLM style-reference section, web tests | commit: `COMMIT
-- [ ] T5 (S1–S7) | verify | Full verification: backend + web suites, builds, live check of /admin, Risk assessment | commit:
+- [x] T4 (S4, S6, S7-web) | inline | /admin UI: pipeline detail view per book and LLM style-reference section, web tests | commit: `7396f76`
+- [x] T5 (S1–S7) | verify | Independent verification (`gentle-ai-verify`, Risk: item 3): S1/S2/S3/S5/S6 PASS, S7 PASS; S4 FAIL caught (non-reactive load trigger) -> fixed in `c44589c` + prompt-identity byte test (sha256 `f80a5bbe…6e76e2`) + controller HTTP guard test. Live e2e: hostile upload -> 400 Spanish message + rejected sidecar with per-tier states; clean upload -> all tiers passed; guards live 401/403. Browser render check left to the admin user. | commit: `c44589c`
 
 ## Log
 
