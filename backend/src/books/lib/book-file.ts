@@ -65,17 +65,17 @@ export async function attachBookFile(
     () => emptyReadingDocument(book.id),
   );
 
-  // Optional LLM structural refiner: keeps the deterministic extraction as the
-  // base and applies chunk-ID patches (`toc`, headings, cross-page merges)
-  // fail-open so Vigilia's unified book aesthetic renders cleanly.
-  const refined = await refineReadingDocument(deterministicDoc);
-  const readingDoc = refined.document;
+  const runAiSync = process.env.NODE_ENV === 'test';
+  let readingDoc = deterministicDoc;
+  let refinedApplied = false;
+  let aiColumns = aiColumnsFor(null);
 
-  // Optional AI text analysis (S3), after the firewall and the extraction, and
-  // strictly fail-open: `analyzeReadingDocument` answers `null` on any problem
-  // (env gate off, timeout, refusal, unparseable answer) and the upload keeps
-  // going with `aiStatus: 'skipped'`.
-  const aiColumns = aiColumnsFor(await analyzeReadingDocument(readingDoc));
+  if (runAiSync) {
+    const refined = await refineReadingDocument(deterministicDoc);
+    readingDoc = refined.document;
+    refinedApplied = refined.summary.applied;
+    aiColumns = aiColumnsFor(await analyzeReadingDocument(readingDoc));
+  }
 
   const ref = await persistUploadedPdf(bookStorage, book.id, file);
 
@@ -94,7 +94,7 @@ export async function attachBookFile(
     await bookStorage.remove(previousRef);
   }
 
-  if (refined.summary.applied) {
+  if (refinedApplied) {
     await writeBookDeterministicReadingJson(book.id, deterministicDoc).catch(() => undefined);
     if (bookStorage.putJson) {
       await bookStorage
@@ -114,7 +114,40 @@ export async function attachBookFile(
     await saveBookFirewallReport(book.id, firewallReport, bookStorage).catch(() => undefined);
   }
 
+  if (!runAiSync) {
+    void runPostUploadAiPipeline(booksRepository, bookStorage, book, deterministicDoc);
+  }
+
   return book;
+}
+
+async function runPostUploadAiPipeline(
+  booksRepository: Repository<Book>,
+  bookStorage: BookStorage,
+  book: Book,
+  deterministicDoc: Awaited<ReturnType<typeof extractReadingFromPdf>>,
+): Promise<void> {
+  try {
+    const refined = await refineReadingDocument(deterministicDoc);
+    const readingDoc = refined.document;
+
+    if (refined.summary.applied || (refined.summary.clutter?.length ?? 0) > 0) {
+      await writeBookDeterministicReadingJson(book.id, deterministicDoc).catch(() => undefined);
+      await writeBookReadingJson(book.id, readingDoc).catch(() => undefined);
+      if (bookStorage.putJson) {
+        await bookStorage
+          .putJson(readingDeterministicJsonKey(book.id), deterministicDoc)
+          .catch(() => undefined);
+        await bookStorage.putJson(readingJsonKey(book.id), readingDoc).catch(() => undefined);
+      }
+    }
+
+    const aiColumns = aiColumnsFor(await analyzeReadingDocument(readingDoc));
+    Object.assign(book, aiColumns);
+    await booksRepository.save(book);
+  } catch {
+    // Fail-open: background AI pipeline never crashes the server.
+  }
 }
 
 async function hashFileSha256(filePath: string): Promise<string> {

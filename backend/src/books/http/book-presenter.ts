@@ -43,7 +43,11 @@ export function presentBook(
   const owner = isBookOwner(book, user);
   const copy = Object.assign({}, book) as Book;
   if (owner || isAdminUser(user)) {
-    return Object.assign(stripModerationColumns(copy), { isOwner: owner });
+    const stripped = stripModerationColumns(copy);
+    if (owner && book.reviewStatus) {
+      return Object.assign(stripped, { isOwner: owner, reviewStatus: book.reviewStatus });
+    }
+    return Object.assign(stripped, { isOwner: owner });
   }
   const { ownerId: _ownerId, ...publicBook } = copy;
   return Object.assign(stripModerationColumns(publicBook), { isOwner: false });

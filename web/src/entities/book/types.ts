@@ -12,6 +12,7 @@ export type Book = {
 	kind: BookKind;
 	review?: string;
 	published: boolean;
+	reviewStatus?: 'pending' | 'approved' | 'rejected' | null;
 	hasFile?: boolean;
 	fileSizeBytes?: number;
 	isOwner?: boolean;

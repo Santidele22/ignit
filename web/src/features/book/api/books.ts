@@ -30,6 +30,7 @@ type ApiBook = {
 	kind?: string | null;
 	review?: string | null;
 	published?: boolean | null;
+	reviewStatus?: 'pending' | 'approved' | 'rejected' | null;
 	originalName?: string | null;
 	fileSize?: string | null;
 	mimeType?: string | null;
@@ -62,6 +63,7 @@ function mapBook(book: ApiBook): Book {
 		kind,
 		review: book.review ?? undefined,
 		published: book.published === true,
+		...(book.reviewStatus ? { reviewStatus: book.reviewStatus } : {}),
 		hasFile: Boolean(book.filePath || book.originalName),
 		...(fileSizeBytes !== undefined ? { fileSizeBytes } : {}),
 		...(typeof book.isOwner === 'boolean' ? { isOwner: book.isOwner } : {}),

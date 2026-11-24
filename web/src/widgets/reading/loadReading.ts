@@ -137,7 +137,8 @@ async function loadReadingDocument() {
 		mountRenderWindow(win.start, win.end);
 
 		const hasSavedPosition =
-			Boolean(state.progress?.chunkId) || (state.progress?.page ?? 1) > 1;
+			startTargetIdx > 0 &&
+			(Boolean(state.progress?.chunkId) || (state.progress?.page ?? 1) > 1);
 		if (hasSavedPosition) {
 			const savedItem = getDisplayItems()[startTargetIdx];
 			const savedEl = savedItem ? findRenderedElementForItem(savedItem) : null;

@@ -41,32 +41,35 @@ export async function refineReadingDocument(
     return skipped;
   }
 
-  const allPatches: RefinerPatch[] = [];
-  for (const batch of batches) {
-    try {
-      const response = await fetchImpl(chatCompletionsUrl(endpoint.baseUrl), {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          authorization: `Bearer ${endpoint.apiKey}`,
-        },
-        body: JSON.stringify({
-          model: endpoint.model,
-          messages: refinerMessages(batch),
-          temperature: 0.1,
-        }),
-        signal: AbortSignal.timeout(options.timeoutMs ?? REFINER_TIMEOUT_MS),
-      });
+  const batchResults = await Promise.all(
+    batches.map(async (batch): Promise<RefinerPatch[]> => {
+      try {
+        const response = await fetchImpl(chatCompletionsUrl(endpoint.baseUrl), {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            authorization: `Bearer ${endpoint.apiKey}`,
+          },
+          body: JSON.stringify({
+            model: endpoint.model,
+            messages: refinerMessages(batch),
+            temperature: 0.1,
+          }),
+          signal: AbortSignal.timeout(options.timeoutMs ?? REFINER_TIMEOUT_MS),
+        });
 
-      if (!response.ok) {
-        continue;
+        if (!response.ok) {
+          return [];
+        }
+
+        return parseRefinerPatches(await response.json());
+      } catch {
+        return [];
       }
+    }),
+  );
 
-      allPatches.push(...parseRefinerPatches(await response.json()));
-    } catch {
-      continue;
-    }
-  }
+  const allPatches = batchResults.flat();
 
   if (allPatches.length === 0) {
     return skipped;

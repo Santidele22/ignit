@@ -35,6 +35,7 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 	const [published, setPublished] = createSignal(false);
 	const [file, setFile] = createSignal<File | null>(null);
 	const [createdRow, setCreatedRow] = createSignal<AdminBookRow | null>(null);
+	const [submittedTitle, setSubmittedTitle] = createSignal<string | null>(null);
 	const [submitting, setSubmitting] = createSignal(false);
 	const [error, setError] = createSignal<string | null>(null);
 
@@ -54,6 +55,7 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 		setPublished(false);
 		setFile(null);
 		setCreatedRow(null);
+		setSubmittedTitle(null);
 		setError(null);
 		if (fileInput) fileInput.value = '';
 	}
@@ -133,18 +135,20 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 		}
 
 		if (!selected) {
+			const titleCopy = created.title;
 			resetForm();
+			setSubmittedTitle(titleCopy);
 			setSubmitting(false);
 			props.onCreated(created, 'created');
-			props.onClose();
 			return;
 		}
 
 		try {
 			await uploadBookFile(created.id, selected);
+			const titleCopy = created.title;
 			resetForm();
+			setSubmittedTitle(titleCopy);
 			props.onCreated(created, 'created');
-			props.onClose();
 		} catch (cause) {
 			const message = cause instanceof Error ? cause.message : 'No se pudo subir el PDF.';
 			setError(
@@ -230,7 +234,30 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 						Cerrar ✕
 					</button>
 				</div>
-				<form onSubmit={(event) => void handleSubmit(event)}>
+				<Show
+					when={!submittedTitle()}
+					fallback={
+						<div class="modal-body">
+							<p class="pipe-notice" role="status">
+								<strong>¡Listo!</strong> «{submittedTitle()}» fue enviado al pipeline de revisión.
+								En breve vas a recibir una notificación cuando pase las fases de seguridad y diseño.
+							</p>
+							<div class="modal-foot">
+								<button
+									type="button"
+									class="btn-primary"
+									onClick={() => {
+										resetForm();
+										props.onClose();
+									}}
+								>
+									Entendido
+								</button>
+							</div>
+						</div>
+					}
+				>
+					<form onSubmit={(event) => void handleSubmit(event)}>
 					<div class="modal-body">
 						<div
 							class="drop-pdf"
@@ -357,6 +384,7 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 						</button>
 					</div>
 				</form>
+				</Show>
 			</div>
 		</div>
 	);

@@ -52,6 +52,18 @@ export default function AdminQueueApp(props: AdminQueueAppProps) {
 	const [signingOut, setSigningOut] = createSignal(false);
 	const [pipelineId, setPipelineId] = createSignal<number | null>(null);
 	const [clutterId, setClutterId] = createSignal<number | null>(null);
+	const [phaseChecks, setPhaseChecks] = createSignal<Record<number, { security: boolean; design: boolean }>>({});
+
+	function getPhases(bookId: number) {
+		return phaseChecks()[bookId] ?? { security: false, design: false };
+	}
+
+	function togglePhase(bookId: number, phase: 'security' | 'design', checked: boolean) {
+		setPhaseChecks((prev) => {
+			const current = prev[bookId] ?? { security: false, design: false };
+			return { ...prev, [bookId]: { ...current, [phase]: checked } };
+		});
+	}
 
 	let noteInput: HTMLInputElement | undefined;
 	let confirmInput: HTMLButtonElement | undefined;
@@ -278,26 +290,53 @@ export default function AdminQueueApp(props: AdminQueueAppProps) {
 												</Show>
 											</div>
 
-											<div class="row-toggles" role="group" aria-label="Etapas del pipeline">
+										<div class="row-phases">
+											<section class="phase-card" aria-label="Fase 1: Seguridad">
+												<div class="phase-head">
+													<span class="phase-title">Fase 1 · Seguridad</span>
+													<label class="phase-check">
+														<input
+															type="checkbox"
+															checked={getPhases(book.id).security}
+															onChange={(event) => togglePhase(book.id, 'security', event.currentTarget.checked)}
+														/>
+														<span>{getPhases(book.id).security ? 'Aprobada' : 'Marcar aprobada'}</span>
+													</label>
+												</div>
 												<button
 													class="pipeline-toggle"
 													type="button"
 													aria-expanded={pipelineId() === book.id}
 													onClick={() => setPipelineId(pipelineId() === book.id ? null : book.id)}
 												>
-													{pipelineId() === book.id ? '1 · Ocultar seguridad' : '1 · Seguridad'}
+													{pipelineId() === book.id ? 'Ocultar firewall' : 'Ver firewall'}
 												</button>
+												<FirewallPipeline bookId={book.id} open={pipelineId() === book.id} />
+											</section>
+
+											<section class="phase-card" aria-label="Fase 2: Diseño y contenido">
+												<div class="phase-head">
+													<span class="phase-title">Fase 2 · Diseño y preview</span>
+													<label class="phase-check">
+														<input
+															type="checkbox"
+															checked={getPhases(book.id).design}
+															onChange={(event) => togglePhase(book.id, 'design', event.currentTarget.checked)}
+														/>
+														<span>{getPhases(book.id).design ? 'Aprobado' : 'Marcar aprobado'}</span>
+													</label>
+												</div>
 												<button
 													class="pipeline-toggle"
 													type="button"
 													aria-expanded={clutterId() === book.id}
 													onClick={() => setClutterId(clutterId() === book.id ? null : book.id)}
 												>
-													{clutterId() === book.id ? '2 · Ocultar diseño y preview' : '2 · Diseño, preview y IA'}
+													{clutterId() === book.id ? 'Ocultar diseño y preview' : 'Ver diseño, preview y suciedad'}
 												</button>
-											</div>
-											<FirewallPipeline bookId={book.id} open={pipelineId() === book.id} />
-											<BookClutterPanel bookId={book.id} open={clutterId() === book.id} />
+												<BookClutterPanel bookId={book.id} open={clutterId() === book.id} />
+											</section>
+										</div>
 										</div>
 
 										<div class="row-actions">
@@ -309,7 +348,12 @@ export default function AdminQueueApp(props: AdminQueueAppProps) {
 												<button
 													class="btn-approve"
 													type="button"
-													disabled={isBusy()}
+													disabled={isBusy() || !getPhases(book.id).security || !getPhases(book.id).design}
+													title={
+														!getPhases(book.id).security || !getPhases(book.id).design
+															? 'Aprobá Fase 1 (Seguridad) y Fase 2 (Diseño) para aceptar'
+															: 'Aceptar libro'
+													}
 													onClick={() => arm(book, 'approve')}
 												>
 													Aceptar

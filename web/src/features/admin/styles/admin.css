@@ -447,6 +447,48 @@ body.admin-body .row-ai {
 	color: var(--b-faint);
 }
 
+body.admin-body .row-phases {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+	gap: 10px;
+	margin-top: 10px;
+}
+
+body.admin-body .phase-card {
+	padding: 10px 12px;
+	border: 1px solid var(--b-border);
+	background: color-mix(in oklab, var(--b-panel-2) 60%, var(--b-panel));
+}
+
+body.admin-body .phase-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin-bottom: 6px;
+}
+
+body.admin-body .phase-title {
+	font-family: var(--b-mono);
+	font-size: 10px;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--b-fg);
+}
+
+body.admin-body .phase-check {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-family: var(--b-mono);
+	font-size: 10px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--b-body);
+	cursor: pointer;
+}
+
 body.admin-body .row-toggles {
 	display: flex;
 	flex-wrap: wrap;

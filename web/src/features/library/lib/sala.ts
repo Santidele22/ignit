@@ -229,11 +229,13 @@ export function mergeSalaBooks(input: MergeSalaBooksInput): SalaBook[] {
 				? 100
 				: 0;
 		const progressPage = snap ? snap.page : 0;
-		const inLibrary = Boolean(book.isOwner || isOffline || snap);
+		const isUnapproved = book.reviewStatus === 'pending' || book.reviewStatus === 'rejected';
+		const inLibrary = !isUnapproved && Boolean(book.isOwner || isOffline || snap);
 		const sizeKb = offline ? offline.kb : bookSizeKb(book);
 
 		return {
 			...book,
+			published: Boolean(book.published && !isUnapproved),
 			idx: String(index + 1).padStart(2, '0'),
 			catLabel: kindLabel(book.kind),
 			isOffline,
