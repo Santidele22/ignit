@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { Repository } from 'typeorm';
 import { plainToInstance } from 'class-transformer';
+import { PDFDocument } from 'pdf-lib';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PaginationQueryDto } from '../common/pagination/pagination.dto.js';
 import { ReadingStatus } from '../common/enums/reading-status.enum.js';
@@ -110,7 +111,11 @@ describe('BooksService storage interplay', () => {
 
   const uploadedFile = async () => {
     const path = join(dir, 'temp.pdf');
-    await writeFile(path, '%PDF-1.4\n');
+    // A structurally valid PDF: the firewall parses every upload with `pdf-lib`
+    // before it may reach storage, so a header-only stub is rejected.
+    const doc = await PDFDocument.create();
+    doc.addPage();
+    await writeFile(path, await doc.save({ useObjectStreams: false }));
     return { path, originalname: 'clean-code.pdf', size: 9, mimetype: 'application/pdf' };
   };
 
