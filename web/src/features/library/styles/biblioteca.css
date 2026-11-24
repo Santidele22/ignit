@@ -58,6 +58,7 @@ body.biblioteca-body {
 	font-family: var(--b-sans);
 	-webkit-font-smoothing: antialiased;
 	min-height: 100vh;
+	min-height: 100dvh;
 	overflow-x: hidden;
 }
 
@@ -189,9 +190,31 @@ body.biblioteca-body header.app-top {
 	position: sticky;
 	top: 0;
 	z-index: 20;
+	border-bottom: 1px solid var(--b-border);
+}
+
+/* The glass layer lives on a pseudo-element on purpose (S1): `backdrop-filter`
+   on the header itself turns it into the containing block of every
+   `position: fixed` descendant, which traps the `<= 768px` bottom tab bar
+   inside the header box. The pseudo never contains the tablist, so the bar
+   stays fixed to the viewport while desktop keeps the identical glass look. */
+body.biblioteca-body header.app-top::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	z-index: -1;
+	pointer-events: none;
 	background: rgb(var(--b-bg-rgb) / 0.88);
 	backdrop-filter: blur(12px);
-	border-bottom: 1px solid var(--b-border);
+}
+
+/* Mobile-only chrome is inert on the desktop/tablet header (S1). */
+body.biblioteca-body .tab-icon,
+body.biblioteca-body .tab-label-short,
+body.biblioteca-body .top-compact-actions,
+body.biblioteca-body .mobile-menu-toggle,
+body.biblioteca-body .mobile-menu {
+	display: none;
 }
 
 body.biblioteca-body .top-inner {
@@ -374,6 +397,14 @@ body.biblioteca-body .user-avatar {
 	justify-content: center;
 	font-weight: 700;
 	font-size: 10px;
+	flex: 0 0 auto;
+}
+
+body.biblioteca-body .user-name {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	max-width: 16ch;
 }
 
 body.biblioteca-body .btn-ghost {
@@ -434,6 +465,9 @@ body.biblioteca-body main.shell {
 	max-width: 1360px;
 	margin: 0 auto;
 	padding: 28px clamp(16px, 4vw, 40px) 72px;
+	/* Never let content slide under a notch/rounded corner (S2). */
+	padding-left: max(clamp(16px, 4vw, 40px), env(safe-area-inset-left));
+	padding-right: max(clamp(16px, 4vw, 40px), env(safe-area-inset-right));
 }
 
 /* ------------------------------- hero-dash: continuidad + almacenamiento -- */
@@ -486,6 +520,17 @@ body.biblioteca-body .resume-card::after {
 @media (max-width: 600px) {
 	body.biblioteca-body .resume-card {
 		grid-template-columns: 1fr;
+		gap: 16px;
+	}
+
+	body.biblioteca-body .resume-cover {
+		max-width: 190px;
+		margin-inline: auto;
+	}
+
+	body.biblioteca-body .resume-bottom {
+		flex-direction: column;
+		align-items: stretch;
 	}
 }
 
@@ -584,6 +629,10 @@ body.biblioteca-body .prog-bar {
 	background: var(--b-bar-track);
 	border: 1px solid var(--b-border);
 	overflow: hidden;
+}
+
+body.biblioteca-body .storage-prog {
+	margin-bottom: 12px;
 }
 
 body.biblioteca-body .prog-bar i {
@@ -782,7 +831,7 @@ body.biblioteca-body .rejilla {
 	}
 }
 
-@media (max-width: 740px) {
+@media (max-width: 768px) {
 	body.biblioteca-body .rejilla {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
@@ -941,11 +990,14 @@ body.biblioteca-body .tomo-autor {
 	opacity: 0.92;
 }
 
+/* `flex-wrap` keeps the meta + actions readable in the 3-col tablet and the
+   2-col mobile grid instead of clipping the download button (S2). */
 body.biblioteca-body .tomo-foot {
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
 	gap: 8px;
+	flex-wrap: wrap;
 	padding: 10px 12px;
 	border-top: 1px solid var(--b-border);
 	background: var(--b-surface-deep);
@@ -1071,6 +1123,13 @@ body.biblioteca-body .aporte-row:last-child {
 @media (max-width: 860px) {
 	body.biblioteca-body .aporte-row {
 		grid-template-columns: 1fr;
+		gap: 12px;
+		padding: 16px;
+	}
+
+	/* Actions left-align once the row stacks, instead of floating to the edge. */
+	body.biblioteca-body .aporte-actions {
+		justify-content: flex-start;
 	}
 }
 
@@ -1167,7 +1226,11 @@ body.biblioteca-body .modal-back {
 	display: none;
 	align-items: flex-start;
 	justify-content: center;
-	padding: 20px;
+	/* `dvh` + safe-area padding: the panel never hides under the browser UI or
+	   the iOS home indicator (S2). */
+	height: 100dvh;
+	padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right))
+		max(20px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
 	overflow-y: auto;
 }
 
@@ -1267,6 +1330,29 @@ body.biblioteca-body .field textarea {
 	width: 100%;
 }
 
+/* Checkbox row (`Publicar en el catálogo`) — inline styles removed in S2. */
+body.biblioteca-body .field.checkbox-field {
+	flex-direction: row;
+	align-items: center;
+	gap: 10px;
+}
+
+body.biblioteca-body .field.checkbox-field input[type="checkbox"] {
+	flex: 0 0 auto;
+	width: 18px;
+	height: 18px;
+	padding: 0;
+	accent-color: var(--b-accent);
+}
+
+body.biblioteca-body .checkbox-label {
+	font-family: var(--b-mono);
+	font-size: 9.5px;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	color: var(--b-faint);
+}
+
 body.biblioteca-body .field textarea {
 	resize: vertical;
 	min-height: 60px;
@@ -1354,6 +1440,16 @@ body.biblioteca-body .modal-foot {
 	background: var(--b-bg);
 }
 
+/* Destructive half of the footer. `margin-inline-end: auto` reproduces the old
+   inline `flex: 1` spacer without an empty element (S2). */
+body.biblioteca-body .modal-foot-aside {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-wrap: wrap;
+	margin-inline-end: auto;
+}
+
 /* Destructive action (delete confirmation inside EditBookModal, S7). */
 body.biblioteca-body .btn-danger {
 	font-family: var(--b-mono);
@@ -1385,6 +1481,12 @@ body.biblioteca-body .view-panel[data-visible="true"] {
 
 body.biblioteca-body .view-panel:focus {
 	outline: none;
+}
+
+body.biblioteca-body .empty-box-action {
+	margin-top: 14px;
+	display: flex;
+	justify-content: center;
 }
 
 body.biblioteca-body .empty-box {
@@ -1517,6 +1619,355 @@ body.biblioteca-body .cov-svg-label {
 	font-size: 6.5px;
 	letter-spacing: 1.5px;
 	text-anchor: middle;
+}
+
+/* =============================================================================
+   Responsive mobile PWA layout (S1/S2) — `<= 768px`
+
+   `header.app-top` stays a ~56px single row (brand + `+ Subir` + `☰`) and the
+   single `role="tablist"` becomes the fixed bottom tab bar. Every colour still
+   comes from the `--b-*` bridge, so both palettes (light and dark) are covered.
+   ============================================================================= */
+
+@media (max-width: 768px) {
+	body.biblioteca-body {
+		/* Clearance for the fixed 56px tab bar + the iOS home indicator. */
+		padding-bottom: calc(64px + env(safe-area-inset-bottom));
+	}
+
+	/* ---- compact topbar ---- */
+	body.biblioteca-body .top-inner {
+		flex-wrap: nowrap;
+		gap: 10px;
+		min-height: 56px;
+		padding-top: max(6px, env(safe-area-inset-top));
+		padding-right: max(12px, env(safe-area-inset-right));
+		padding-bottom: 6px;
+		padding-left: max(12px, env(safe-area-inset-left));
+	}
+
+	body.biblioteca-body .brand {
+		white-space: nowrap;
+	}
+
+	body.biblioteca-body .sello {
+		width: 26px;
+		height: 26px;
+		font-size: 13px;
+	}
+
+	body.biblioteca-body .top-actions {
+		display: none;
+	}
+
+	body.biblioteca-body .top-compact-actions {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin-left: auto;
+	}
+
+	body.biblioteca-body .btn-subir-mini {
+		min-height: 44px;
+		padding: 0 12px;
+		white-space: nowrap;
+	}
+
+	body.biblioteca-body .mobile-menu-toggle {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 44px;
+		height: 44px;
+		min-height: 44px;
+		padding: 0;
+		background: var(--b-panel);
+		border: 1px solid var(--b-border-strong);
+		color: var(--b-fg);
+		font-family: var(--b-mono);
+		font-size: 17px;
+		line-height: 1;
+	}
+
+	body.biblioteca-body .mobile-menu-toggle[aria-expanded="true"] {
+		background: rgb(var(--b-accent-rgb) / 0.14);
+		border-color: var(--b-accent-bright);
+		color: var(--b-accent-bright);
+	}
+
+	/* Panel drops from the sticky header, so it never covers the bottom bar. */
+	body.biblioteca-body .mobile-menu {
+		position: absolute;
+		top: 100%;
+		left: max(12px, env(safe-area-inset-left));
+		right: max(12px, env(safe-area-inset-right));
+		z-index: 25;
+		flex-direction: column;
+		gap: 10px;
+		padding: 12px;
+		border: 1px solid var(--b-border-strong);
+		background: var(--b-panel-2);
+		box-shadow: var(--b-shadow-modal);
+	}
+
+	body.biblioteca-body .mobile-menu[data-open="true"] {
+		display: flex;
+	}
+
+	body.biblioteca-body .mobile-menu .net-toggle,
+	body.biblioteca-body .mobile-menu .palette-mini,
+	body.biblioteca-body .mobile-menu .user-pill {
+		width: 100%;
+	}
+
+	body.biblioteca-body .mobile-menu .net-toggle {
+		justify-content: center;
+		min-height: 44px;
+	}
+
+	body.biblioteca-body .mobile-menu .palette-mini button {
+		flex: 1 1 0;
+		min-height: 44px;
+	}
+
+	body.biblioteca-body .mobile-menu .user-pill {
+		justify-content: space-between;
+		min-height: 44px;
+	}
+
+	body.biblioteca-body .mobile-menu .user-pill .btn-ghost {
+		min-width: 44px;
+		min-height: 44px;
+	}
+
+	/* ---- the single tablist becomes the fixed PWA bottom bar ---- */
+	body.biblioteca-body .top-tabs {
+		position: fixed;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		z-index: 30;
+		display: grid;
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+		gap: 0;
+		flex-wrap: nowrap;
+		border-top: 1px solid var(--b-border);
+		background: var(--b-panel);
+		padding-right: env(safe-area-inset-right);
+		padding-bottom: env(safe-area-inset-bottom);
+		padding-left: env(safe-area-inset-left);
+	}
+
+	body.biblioteca-body .top-tab {
+		position: relative;
+		flex-direction: column;
+		justify-content: center;
+		gap: 3px;
+		width: 100%;
+		min-height: 56px;
+		padding: 6px 2px;
+		border: 0;
+		font-size: 9.5px;
+		letter-spacing: 0.08em;
+		text-align: center;
+	}
+
+	body.biblioteca-body .top-tab[data-active="true"],
+	body.biblioteca-body .top-tab[aria-selected="true"] {
+		border-color: transparent;
+		background: rgb(var(--b-accent-rgb) / 0.14);
+	}
+
+	body.biblioteca-body .tab-icon {
+		display: block;
+		width: 20px;
+		height: 20px;
+	}
+
+	body.biblioteca-body .tab-label {
+		display: none;
+	}
+
+	body.biblioteca-body .tab-label-short {
+		display: inline;
+	}
+
+	body.biblioteca-body .tab-count {
+		position: absolute;
+		top: 4px;
+		left: calc(50% + 7px);
+		min-width: 16px;
+		padding: 0 4px;
+		border: 1px solid var(--b-panel);
+		border-radius: 999px;
+		background: var(--b-accent);
+		color: var(--b-accent-fg);
+		font-size: 8.5px;
+		line-height: 14px;
+		text-align: center;
+	}
+
+	body.biblioteca-body .top-tab[data-active="true"] .tab-count,
+	body.biblioteca-body .top-tab[aria-selected="true"] .tab-count {
+		border-color: var(--b-panel);
+		background: var(--b-accent-bright);
+		color: var(--b-accent-fg);
+	}
+
+	/* ---- content, cards, inputs and modals ---- */
+	body.biblioteca-body main.shell {
+		padding-top: 16px;
+		padding-bottom: 28px;
+		padding-right: max(14px, env(safe-area-inset-right));
+		padding-left: max(14px, env(safe-area-inset-left));
+	}
+
+	body.biblioteca-body .hero-dash {
+		gap: 14px;
+		margin-bottom: 20px;
+	}
+
+	body.biblioteca-body .resume-card,
+	body.biblioteca-body .storage-card {
+		padding: 16px;
+	}
+
+	body.biblioteca-body .storage-foot {
+		gap: 8px;
+	}
+
+	body.biblioteca-body .section-bar {
+		gap: 10px;
+		padding: 12px;
+	}
+
+	body.biblioteca-body .section-hint {
+		max-width: 100%;
+	}
+
+	/* iOS Safari zooms the page on any focused field below 16px (S2). */
+	body.biblioteca-body .search-input,
+	body.biblioteca-body .field input,
+	body.biblioteca-body .field select,
+	body.biblioteca-body .field textarea,
+	body.biblioteca-body .drop-pdf input[type="file"] {
+		font-size: 16px;
+	}
+
+	body.biblioteca-body .search-input {
+		flex: 1 1 200px;
+		min-width: 0;
+		min-height: 44px;
+	}
+
+	/* ≥44px hit targets on every mobile control (S2). */
+	body.biblioteca-body .btn-edit-mini,
+	body.biblioteca-body .btn-ghost,
+	body.biblioteca-body .net-toggle,
+	body.biblioteca-body .chip,
+	body.biblioteca-body .btn-dl,
+	body.biblioteca-body .btn-primary,
+	body.biblioteca-body .btn-sec,
+	body.biblioteca-body .btn-danger,
+	body.biblioteca-body .modal-close {
+		min-height: 44px;
+	}
+
+	body.biblioteca-body .btn-edit-mini,
+	body.biblioteca-body .btn-ghost,
+	body.biblioteca-body .chip {
+		padding: 0 12px;
+	}
+
+	body.biblioteca-body .palette-mini button {
+		min-height: 44px;
+		padding: 0 12px;
+	}
+
+	/* `.tomo-foot` degrades to two stacked rows instead of clipping. */
+	body.biblioteca-body .tomo-foot {
+		gap: 8px;
+	}
+
+	body.biblioteca-body .tomo-meta {
+		flex-direction: row;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: 4px 8px;
+	}
+
+	body.biblioteca-body .tomo-actions {
+		flex: 1 1 100%;
+		justify-content: flex-start;
+		gap: 8px;
+	}
+
+	body.biblioteca-body .tomo-actions .btn-dl {
+		flex: 1 1 auto;
+	}
+
+	body.biblioteca-body .aporte-actions .btn-sec {
+		flex: 1 1 auto;
+	}
+
+	body.biblioteca-body .modal-back {
+		padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right))
+			max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+	}
+
+	body.biblioteca-body .modal-head,
+	body.biblioteca-body .modal-foot {
+		padding: 12px 16px;
+	}
+
+	body.biblioteca-body .modal-body {
+		padding: 16px;
+	}
+}
+
+/* Narrow phones: the search field takes the full row (S2). */
+@media (max-width: 640px) {
+	body.biblioteca-body .section-bar {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	body.biblioteca-body .section-bar .search-input {
+		flex: 1 1 auto;
+		width: 100%;
+		min-width: 0;
+	}
+
+	body.biblioteca-body .filtros {
+		flex-wrap: wrap;
+	}
+
+	body.biblioteca-body .filtros .chip {
+		flex: 1 1 calc(33% - 8px);
+	}
+}
+
+/* Small phones: footer buttons stack full-width (S2). */
+@media (max-width: 480px) {
+	body.biblioteca-body .modal-foot {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	body.biblioteca-body .modal-foot > * {
+		width: 100%;
+	}
+
+	body.biblioteca-body .modal-foot-aside {
+		flex-direction: column;
+		align-items: stretch;
+		margin-inline-end: 0;
+	}
+
+	body.biblioteca-body .empty-box-action .btn-sec,
+	body.biblioteca-body .storage-foot .btn-sec {
+		width: 100%;
+	}
 }
 
 /* ------------------------------------------------------------ motion ----- */
