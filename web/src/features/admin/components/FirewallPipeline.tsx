@@ -1,4 +1,4 @@
-import { For, Show, createSignal } from 'solid-js';
+import { For, Show, createEffect, createSignal } from 'solid-js';
 import { fetchFirewallReport } from '../lib/admin-api';
 import {
 	firewallCheckLabel,
@@ -40,7 +40,12 @@ export function FirewallPipeline(props: { bookId: number; open: boolean }) {
 		}
 	}
 
-	void (props.open && load());
+	// Reactive load trigger: the component is created once per row with
+	// `open=false`, so the load must fire when the admin expands it (verified:
+	// a plain body statement never re-runs after mount).
+	createEffect(() => {
+		if (props.open) void load();
+	});
 
 	const summary = () => summarizeFirewallReport(report());
 

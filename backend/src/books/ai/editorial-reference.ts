@@ -5,6 +5,8 @@
  * `GET /admin/ai/style-reference` are both derived from this object, so the
  * /admin panel always shows the reference the model actually runs with.
  */
+import { AI_TEXT_LIMIT } from './ai-analysis.config.js';
+
 export type EditorialQualityLevel = {
   score: 1 | 2 | 3 | 4 | 5;
   description: string;
@@ -52,7 +54,7 @@ export const EDITORIAL_STYLE_REFERENCE: EditorialStyleReference = {
     '{"safety":"ok"|"suspect","quality":1|2|3|4|5,"notes":"diagnóstico breve en español sobre estructura, legibilidad o maquetación"}',
   inputs: {
     readingText: 'el texto extraído del PDF (reading.json), sin el archivo original',
-    maxCharacters: 24_000,
+    maxCharacters: AI_TEXT_LIMIT,
   },
   neverJudges: [
     'la seguridad del archivo (firewall determinista por tiers)',

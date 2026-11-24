@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import {
   INestApplication,
+  NotFoundException,
   ValidationPipe,
 } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
@@ -38,15 +39,22 @@ describe('BooksAdminController', () => {
   let app: INestApplication<App>;
   let list: ReturnType<typeof vi.fn>;
   let review: ReturnType<typeof vi.fn>;
+  let firewall: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
     list = vi.fn(async () => ({ items: [], total: 0, offset: 0, limit: 20 }));
     review = vi.fn(async () => ({ id: 7, reviewStatus: 'approved' }));
+    firewall = vi.fn(async (id: number) => {
+      if (id !== 7) {
+        throw new NotFoundException('Este libro no tiene reporte de firewall');
+      }
+      return { schemaVersion: 1, safe: true, pageCount: 4, violations: [], tiers: [] };
+    });
 
     const moduleRef = await Test.createTestingModule({
       controllers: [BooksAdminController],
       providers: [
-        { provide: BooksAdminService, useValue: { list, review } },
+        { provide: BooksAdminService, useValue: { list, review, firewall } },
         { provide: SESSION_READER, useValue: new HeaderSessionReader() },
         { provide: APP_GUARD, useClass: RouteAuthGuard },
         { provide: APP_GUARD, useClass: RouteRolesGuard },
@@ -78,6 +86,30 @@ describe('BooksAdminController', () => {
   it('rejects an anonymous caller with 401 before the role check', async () => {
     await request(server()).get('/admin/books').expect(401);
     expect(list).not.toHaveBeenCalled();
+  });
+
+  it('guards the firewall route and answers 404 without a report', async () => {
+    await request(server()).get('/admin/books/7/firewall').expect(401);
+    await request(server()).get('/admin/books/7/firewall').set('x-test-role', 'user').expect(403);
+    expect(firewall).not.toHaveBeenCalled();
+
+    const ok = await request(server())
+      .get('/admin/books/7/firewall')
+      .set('x-test-role', 'admin')
+      .expect(200);
+    expect(ok.body).toEqual({
+      schemaVersion: 1,
+      safe: true,
+      pageCount: 4,
+      violations: [],
+      tiers: [],
+    });
+
+    const missing = await request(server())
+      .get('/admin/books/9/firewall')
+      .set('x-test-role', 'admin')
+      .expect(404);
+    expect(missing.body.message).toBe('Este libro no tiene reporte de firewall');
   });
 
   it('lists the requested review page for an admin session', async () => {
