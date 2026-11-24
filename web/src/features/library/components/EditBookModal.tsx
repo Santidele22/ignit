@@ -242,7 +242,7 @@ export default function EditBookModal(props: EditBookModalProps) {
 			<div class="modal-box">
 				<div class="modal-head">
 					<span id="editTitle">Editar libro</span>
-					<button class="btn-ghost" type="button" disabled={saving()} onClick={() => close()}>
+					<button class="btn-ghost modal-close" type="button" disabled={saving()} onClick={() => close()}>
 						Cerrar ✕
 					</button>
 				</div>
@@ -329,7 +329,7 @@ export default function EditBookModal(props: EditBookModalProps) {
 							/>
 						</div>
 
-						<label class="field" style={{ 'flex-direction': 'row', 'align-items': 'center', gap: '9px' }}>
+						<label class="field checkbox-field">
 							<input
 								id="editBookPublished"
 								type="checkbox"
@@ -337,9 +337,7 @@ export default function EditBookModal(props: EditBookModalProps) {
 								disabled={saving()}
 								onChange={(event) => update('published', event.currentTarget.checked)}
 							/>
-							<span style={{ 'letter-spacing': '0.1em', 'text-transform': 'uppercase', 'font-size': '9.5px' }}>
-								Publicado en el catálogo
-							</span>
+							<span class="checkbox-label">Publicado en el catálogo</span>
 						</label>
 
 						<div
@@ -381,37 +379,38 @@ export default function EditBookModal(props: EditBookModalProps) {
 						</Show>
 					</div>
 					<div class="modal-foot">
-						<Show
-							when={deleteArmed()}
-							fallback={
+						<div class="modal-foot-aside">
+							<Show
+								when={deleteArmed()}
+								fallback={
+									<button
+										class="btn-sec"
+										type="button"
+										disabled={saving()}
+										onClick={() => void handleDelete()}
+									>
+										Eliminar libro
+									</button>
+								}
+							>
 								<button
-									class="btn-sec"
+									class="btn-danger"
 									type="button"
 									disabled={saving()}
 									onClick={() => void handleDelete()}
 								>
-									Eliminar libro
+									Confirmar eliminación
 								</button>
-							}
-						>
-							<button
-								class="btn-danger"
-								type="button"
-								disabled={saving()}
-								onClick={() => void handleDelete()}
-							>
-								Confirmar eliminación
-							</button>
-							<button
-								class="btn-sec"
-								type="button"
-								disabled={saving()}
-								onClick={() => setDeleteArmed(false)}
-							>
-								Cancelar eliminación
-							</button>
-						</Show>
-						<span style={{ flex: '1' }} aria-hidden="true" />
+								<button
+									class="btn-sec"
+									type="button"
+									disabled={saving()}
+									onClick={() => setDeleteArmed(false)}
+								>
+									Cancelar eliminación
+								</button>
+							</Show>
+						</div>
 						<button class="btn-sec" type="button" disabled={saving()} onClick={() => close()}>
 							Cancelar
 						</button>

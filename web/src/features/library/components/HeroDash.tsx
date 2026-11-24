@@ -102,7 +102,7 @@ export default function HeroDash(props: HeroDashProps) {
 					</p>
 				</div>
 				<div>
-					<div class="prog-bar" style={{ 'margin-bottom': '12px' }}>
+					<div class="prog-bar storage-prog">
 						<i style={{ width: `${props.meter.barPercent}%` }} />
 					</div>
 					<div class="storage-foot">

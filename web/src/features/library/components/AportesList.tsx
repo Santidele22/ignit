@@ -30,7 +30,7 @@ export default function AportesList(props: AportesListProps) {
 					<div class="empty-box">
 						Todavía no enviaste ningún libro. <br />
 						Subí un PDF y seguí acá su recorrido: standby → en curso → tested → catálogo.
-						<div style={{ 'margin-top': '14px', display: 'flex', 'justify-content': 'center' }}>
+						<div class="empty-box-action">
 							<button class="btn-sec" type="button" onClick={() => props.onOpenUpload()}>
 								+ Subir primer aporte
 							</button>

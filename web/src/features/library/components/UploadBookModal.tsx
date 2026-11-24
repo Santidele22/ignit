@@ -214,7 +214,7 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 			<div class="modal-box">
 				<div class="modal-head">
 					<span id="uploadTitle">Subir libro a la biblioteca</span>
-					<button class="btn-ghost" type="button" disabled={submitting()} onClick={() => close()}>
+					<button class="btn-ghost modal-close" type="button" disabled={submitting()} onClick={() => close()}>
 						Cerrar ✕
 					</button>
 				</div>
@@ -305,7 +305,7 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 							/>
 						</div>
 
-						<label class="field" style={{ 'flex-direction': 'row', 'align-items': 'center', gap: '9px' }}>
+						<label class="field checkbox-field">
 							<input
 								id="upPublish"
 								type="checkbox"
@@ -313,9 +313,7 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 								disabled={submitting()}
 								onChange={(event) => setPublished(event.currentTarget.checked)}
 							/>
-							<span style={{ 'letter-spacing': '0.1em', 'text-transform': 'uppercase', 'font-size': '9.5px' }}>
-								Publicar en el catálogo público
-							</span>
+							<span class="checkbox-label">Publicar en el catálogo público</span>
 						</label>
 
 						<p class="pipe-notice">
