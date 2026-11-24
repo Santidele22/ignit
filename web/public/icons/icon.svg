@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Ignit">
+  <rect width="512" height="512" fill="#04050a"/>
+  <rect x="112" y="112" width="288" height="288" fill="#b44637"/>
+  <rect x="112" y="372" width="288" height="5" fill="#d4a759"/>
+  <text x="256" y="258" text-anchor="middle" dominant-baseline="central" font-family="Noto Serif CJK JP, Noto Sans CJK JP, serif" font-size="178" font-weight="700" fill="#f4eadb">熒</text>
+</svg>

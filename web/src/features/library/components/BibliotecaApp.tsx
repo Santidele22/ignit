@@ -24,6 +24,7 @@ import {
 	type SalaBook,
 	type SalaTabId,
 } from '../lib/sala';
+import { registerServiceWorker } from '../../pwa/registerSW';
 import AportesList from './AportesList';
 import BookTomoCard from './BookTomoCard';
 import EditBookModal, { type EditBookResult } from './EditBookModal';
@@ -278,6 +279,10 @@ export default function BibliotecaApp(props: BibliotecaAppProps) {
 	});
 
 	onMount(() => {
+		// PWA (S2): registra `/sw.js` sólo en producción (`registerSW.ts` decide:
+		// PROD + `serviceWorker` en `navigator`); en dev no hace nada.
+		registerServiceWorker();
+
 		setNavigatorOffline(typeof navigator !== 'undefined' && navigator.onLine === false);
 
 		const handleOnline = () => setNavigatorOffline(false);

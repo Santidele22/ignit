@@ -1,0 +1,47 @@
+{
+  "name": "Ignit",
+  "short_name": "Ignit",
+  "description": "Tu sala de lectura: continuá donde quedaste, descargá libros para leer sin conexión y seguí tus aportes al catálogo de Ignit.",
+  "id": "/biblioteca",
+  "start_url": "/biblioteca",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#04050a",
+  "theme_color": "#04050a",
+  "lang": "es",
+  "dir": "ltr",
+  "categories": ["books", "education", "productivity"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

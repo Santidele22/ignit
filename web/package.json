@@ -4,7 +4,8 @@
   "version": "0.1.0",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build",
+    "build": "node scripts/build-sw.mjs && astro build",
+    "build:sw": "node scripts/build-sw.mjs",
     "preview": "astro preview",
     "astro": "astro",
     "test": "vitest run",
