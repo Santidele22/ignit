@@ -60,7 +60,8 @@ body.vigilia-body[data-vigilia-locked="on"] .session button.full.is-locked {
 .timer-trigger .timer-dot[hidden] { display:none; }
 
 .timer-deck {
-	position:fixed; z-index:36; bottom:100px; right:26px;
+	position:fixed; z-index:36; right:26px;
+	bottom:calc(100px + env(safe-area-inset-bottom));
 	width:min(352px, calc(100vw - 32px));
 	border:1px solid var(--w-border); background:var(--w-panel);
 	box-shadow:0 24px 60px -20px rgba(0,0,0,.95);
@@ -69,7 +70,7 @@ body.vigilia-body[data-vigilia-locked="on"] .session button.full.is-locked {
 	transition:opacity .25s ease, transform .25s ease;
 }
 @media (max-width: 760px) {
-	.timer-deck { bottom:108px; right:16px; }
+	.timer-deck { bottom:calc(108px + env(safe-area-inset-bottom)); right:16px; }
 }
 .timer-deck.open { opacity:1; transform:none; pointer-events:auto; }
 
@@ -171,7 +172,9 @@ body.vigilia-body[data-vigilia-locked="on"] .session button.full.is-locked {
 /* Velo bloqueante al salir de pantalla completa o recargar */
 .vigilia-veil {
 	position:fixed; inset:0; z-index:80;
-	display:grid; place-items:center; padding:24px;
+	display:grid; place-items:center;
+	padding:max(24px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right))
+		max(24px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
 	background:var(--w-veil-backdrop); backdrop-filter:blur(12px);
 }
 .vigilia-veil[hidden] { display:none !important; }
@@ -212,7 +215,9 @@ body.vigilia-body[data-vigilia-locked="on"] .session button.full.is-locked {
 /* Modal de cierre de vigilia */
 .vigilia-summary-backdrop {
 	position:fixed; inset:0; z-index:85;
-	display:grid; place-items:center; padding:24px;
+	display:grid; place-items:center;
+	padding:max(24px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right))
+		max(24px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
 	background:var(--w-summary-backdrop); backdrop-filter:blur(8px);
 }
 .vigilia-summary-backdrop[hidden] { display:none !important; }

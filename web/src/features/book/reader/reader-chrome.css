@@ -3,7 +3,10 @@
 	position:fixed; top:0; left:0; right:0; z-index:25;
 	display:grid; grid-template-columns:minmax(100px, 1fr) minmax(0, auto) minmax(160px, 1fr);
 	align-items:center; gap:16px;
-	padding:15px 28px 17px;
+	/* `max()` keeps the desktop rhythm and clears the notch/status bar on a
+	   `viewport-fit=cover` standalone launch (S4). */
+	padding:max(15px, env(safe-area-inset-top)) max(28px, env(safe-area-inset-right)) 17px
+		max(28px, env(safe-area-inset-left));
 	background:var(--w-bar);
 	backdrop-filter:blur(10px);
 	transition:opacity .45s ease, transform .45s ease;
@@ -51,7 +54,11 @@
 	transition:width .6s ease;
 }
 @media (max-width: 720px) {
-	.topbar { padding:12px 16px 14px; gap:10px; grid-template-columns:auto minmax(0, 1fr) auto; }
+	.topbar {
+		padding:max(12px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 14px
+			max(16px, env(safe-area-inset-left));
+		gap:10px; grid-template-columns:auto minmax(0, 1fr) auto;
+	}
 	.topbar .ident h1 { font-size:12px; max-width:38vw; }
 	.topbar .ident p { display:none; }
 	.topbar .prog { gap:8px; }
@@ -81,7 +88,10 @@ body.vigilia-body[data-focus="off"] .foveal-veil { opacity:0; }
 /* ===== Footer fijo sin superposición (auto-ocultable en modo zen) ===== */
 .bottombar {
 	position:fixed; bottom:0; left:0; right:0; z-index:30;
-	padding:14px 26px 18px;
+	/* Left/right/bottom safe insets so the controls never sit under the iOS home
+	   indicator or a landscape notch (S4). */
+	padding:14px max(26px, env(safe-area-inset-right)) max(18px, env(safe-area-inset-bottom))
+		max(26px, env(safe-area-inset-left));
 	background:var(--w-bar);
 	border-top:1px solid var(--w-border-chrome);
 	backdrop-filter:blur(10px);
@@ -105,7 +115,10 @@ body.vigilia-body[data-focus="off"] .foveal-veil { opacity:0; }
 	display:inline-flex; align-items:center; gap:10px; flex-wrap:wrap;
 }
 @media (max-width: 760px) {
-	.bottombar { padding:12px 16px 14px; }
+	.bottombar {
+		padding:12px max(16px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom))
+			max(16px, env(safe-area-inset-left));
+	}
 	.bottombar .hint { display:none; }
 }
 
@@ -140,5 +153,15 @@ body.vigilia-body[data-zen="on"] .rail {
 @media (max-width: 560px) {
 	.session button.full .full-lbl { display:none; }
 	.session button, .session a, .view-trigger { padding:0 11px; }
+}
+
+/* ≥44px hit targets for the fixed bottom bar on phones and touch screens. The
+   row already wraps, so no control leaves the 360px viewport horizontally. */
+@media (max-width: 720px), (pointer: coarse) {
+	.bottombar .session button,
+	.bottombar .session a,
+	.bottombar .view-trigger {
+		height:44px; min-height:44px;
+	}
 }
 
