@@ -53,6 +53,27 @@ export function nextSalaTabId(current: SalaTabId, delta: number): SalaTabId {
 
 export type AporteStage = 'standby' | 'en_curso' | 'tested' | 'catalogo';
 
+/** Owner-facing label of the backend `reviewStatus` column (S4/S5). */
+export type OwnerReviewStage = 'En revisión' | 'Rechazado';
+
+/**
+ * Maps the backend review state to the label «Mis aportes» shows to the owner.
+ *
+ * Deliberate deferral (T3): the presenter strips `reviewStatus` from owner
+ * payloads (`46de114`), so `deriveAporteRows` cannot see it yet and keeps its
+ * existing stages untouched. This helper is ready for the day the backend
+ * exposes the review state to owners: `pending` → «En revisión», `rejected` →
+ * «Rechazado», and `approved`/unknown/absent → `null` (published approval is
+ * already represented by the `catalogo` stage).
+ */
+export function ownerReviewStage(
+	reviewStatus: string | null | undefined,
+): OwnerReviewStage | null {
+	if (reviewStatus === 'pending') return 'En revisión';
+	if (reviewStatus === 'rejected') return 'Rechazado';
+	return null;
+}
+
 export interface LocalReadingSnapshot {
 	bookId: number;
 	page: number;

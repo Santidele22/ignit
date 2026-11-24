@@ -1,0 +1,647 @@
+/* =============================================================================
+   Ignit — Panel de administración (`/admin`, S5)
+   Every colour is routed through the same `--b-*` bridge as
+   `features/library/styles/biblioteca.css`, following the dual-palette pattern:
+
+   - `noche-azul` reproduces the artboard values verbatim (`#04050a`, `#5f86c9`,
+     `#9fc0ee`, hairline `#232941`, ochre `#d4a759`, danger `#d96b6b`).
+   - `original` (light `:root` and `.dark`) borrows the app tokens so the panel
+     stays warm paper/ink instead of inheriting the blue-black chrome.
+
+   Aesthetic: zero radius everywhere, hairline borders, mono micro-labels and
+   44px minimum touch targets. The file is only imported by
+   `AdminLayout.astro`; every rule is scoped to `body.admin-body`, so no other
+   page of the app is affected (and `biblioteca.css` is never imported here).
+   ============================================================================= */
+
+/* ---------------------------------------------------------------- palette -- */
+
+body.admin-body {
+	/* Self-hosted project fonts. */
+	--b-sans: var(--font-zen), var(--font-sans);
+	--b-serif: var(--font-shippori), var(--font-mincho);
+	--b-mono: var(--font-geist-mono), var(--font-mono);
+
+	/* `original` palette: panel surfaces follow the app tokens. */
+	--b-bg: var(--background);
+	--b-panel: var(--card);
+	--b-panel-2: var(--secondary);
+	--b-fg: var(--foreground);
+	--b-body: var(--ink-soft);
+	--b-faint: var(--muted-foreground);
+	--b-ghost: color-mix(in oklab, var(--muted-foreground) 62%, var(--background));
+	--b-border: var(--border);
+	--b-border-strong: color-mix(in oklab, var(--foreground) 26%, var(--border));
+	--b-accent: var(--aka);
+	--b-accent-bright: var(--aka-deep);
+	--b-accent-fg: var(--aka-foreground);
+	--b-warn: #8a6a1f; /* ochre dark enough for paper */
+	--b-ok: #2f6b46; /* approval green on paper */
+	--b-danger: var(--destructive);
+	--b-grid-line: color-mix(in srgb, var(--border) 65%, transparent);
+	--b-grid-glow: color-mix(in srgb, var(--aka) 9%, transparent);
+
+	background: var(--b-bg);
+	color: var(--b-body);
+	font-family: var(--b-sans);
+	-webkit-font-smoothing: antialiased;
+	min-height: 100vh;
+	min-height: 100dvh;
+	overflow-x: hidden;
+}
+
+html.dark:not([data-palette="noche-azul"]) body.admin-body {
+	--b-ghost: color-mix(in oklab, var(--muted-foreground) 66%, var(--background));
+	--b-accent-bright: color-mix(in oklab, var(--aka) 58%, var(--foreground));
+	--b-warn: #d4a759;
+	--b-ok: #74b98c;
+	--b-grid-line: color-mix(in srgb, var(--border) 80%, transparent);
+	--b-grid-glow: color-mix(in srgb, var(--aka) 12%, transparent);
+}
+
+html[data-palette="noche-azul"] body.admin-body {
+	--b-bg: #04050a;
+	--b-panel: #060810;
+	--b-panel-2: #080c17;
+	--b-fg: #e6edf7;
+	--b-body: #b9c6dd;
+	--b-faint: #8fa4c8;
+	--b-ghost: #7e91b8;
+	--b-border: #232941;
+	--b-border-strong: #344064;
+	--b-accent: #5f86c9;
+	--b-accent-bright: #9fc0ee;
+	--b-accent-fg: #04050a;
+	--b-warn: #d4a759;
+	--b-ok: #7fb894;
+	--b-danger: #d96b6b;
+	--b-grid-line: rgba(35, 41, 65, 0.14);
+	--b-grid-glow: rgba(95, 134, 201, 0.11);
+}
+
+/* ------------------------------------------------------------ affordances -- */
+
+body.admin-body a,
+body.admin-body button,
+body.admin-body input,
+body.admin-body select,
+body.admin-body textarea {
+	font-family: inherit;
+}
+
+body.admin-body :focus-visible {
+	outline: 2px solid var(--b-accent-bright);
+	outline-offset: 2px;
+}
+
+body.admin-body .skip-link {
+	position: fixed;
+	left: 16px;
+	top: -80px;
+	z-index: 100;
+	background: var(--b-accent-bright);
+	color: var(--b-accent-fg);
+	font-family: var(--b-mono);
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	padding: 10px 16px;
+	text-decoration: none;
+	border: 2px solid var(--b-accent-fg);
+}
+
+body.admin-body .skip-link:focus {
+	top: 12px;
+}
+
+body.admin-body .sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+/* ------------------------------------------------------ fondo atmosférico -- */
+
+body.admin-body .bg-grid {
+	position: fixed;
+	inset: 0;
+	z-index: 0;
+	pointer-events: none;
+	background-image:
+		linear-gradient(to right, var(--b-grid-line) 1px, transparent 1px),
+		linear-gradient(to bottom, var(--b-grid-line) 1px, transparent 1px);
+	background-size: 64px 64px;
+	-webkit-mask-image: radial-gradient(ellipse at 50% 0%, #000 0%, transparent 78%);
+	mask-image: radial-gradient(ellipse at 50% 0%, #000 0%, transparent 78%);
+}
+
+/* ---------------------------------------------------------------- topbar -- */
+
+body.admin-body .admin-top {
+	position: sticky;
+	top: 0;
+	z-index: 10;
+	border-bottom: 1px solid var(--b-border);
+	background: color-mix(in oklab, var(--b-bg) 92%, transparent);
+	backdrop-filter: blur(6px);
+}
+
+body.admin-body .admin-top-inner {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px 16px;
+	max-width: 1180px;
+	margin: 0 auto;
+	padding: 12px clamp(16px, 4vw, 40px);
+}
+
+body.admin-body .admin-brand {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	font-family: var(--b-mono);
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.16em;
+	text-transform: uppercase;
+	color: var(--b-fg);
+}
+
+body.admin-body .admin-brand .sello {
+	color: var(--b-accent-bright);
+	font-size: 14px;
+	line-height: 1;
+}
+
+body.admin-body .brand-divider {
+	color: var(--b-ghost);
+}
+
+body.admin-body .admin-top-actions {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+
+body.admin-body .pending-badge {
+	display: inline-flex;
+	align-items: baseline;
+	gap: 6px;
+	padding: 6px 10px;
+	border: 1px solid var(--b-border-strong);
+	background: var(--b-panel);
+	font-family: var(--b-mono);
+	font-size: 9.5px;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--b-faint);
+}
+
+body.admin-body .pending-count {
+	font-size: 14px;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	color: var(--b-accent-bright);
+}
+
+body.admin-body .user-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 9px;
+	padding: 5px 10px 5px 6px;
+	border: 1px solid var(--b-border);
+	background: var(--b-panel);
+	font-family: var(--b-mono);
+	font-size: 10px;
+	letter-spacing: 0.1em;
+	color: var(--b-body);
+}
+
+body.admin-body .user-avatar {
+	width: 22px;
+	height: 22px;
+	background: var(--b-border-strong);
+	color: var(--b-accent-bright);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-weight: 700;
+	font-size: 10px;
+	flex: 0 0 auto;
+}
+
+body.admin-body .user-name {
+	max-width: min(24ch, 34vw);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+body.admin-body .btn-ghost {
+	background: none;
+	border: 1px solid transparent;
+	color: var(--b-ghost);
+	font-family: var(--b-mono);
+	font-size: 9.5px;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	min-height: 44px;
+	min-width: 44px;
+	padding: 4px 10px;
+	cursor: pointer;
+}
+
+body.admin-body .btn-ghost:hover:not(:disabled) {
+	color: var(--b-fg);
+	border-color: var(--b-border);
+}
+
+body.admin-body .btn-ghost:disabled {
+	opacity: 0.45;
+	cursor: not-allowed;
+}
+
+/* ----------------------------------------------------------------- shell -- */
+
+body.admin-body .admin-shell {
+	position: relative;
+	z-index: 2;
+	max-width: 1180px;
+	margin: 0 auto;
+	padding: 32px clamp(16px, 4vw, 40px) 72px;
+}
+
+body.admin-body .admin-head {
+	margin-bottom: 24px;
+}
+
+body.admin-body .admin-eyebrow {
+	margin: 0 0 8px;
+	font-family: var(--b-mono);
+	font-size: 9.5px;
+	letter-spacing: 0.22em;
+	text-transform: uppercase;
+	color: var(--b-accent-bright);
+}
+
+body.admin-body .admin-title {
+	margin: 0 0 10px;
+	font-family: var(--b-serif);
+	font-size: clamp(26px, 4vw, 38px);
+	font-weight: 600;
+	line-height: 1.1;
+	letter-spacing: -0.01em;
+	color: var(--b-fg);
+}
+
+body.admin-body .admin-sub {
+	max-width: 62ch;
+	margin: 0;
+	font-size: 14px;
+	line-height: 1.65;
+	color: var(--b-body);
+}
+
+body.admin-body .admin-error {
+	margin: 0 0 18px;
+	padding: 12px 14px;
+	border: 1px solid var(--b-danger);
+	border-left-width: 3px;
+	background: color-mix(in oklab, var(--b-danger) 10%, transparent);
+	color: var(--b-fg);
+	font-size: 13px;
+}
+
+body.admin-body .admin-loading {
+	margin: 0;
+	font-family: var(--b-mono);
+	font-size: 10px;
+	letter-spacing: 0.18em;
+	text-transform: uppercase;
+	color: var(--b-faint);
+}
+
+/* ----------------------------------------------------------- empty state -- */
+
+body.admin-body .empty-state {
+	padding: 40px clamp(18px, 4vw, 32px);
+	border: 1px solid var(--b-border);
+	background: var(--b-panel);
+	text-align: center;
+}
+
+body.admin-body .empty-eyebrow {
+	margin: 0 0 10px;
+	font-family: var(--b-mono);
+	font-size: 9.5px;
+	letter-spacing: 0.22em;
+	text-transform: uppercase;
+	color: var(--b-ghost);
+}
+
+body.admin-body .empty-title {
+	margin: 0 0 8px;
+	font-family: var(--b-serif);
+	font-size: clamp(20px, 3vw, 26px);
+	font-weight: 600;
+	color: var(--b-fg);
+}
+
+body.admin-body .empty-note {
+	margin: 0 0 20px;
+	font-size: 13.5px;
+	color: var(--b-body);
+}
+
+/* ----------------------------------------------------------------- queue -- */
+
+body.admin-body .queue-list {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+	margin: 0 0 24px;
+	padding: 0;
+	list-style: none;
+	border: 1px solid var(--b-border);
+	background: var(--b-border);
+}
+
+body.admin-body .queue-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 16px 24px;
+	padding: 18px 20px;
+	background: var(--b-panel);
+}
+
+body.admin-body .queue-row[data-armed="true"] {
+	background: var(--b-panel-2);
+	box-shadow: inset 3px 0 0 var(--b-accent-bright);
+}
+
+body.admin-body .queue-main {
+	min-width: min(100%, 340px);
+	flex: 1 1 380px;
+}
+
+body.admin-body .row-title {
+	margin: 0 0 6px;
+	font-family: var(--b-serif);
+	font-size: 18px;
+	font-weight: 600;
+	line-height: 1.25;
+	color: var(--b-fg);
+}
+
+body.admin-body .row-meta,
+body.admin-body .row-stats {
+	margin: 0 0 6px;
+	font-family: var(--b-mono);
+	font-size: 9.5px;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--b-faint);
+}
+
+body.admin-body .row-stats {
+	margin-bottom: 10px;
+	color: var(--b-ghost);
+}
+
+body.admin-body .row-owner {
+	text-transform: none;
+	letter-spacing: 0.04em;
+	color: var(--b-body);
+}
+
+body.admin-body .dot {
+	padding: 0 6px;
+	color: var(--b-border-strong);
+}
+
+/* AI verdict chip: ok / suspect / skipped. */
+body.admin-body .row-ai {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 8px;
+	padding: 7px 10px;
+	border: 1px solid var(--b-border);
+	background: color-mix(in oklab, var(--b-panel-2) 70%, var(--b-panel));
+	font-family: var(--b-mono);
+	font-size: 9.5px;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--b-faint);
+}
+
+body.admin-body .row-ai[data-tone="ok"] {
+	border-color: color-mix(in oklab, var(--b-ok) 55%, var(--b-border));
+	color: var(--b-ok);
+}
+
+body.admin-body .row-ai[data-tone="suspect"] {
+	border-color: var(--b-warn);
+	border-left-width: 3px;
+	background: color-mix(in oklab, var(--b-warn) 12%, transparent);
+	color: var(--b-warn);
+}
+
+body.admin-body .row-ai .ai-notes {
+	flex: 1 1 100%;
+	text-transform: none;
+	letter-spacing: 0.02em;
+	font-family: var(--b-sans);
+	font-size: 12px;
+	color: var(--b-body);
+}
+
+/* --------------------------------------------------------------- actions -- */
+
+body.admin-body .row-actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+}
+
+body.admin-body .arm-panel {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	padding: 8px;
+	border: 1px dashed var(--b-border-strong);
+	background: var(--b-panel);
+}
+
+body.admin-body .arm-check {
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	min-height: 44px;
+	font-family: var(--b-mono);
+	font-size: 9.5px;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--b-body);
+	cursor: pointer;
+}
+
+body.admin-body .arm-check input {
+	width: 16px;
+	height: 16px;
+	accent-color: var(--b-accent);
+	cursor: pointer;
+}
+
+body.admin-body .arm-note {
+	display: inline-flex;
+	flex: 1 1 200px;
+}
+
+body.admin-body .arm-note input {
+	width: 100%;
+	min-height: 44px;
+	padding: 8px 10px;
+	border: 1px solid var(--b-border-strong);
+	background: var(--b-bg);
+	color: var(--b-fg);
+	font-family: var(--b-sans);
+	font-size: 13px;
+	letter-spacing: normal;
+	text-transform: none;
+}
+
+body.admin-body .arm-note input::placeholder {
+	color: var(--b-ghost);
+}
+
+body.admin-body .btn-secondary,
+body.admin-body .btn-approve,
+body.admin-body .btn-reject {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 44px;
+	padding: 9px 15px;
+	border: 1px solid var(--b-border-strong);
+	background: var(--b-panel-2);
+	color: var(--b-body);
+	font-family: var(--b-mono);
+	font-size: 10px;
+	font-weight: 700;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	text-decoration: none;
+	cursor: pointer;
+	transition: background 0.14s, color 0.14s, border-color 0.14s;
+}
+
+body.admin-body .btn-secondary:hover {
+	border-color: var(--b-accent);
+	color: var(--b-accent-bright);
+}
+
+body.admin-body .btn-approve {
+	border-color: color-mix(in oklab, var(--b-ok) 60%, var(--b-border));
+	color: var(--b-ok);
+}
+
+body.admin-body .btn-approve:hover:not(:disabled) {
+	background: color-mix(in oklab, var(--b-ok) 16%, var(--b-panel));
+	border-color: var(--b-ok);
+}
+
+body.admin-body .btn-reject {
+	border-color: color-mix(in oklab, var(--b-danger) 55%, var(--b-border));
+	color: var(--b-danger);
+}
+
+body.admin-body .btn-reject:hover:not(:disabled) {
+	background: color-mix(in oklab, var(--b-danger) 14%, var(--b-panel));
+	border-color: var(--b-danger);
+}
+
+body.admin-body .btn-secondary:disabled,
+body.admin-body .btn-approve:disabled,
+body.admin-body .btn-reject:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+/* ---------------------------------------------------------------- pager --- */
+
+body.admin-body .queue-pager {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+	padding-top: 4px;
+}
+
+body.admin-body .pager-label {
+	font-family: var(--b-mono);
+	font-size: 9.5px;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--b-faint);
+}
+
+/* --------------------------------------------------------------- mobile -- */
+
+@media (max-width: 720px) {
+	body.admin-body .admin-top-inner {
+		padding: 10px 16px;
+	}
+
+	body.admin-body .admin-brand {
+		font-size: 10px;
+		letter-spacing: 0.12em;
+	}
+
+	body.admin-body .user-name {
+		display: none;
+	}
+
+	body.admin-body .queue-row {
+		padding: 16px;
+	}
+
+	body.admin-body .row-actions {
+		width: 100%;
+	}
+
+	body.admin-body .row-actions > .btn-secondary,
+	body.admin-body .row-actions > .btn-approve,
+	body.admin-body .row-actions > .btn-reject {
+		flex: 1 1 auto;
+	}
+
+	body.admin-body .arm-panel {
+		width: 100%;
+	}
+
+	body.admin-body .queue-pager {
+		justify-content: center;
+	}
+
+	body.admin-body .pager-label {
+		order: -1;
+		width: 100%;
+		text-align: center;
+	}
+}

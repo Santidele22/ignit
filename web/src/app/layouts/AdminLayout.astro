@@ -1,0 +1,65 @@
+---
+/**
+ * Shell HTML del panel de administración (`/admin`, S5).
+ *
+ * Espeja el `<head>` de `BibliotecaLayout.astro` (metadatos PWA, fuentes
+ * self-hosted, `ThemeScript`) y reemplaza el chrome de la app por el del panel:
+ * `body.admin-body` — el único consumidor de
+ * `features/admin/styles/admin.css` —, la grilla atmosférica de fondo y el
+ * `skip-link` al contenido. La topbar y la cola las renderiza `AdminQueueApp`
+ * (SolidJS) dentro del `<slot />`.
+ *
+ * CSP: no hay ningún `<script is:inline>` acá. Toda la interacción viaja en el
+ * módulo empaquetado de `AdminQueueApp`, así que no suma hashes nuevos a
+ * `script-src 'self'`.
+ */
+import { Font } from 'astro:assets';
+import SessionGuard from '../../features/auth/SessionGuard';
+import ThemeScript from '../../shared/ui/ThemeScript.astro';
+import { SITE_AUTHOR, SITE_NAME } from '../config/site';
+import '../styles/global.css';
+import '../../features/admin/styles/admin.css';
+
+interface Props {
+	title?: string;
+	description?: string;
+}
+
+const {
+	title = `Panel de administración — ${SITE_NAME}`,
+	description = 'Cola de revisión de PDFs de Ignit: aceptá o rechazá los aportes de la comunidad.',
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="es">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+		{/* Same four PWA shell metas as `/biblioteca` (S3 of the PWA work):
+		    dark blue-black chrome and the shared manifest. */}
+		<meta name="theme-color" content="#04050a" />
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+		<meta name="apple-mobile-web-app-title" content="Ignit" />
+		<link rel="manifest" href="/manifest.webmanifest" />
+		<link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" href="/favicon.ico" />
+		<meta name="generator" content={Astro.generator} />
+		<meta name="description" content={description} />
+		<meta name="robots" content="noindex" />
+		<meta name="author" content={SITE_AUTHOR} />
+		<title>{title}</title>
+		<Font cssVariable="--font-shippori" preload />
+		<Font cssVariable="--font-zen" preload />
+		<Font cssVariable="--font-geist-mono" />
+		<ThemeScript />
+	</head>
+	<body class="admin-body">
+		<a class="skip-link" href="#main-content">Saltar al contenido</a>
+		<div class="bg-grid" aria-hidden="true"></div>
+		<SessionGuard client:load />
+		<slot />
+	</body>
+</html>
