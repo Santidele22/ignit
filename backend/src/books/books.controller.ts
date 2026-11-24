@@ -43,12 +43,12 @@ import { BooksPaginationQueryDto } from './dto/books-pagination.query.dto.js';
 import { CreateBookDto } from './dto/create-book.dto.js';
 import { UpdateBookDto } from './dto/update-book.dto.js';
 import { UpdateReadingStateDto } from './dto/update-reading-state.dto.js';
+import { respondWithDownload } from './download/download-response.js';
 import type { Book } from './entities/book.entity.js';
 import { MulterExceptionFilter } from './filters/multer-exception.filter.js';
 import { BookOwnerGuard } from './guards/book-owner.guard.js';
 import { presentBook } from './http/book-presenter.js';
 import { booksPdfInterceptorOptions } from './http/book-upload-config.js';
-import { respondWithDownload } from './http/download-response.js';
 import { assertStoredPdf, requireUploadedPdf } from './http/uploaded-pdf.js';
 import { requireSessionUser } from './lib/book-access.js';
 import type { UploadedPdf } from './lib/book-file.js';
@@ -187,7 +187,7 @@ export class BooksController {
   @ApiOperation({
     summary: 'Download a book PDF',
     description:
-      'Rate-limited per IP per day for non-owners (`BOOKS_DAILY_DOWNLOAD_LIMIT`, default 10). Allows private downloads only for the owner/admin.',
+      'Rate-limited per IP per day for non-owners (`BOOKS_DAILY_DOWNLOAD_LIMIT`, default 10). Allows private downloads only for the owner/admin. The served PDF answers `Content-Disposition: inline`, `X-Content-Type-Options: nosniff` and `Content-Security-Policy: sandbox`, so the reader stays the only rendering path and the document cannot script into the app origin.',
   })
   @ApiParam({ name: 'id', type: Number })
   @ApiProduces('application/pdf')

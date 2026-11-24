@@ -7,6 +7,23 @@ import { open } from 'node:fs/promises';
  */
 const PDF_MAGIC_BYTES = Buffer.from('%PDF-');
 
+/**
+ * A PDF header — `%PDF-1.x` — may be preceded by up to 1024 bytes of junk
+ * (ISO 32000-1, §7.5.2), so validation scans that window instead of only the
+ * first bytes the magic-byte check reads.
+ */
+export const PDF_HEADER_SCAN_WINDOW = 1024;
+
+const PDF_HEADER_SIGNATURE = '%PDF-1.';
+
+/**
+ * Offset of the `%PDF-1.` header inside the first 1024 bytes, or `-1` when the
+ * buffer carries no versioned PDF header (an empty or spoofed file).
+ */
+export function findPdfHeader(buffer: Buffer): number {
+  return buffer.subarray(0, PDF_HEADER_SCAN_WINDOW).indexOf(PDF_HEADER_SIGNATURE);
+}
+
 export async function hasPdfMagicBytes(filePath: string): Promise<boolean> {
   let handle: Awaited<ReturnType<typeof open>> | undefined;
   try {

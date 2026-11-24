@@ -19,6 +19,7 @@ import {
   type SessionReader,
 } from '../src/auth/guards/session-reader.js';
 import { Book } from '../src/books/entities/book.entity.js';
+import { MINIMAL_PDF_BUFFER } from './helpers/pdf-fixture.js';
 
 const ADMIN_EMAIL = 'admin@example.com';
 const ADMIN_PASSWORD = 'dev-password-1234';
@@ -98,7 +99,7 @@ describe('Ignit Books Multi-User (e2e)', () => {
     description: 'Física de los datos repartidos.',
     status: 'queued',
   };
-  const pdfBuffer = Buffer.from('%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n');
+  const pdfBuffer = MINIMAL_PDF_BUFFER;
   const textPdfBuffer = Buffer.from(
     [
       '%PDF-1.4',

@@ -17,6 +17,7 @@ import {
   type RouteSession,
   type SessionReader,
 } from '../src/auth/guards/session-reader.js';
+import { MINIMAL_PDF_BUFFER } from './helpers/pdf-fixture.js';
 
 const ADMIN_EMAIL = 'admin@example.com';
 const ADMIN_PASSWORD = 'dev-password-1234';
@@ -132,7 +133,7 @@ describe('Books with BOOKS_STORAGE=s3 (e2e, mocked S3)', () => {
     description: 'Manual de artesanía sobre buen código.',
     status: 'reading',
   };
-  const pdfBuffer = Buffer.from('%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n');
+  const pdfBuffer = MINIMAL_PDF_BUFFER;
 
   it('uploads the PDF to the bucket, stores the object key and cleans the temp file', async () => {
     const browser = await signIn();

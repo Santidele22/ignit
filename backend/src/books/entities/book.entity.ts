@@ -9,6 +9,19 @@ import {
 import { BookKind } from '../../common/enums/book-kind.enum.js';
 import { ReadingStatus } from '../../common/enums/reading-status.enum.js';
 import { User } from '../../users/entities/user.entity.js';
+import type { AiSafety, AiStatus } from '../ai/ai-analysis.types.js';
+
+/** Every PDF upload starts in the review queue (S4). */
+export const REVIEW_STATUS_PENDING = 'pending' as const;
+
+/** Review states an admin (or the upload pipeline) can leave a book in. */
+export const BOOK_REVIEW_STATUSES = [
+  REVIEW_STATUS_PENDING,
+  'approved',
+  'rejected',
+] as const;
+
+export type BookReviewStatus = (typeof BOOK_REVIEW_STATUSES)[number];
 
 /**
  * One entry of the landing "lectura" block: what the owner is reading, with an
@@ -67,6 +80,10 @@ export class Book {
   @Column({ type: 'text', nullable: true })
   originalName?: string | null;
 
+  /** Page count the PDF firewall reported when the file was attached. */
+  @Column({ type: 'int', nullable: true })
+  filePages?: number | null;
+
   /** Size of the uploaded file in bytes. */
   @Column({ type: 'bigint', nullable: true })
   fileSize?: string | null;
@@ -74,6 +91,44 @@ export class Book {
   /** MIME type of the uploaded file (always application/pdf for now). */
   @Column({ type: 'text', nullable: true })
   mimeType?: string | null;
+
+  /**
+   * Admin review state (S4): `pending` until an admin accepts or rejects the
+   * upload, so a new PDF never reaches the public surface on its own. The
+   * default also backfills every row that existed before this column.
+   */
+  @Column({ type: 'varchar', length: 20, default: REVIEW_STATUS_PENDING })
+  reviewStatus: BookReviewStatus;
+
+  /** Optional admin note explaining the current decision. */
+  @Column({ type: 'text', nullable: true })
+  reviewNote?: string | null;
+
+  /** Id of the admin that reviewed the upload. */
+  @Column({ type: 'text', nullable: true })
+  reviewedBy?: string | null;
+
+  /** `Date` (not a literal name) so Postgres stores `timestamp` and the
+   * SQLite dev/test database stores `datetime` without a per-driver branch. */
+  @Column({ type: Date, nullable: true })
+  reviewedAt?: Date | null;
+
+  /**
+   * Optional AI analysis (S3) of the extracted reading text. Every upload
+   * records `aiStatus`, so the admin queue can tell "never analysed"
+   * (`skipped`) apart from "analysed and clean" (`ok`).
+   */
+  @Column({ type: 'varchar', length: 10, nullable: true })
+  aiSafety?: AiSafety | null;
+
+  @Column({ type: 'int', nullable: true })
+  aiQuality?: number | null;
+
+  @Column({ type: 'text', nullable: true })
+  aiNotes?: string | null;
+
+  @Column({ type: 'varchar', length: 10, nullable: true })
+  aiStatus?: AiStatus | null;
 
   @CreateDateColumn()
   createdAt: Date;

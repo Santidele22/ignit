@@ -1,0 +1,45 @@
+---
+import AdminLayout from '../app/layouts/AdminLayout.astro';
+import AdminQueueApp from '../features/admin/components/AdminQueueApp';
+import { isAdminSession } from '../features/admin/lib/admin-access';
+import { getServerSession } from '../features/auth/api/serverSession';
+import { LOGIN_PATH } from '../features/auth/paths';
+
+/**
+ * `/admin` — admin review dashboard (S5).
+ *
+ * The gate is resolved on the server, before any markup leaves the Worker:
+ * an anonymous visitor is redirected to the login page (same contract as the
+ * middleware-protected `/biblioteca`), and an authenticated non-admin gets a
+ * minimal 404 shell with no admin data at all — the queue only renders for a
+ * real admin session, so the panel never leaks the existence of the queue.
+ */
+const session = await getServerSession(Astro.request.headers.get('cookie'));
+
+if (!session.authenticated) {
+	return Astro.redirect(`${LOGIN_PATH}?redirect=%2Fadmin`);
+}
+
+const isAdmin = isAdminSession(session.user);
+if (!isAdmin) {
+	Astro.response.status = 404;
+}
+
+const userLabel = session.user.email || session.user.name || 'admin';
+const title = isAdmin ? 'Panel de administración — Ignit' : 'Página no encontrada — Ignit';
+---
+
+<AdminLayout title={title}>
+	{isAdmin ? (
+		<AdminQueueApp client:load userLabel={userLabel} />
+	) : (
+		<main class="admin-shell" id="main-content">
+			<section class="empty-state">
+				<p class="empty-eyebrow">Error 404</p>
+				<p class="empty-title">Esta página no existe</p>
+				<p class="empty-note">El enlace que seguiste no está disponible.</p>
+				<a class="btn-secondary" href="/biblioteca">Volver a la biblioteca</a>
+			</section>
+		</main>
+	)}
+</AdminLayout>

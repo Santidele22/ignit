@@ -9,6 +9,7 @@ import {
 	formatRelativeSync,
 	mergeSalaBooks,
 	nextSalaTabId,
+	ownerReviewStage,
 	readLocalReadingSnapshots,
 	salaTabShortLabel,
 	selectContinuityBook,
@@ -194,6 +195,15 @@ describe('sala domain helpers', () => {
 			stageIndex: 4,
 			previewHref: '/lecturas/12',
 		});
+	});
+
+	it('maps the backend review status to the owner-facing pipeline stage', () => {
+		expect(ownerReviewStage('pending')).toBe('En revisión');
+		expect(ownerReviewStage('rejected')).toBe('Rechazado');
+		expect(ownerReviewStage('approved')).toBeNull();
+		expect(ownerReviewStage(null)).toBeNull();
+		expect(ownerReviewStage(undefined)).toBeNull();
+		expect(ownerReviewStage('desconocido')).toBeNull();
 	});
 
 	it('computes real IndexedDB storage meter and filters catalog by kind + search', () => {
