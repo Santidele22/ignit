@@ -1,10 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
 import { paginate } from '../../common/pagination/paginate.js';
 import type { PagedResult } from '../../common/pagination/pagination.dto.js';
 import { Book } from '../entities/book.entity.js';
 import { findBookOrFail } from '../lib/book-lookup.js';
+import { loadBookFirewallReport } from '../lib/book-firewall-report.js';
+import type { PdfFirewallReport } from '../pdf-firewall/pdf-firewall.types.js';
+import { BOOK_STORAGE } from '../storage/book-storage.js';
+import type { BookStorage } from '../storage/book-storage.js';
 import {
   applyReviewDecision,
   presentAdminBook,
@@ -23,6 +27,8 @@ export class BooksAdminService {
   constructor(
     @InjectRepository(Book)
     private readonly booksRepository: Repository<Book>,
+    @Inject(BOOK_STORAGE)
+    private readonly bookStorage: BookStorage,
   ) {}
 
   /** One page of the queue, newest rows last, with the owner email joined in. */
@@ -46,5 +52,20 @@ export class BooksAdminService {
     applyReviewDecision(book, dto, reviewerId);
 
     return presentAdminBook(await this.booksRepository.save(book));
+  }
+
+  /**
+   * Answers the stored per-tier firewall pipeline report of one upload (S3):
+   * the exact evidence the deterministic firewall collected when the PDF was
+   * attached, including rejected uploads whose file never survived.
+   * A `404` means no report exists (pre-sidecar uploads or no file at all).
+   */
+  async firewall(id: number): Promise<PdfFirewallReport> {
+    const book = await findBookOrFail(this.booksRepository, id);
+    const report = await loadBookFirewallReport(book.id, this.bookStorage);
+    if (!report) {
+      throw new NotFoundException('Este libro no tiene reporte de firewall');
+    }
+    return report;
   }
 }

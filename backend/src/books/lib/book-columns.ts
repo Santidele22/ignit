@@ -8,6 +8,7 @@ import { REVIEW_STATUS_PENDING } from '../entities/book.entity.js';
 import type { ReadingState } from '../entities/reading-state.entity.js';
 import { removeBookReadingArtifacts } from '../reading/book-reading.extractor.js';
 import type { BookStorage } from '../storage/book-storage.js';
+import { removeBookFirewallReport } from './book-firewall-report.js';
 import { readingJsonKey, readingStateKey } from './book-sidecar-keys.js';
 
 /**
@@ -55,6 +56,7 @@ export async function removeBookRow(
   await bookStorage.remove(book.filePath);
   await bookStorage.remove(readingJsonKey(book.id)).catch(() => undefined);
   await bookStorage.remove(readingStateKey(book.id)).catch(() => undefined);
+  await removeBookFirewallReport(book.id, bookStorage).catch(() => undefined);
   await removeBookReadingArtifacts(book.id);
   await readingStatesRepository.delete({ bookId: book.id }).catch(() => undefined);
   await booksRepository.delete(book.id);

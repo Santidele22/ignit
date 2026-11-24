@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import { readFile } from 'node:fs/promises';
 import { access, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -244,6 +245,7 @@ describe('assertSafePdfFile', () => {
 
 describe('attachBookFile firewall wiring', () => {
   let dir: string;
+  let previousUploadDir: string | undefined;
   let persist: ReturnType<typeof vi.fn>;
   let save: ReturnType<typeof vi.fn>;
   let bookStorage: BookStorage;
@@ -251,7 +253,9 @@ describe('attachBookFile firewall wiring', () => {
   let book: Book;
 
   beforeEach(async () => {
+    previousUploadDir = process.env.BOOKS_UPLOAD_DIR;
     dir = await mkdtemp(join(tmpdir(), 'pdf-firewall-attach-'));
+    process.env.BOOKS_UPLOAD_DIR = dir;
     persist = vi.fn(async () => 'stored.pdf');
     save = vi.fn(async (row: Book) => row);
     bookStorage = {
@@ -265,6 +269,11 @@ describe('attachBookFile firewall wiring', () => {
   });
 
   afterEach(async () => {
+    if (previousUploadDir === undefined) {
+      delete process.env.BOOKS_UPLOAD_DIR;
+    } else {
+      process.env.BOOKS_UPLOAD_DIR = previousUploadDir;
+    }
     await rm(dir, { recursive: true, force: true });
   });
 
@@ -284,6 +293,90 @@ describe('attachBookFile firewall wiring', () => {
     expect(persist).not.toHaveBeenCalled();
     expect(save).not.toHaveBeenCalled();
     await expect(access(path)).rejects.toThrow();
+  });
+});
+
+describe('attachBookFile firewall report sidecar (admin pipeline)', () => {
+  let dir: string;
+  let previousUploadDir: string | undefined;
+  let persist: ReturnType<typeof vi.fn>;
+  let putJson: ReturnType<typeof vi.fn>;
+  let save: ReturnType<typeof vi.fn>;
+  let bookStorage: BookStorage;
+  let booksRepository: Repository<Book>;
+  let book: Book;
+
+  beforeEach(async () => {
+    previousUploadDir = process.env.BOOKS_UPLOAD_DIR;
+    dir = await mkdtemp(join(tmpdir(), 'pdf-firewall-report-'));
+    process.env.BOOKS_UPLOAD_DIR = dir;
+    persist = vi.fn(async () => 'stored.pdf');
+    putJson = vi.fn(async () => undefined);
+    save = vi.fn(async (row: Book) => row);
+    bookStorage = {
+      strategy: 'local',
+      persist,
+      remove: vi.fn(async () => undefined),
+      resolveDownload: vi.fn(),
+      putJson,
+    } as unknown as BookStorage;
+    booksRepository = { save } as unknown as Repository<Book>;
+    book = { id: 7, filePath: null, published: false, ownerId: 'dev-test-user' } as Book;
+  });
+
+  afterEach(async () => {
+    if (previousUploadDir === undefined) {
+      delete process.env.BOOKS_UPLOAD_DIR;
+    } else {
+      process.env.BOOKS_UPLOAD_DIR = previousUploadDir;
+    }
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  it('persists the tier report of a rejected upload even though nothing else survives', async () => {
+    const path = join(dir, 'hostile.pdf');
+    await writeFile(path, rawPdf('<< /OpenAction << /S /JavaScript >> >>'));
+    const file: UploadedPdf = {
+      path,
+      originalname: 'hostile.pdf',
+      size: 120,
+      mimetype: 'application/pdf',
+    };
+
+    await expect(attachBookFile(booksRepository, bookStorage, book, file)).rejects.toMatchObject({
+      status: 400,
+    });
+
+    const stored = JSON.parse(
+      await readFile(join(dir, '7', 'firewall.json'), 'utf8'),
+    ) as PdfFirewallReport;
+    expect(stored.schemaVersion).toBe(1);
+    expect(stored.safe).toBe(false);
+    expect(stored.tiers[0].status).toBe('passed');
+    expect(stored.tiers[1].status).toBe('violation');
+    expect(stored.tiers[2].status).toBe('skipped');
+  });
+
+  it('persists the tier report of an accepted upload together with its file', async () => {
+    const path = join(dir, 'clean.pdf');
+    await writeFile(path, await cleanPdfBuffer());
+    const file: UploadedPdf = {
+      path,
+      originalname: 'clean.pdf',
+      size: 2048,
+      mimetype: 'application/pdf',
+    };
+
+    const stored = await attachBookFile(booksRepository, bookStorage, book, file);
+    expect(stored.filePath).toBe('stored.pdf');
+
+    const report = JSON.parse(
+      await readFile(join(dir, '7', 'firewall.json'), 'utf8'),
+    ) as PdfFirewallReport;
+    expect(report.schemaVersion).toBe(1);
+    expect(report.safe).toBe(true);
+    expect(report.pageCount).toBe(1);
+    expect(report.tiers.map((tier) => tier.status)).toEqual(['passed', 'passed', 'passed']);
   });
 });
 

@@ -191,9 +191,14 @@ export async function assertSafePdfFile(filePath: string): Promise<void> {
 
 /**
  * Same check as `assertSafePdfFile`, but answers the accepted verdict so the
- * caller can persist the page count the structural tier measured.
+ * caller can persist the page count the structural tier measured. When
+ * `onReport` is given it receives the full per-tier pipeline report for both
+ * outcomes, before the rejection `400` is thrown (S2).
  */
-export async function inspectSafePdfFile(filePath: string): Promise<PdfFirewallVerdict> {
+export async function inspectSafePdfFile(
+  filePath: string,
+  onReport?: (report: PdfFirewallReport) => void,
+): Promise<PdfFirewallVerdict> {
   let buffer: Buffer;
   try {
     buffer = await readFile(filePath);
@@ -202,9 +207,9 @@ export async function inspectSafePdfFile(filePath: string): Promise<PdfFirewallV
     throw new BadRequestException(UNREADABLE_FILE_MESSAGE);
   }
 
-  let verdict: PdfFirewallVerdict;
+  let report: PdfFirewallReport;
   try {
-    verdict = await inspectPdfBuffer(buffer);
+    report = await inspectPdfBufferWithPipeline(buffer);
   } catch (error) {
     await dropTempFile(filePath);
     const detail = error instanceof Error ? error.message : 'el documento no se pudo analizar';
@@ -212,12 +217,13 @@ export async function inspectSafePdfFile(filePath: string): Promise<PdfFirewallV
       firewallRejectionMessage([{ code: 'PARSE_ERROR', detail }]),
     );
   }
-  if (verdict.safe) {
-    return verdict;
+  onReport?.(report);
+  if (report.safe) {
+    return { safe: report.safe, pageCount: report.pageCount, violations: report.violations };
   }
 
   await dropTempFile(filePath);
-  throw new BadRequestException(firewallRejectionMessage(verdict.violations));
+  throw new BadRequestException(firewallRejectionMessage(report.violations));
 }
 
 /** Spanish `400` message naming every violation, e.g. `ACTIVE_CONTENT_KEY /JavaScript`. */
