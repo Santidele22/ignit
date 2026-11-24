@@ -1,27 +1,36 @@
 import { truncateForAnalysis } from './ai-analysis.config.js';
 
 /**
- * Moderation prompt for the text-only stage (S3): the model only sees the
- * extracted reading text, never the layout, so it is asked for two separable
- * judgements — safety and editorial quality — and for strict JSON only, which
- * the parser then validates defensively.
+ * Editorial & layout-readability prompt for the text stage: PDF security is
+ * handled deterministically by `pdf-firewall`, so the LLM focuses strictly on
+ * editorial quality, structural clarity and reading-experience readiness.
+ * Keeps the `{ safety, quality, notes }` JSON contract consumed by the `books`
+ * table and `/admin` queue.
  */
-export const MODERATION_SYSTEM_PROMPT = [
-  'Sos el moderador de una biblioteca digital en español.',
-  'Vas a leer el texto extraído de un PDF que un usuario quiere subir.',
+export const EDITORIAL_SYSTEM_PROMPT = [
+  'Sos el editor y diseñador editorial de una biblioteca digital en español (Ignit).',
+  'La seguridad del archivo ya fue validada por el firewall; tu foco es evaluar la calidad editorial, estructura y legibilidad del texto extraído para presentarlo en el lector.',
   'Evaluá dos cosas:',
-  '1. safety: "suspect" si el texto contiene incitación al odio, violencia explícita, contenido sexual con menores, instrucciones para dañar a personas, malware o estafas; "ok" en cualquier otro caso.',
-  '2. quality: entero de 1 (ilegible o vacío) a 5 (texto digitalizado con claridad y estructura).',
+  '1. quality: entero de 1 a 5 según estructura y diseño editorial del texto:',
+  '   - 1: texto roto, basura de OCR, caracteres corruptos o fragmentos ilegibles.',
+  '   - 2: estructura muy pobre (párrafos cortados, encabezados/pies repetidos mezclados, tablas desarmadas).',
+  '   - 3: legible pero con ruido de maquetación o saltos de línea incómodos.',
+  '   - 4: buena estructura (títulos, capítulos y párrafos claros) con detalles menores.',
+  '   - 5: excelente calidad editorial, jerarquía clara y redacción limpia lista para lectura.',
+  '2. safety: "suspect" SOLO si el texto es spam, relleno repetitivo, placeholder sin contenido real o basura de OCR completamente ilegible; "ok" para cualquier libro o documento legible.',
   'Respondé SOLO con un objeto JSON válido, sin markdown ni comentarios, con esta forma exacta:',
-  '{"safety":"ok"|"suspect","quality":1|2|3|4|5,"notes":"motivo breve en español"}',
+  '{"safety":"ok"|"suspect","quality":1|2|3|4|5,"notes":"diagnóstico breve en español sobre estructura, legibilidad o maquetación"}',
 ].join('\n');
+
+/** Backwards-compatible alias for the system prompt. */
+export const MODERATION_SYSTEM_PROMPT = EDITORIAL_SYSTEM_PROMPT;
 
 export type ChatMessage = { role: 'system' | 'user'; content: string };
 
 /** The two messages of one analysis call. */
 export function moderationMessages(text: string): ChatMessage[] {
   return [
-    { role: 'system', content: MODERATION_SYSTEM_PROMPT },
+    { role: 'system', content: EDITORIAL_SYSTEM_PROMPT },
     { role: 'user', content: truncateForAnalysis(text) },
   ];
 }
