@@ -45,7 +45,7 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 	const [coverModalOpen, setCoverModalOpen] = createSignal(false);
 	const [coverQuery, setCoverQuery] = createSignal('');
 	const [searchingCovers, setSearchingCovers] = createSignal(false);
-	const [suggestingMeta, setSuggestingMeta] = createSignal(false);
+	const [prefillStatus, setPrefillStatus] = createSignal('');
 	const [published, setPublished] = createSignal(false);
 	const [file, setFile] = createSignal<File | null>(null);
 	const [createdRow, setCreatedRow] = createSignal<AdminBookRow | null>(null);
@@ -72,7 +72,7 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 		setCoverModalOpen(false);
 		setCoverQuery('');
 		setSearchingCovers(false);
-		setSuggestingMeta(false);
+		setPrefillStatus('');
 		setPublished(false);
 		setFile(null);
 		setCreatedRow(null);
@@ -116,7 +116,7 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 	}
 
 	async function runSmartPrefill(filename: string) {
-		setSuggestingMeta(true);
+		setPrefillStatus('Rellenando título, autor y descripción con IA…');
 		try {
 			const suggested = await suggestBookMetadata(filename);
 			if (suggested.title && !titleManual()) setTitle(suggested.title);
@@ -125,12 +125,13 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 			const queryTitle = (suggested.title ?? title()).trim();
 			const queryAuthor = (suggested.author ?? author()).trim();
 			if (queryTitle) {
+				setPrefillStatus('Buscando portada en Google…');
 				await handleSearchCovers(queryTitle, queryAuthor);
 			}
 		} catch {
 			// Fail-open: deterministic filename hints already populated the form.
 		} finally {
-			setSuggestingMeta(false);
+			setPrefillStatus('');
 		}
 	}
 
@@ -414,8 +415,11 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 							</div>
 						</div>
 
-						<Show when={suggestingMeta()}>
-							<p class="pipe-notice">Autocompletando título, autor y descripción con IA…</p>
+						<Show when={prefillStatus()}>
+							<p class="pipe-notice pipe-loading" role="status" aria-live="polite">
+								<span class="pipe-spinner" aria-hidden="true" />
+								{prefillStatus()}
+							</p>
 						</Show>
 
 						<div class="field">

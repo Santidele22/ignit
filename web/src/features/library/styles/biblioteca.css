@@ -1575,6 +1575,35 @@ body.biblioteca-body .pipe-notice b {
 	color: var(--b-fg);
 }
 
+/* AI prefill loading: inline spinner + live status text. */
+body.biblioteca-body .pipe-notice.pipe-loading {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+body.biblioteca-body .pipe-spinner {
+	flex: none;
+	width: 12px;
+	height: 12px;
+	border: 1.5px solid rgb(var(--b-accent-rgb) / 0.3);
+	border-top-color: var(--b-accent-bright);
+	border-radius: 50%;
+	animation: pipe-spin 0.8s linear infinite;
+}
+
+@keyframes pipe-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	body.biblioteca-body .pipe-spinner {
+		animation-duration: 2.4s;
+	}
+}
+
 body.biblioteca-body .modal-foot {
 	display: flex;
 	justify-content: flex-end;
