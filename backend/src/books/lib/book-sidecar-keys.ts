@@ -7,3 +7,6 @@ export const readingJsonKey = (bookId: number | string): string =>
 
 export const readingStateKey = (bookId: number | string): string =>
   `reading/${bookId}/state.json`;
+
+export const firewallJsonKey = (bookId: number | string): string =>
+  `reading/${bookId}/firewall.json`;

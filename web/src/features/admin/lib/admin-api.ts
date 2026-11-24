@@ -1,4 +1,5 @@
 import { getJson, postJsonReturning } from '../../../shared/api/authorizedHttp';
+import type { FirewallReport } from './admin-firewall';
 import type { AdminQueueBook, AdminQueuePage } from './admin-queue';
 
 /**
@@ -40,4 +41,26 @@ export function fetchAdminQueue(query: AdminQueueQuery = {}): Promise<AdminQueue
 /** `POST /admin/books/:id/review` — records the decision, answers the new row. */
 export function submitAdminReview(id: number, body: ReviewRequestBody): Promise<AdminQueueBook> {
 	return postJsonReturning<AdminQueueBook>(`/admin/books/${id}/review`, body);
+}
+
+/** `GET /admin/books/:id/firewall` — stored pipeline report of one upload. */
+export function fetchFirewallReport(id: number): Promise<FirewallReport> {
+	return getJson<FirewallReport>(`/admin/books/${id}/firewall`);
+}
+
+/** Editorial style reference type served by `GET /admin/ai/style-reference`. */
+export type StyleReference = {
+	role: string;
+	securityBoundary: string;
+	qualityLabel: string;
+	qualityRubric: Array<{ score: number; description: string }>;
+	safetyRule: string;
+	outputShape: string;
+	inputs: { readingText: string; maxCharacters: number };
+	neverJudges: string[];
+};
+
+/** `GET /admin/ai/style-reference` — what the LLM actually judges with. */
+export function fetchStyleReference(): Promise<StyleReference> {
+	return getJson<StyleReference>('/admin/ai/style-reference');
 }

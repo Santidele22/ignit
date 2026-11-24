@@ -55,7 +55,34 @@ export type PdfStructureLimits = StreamFirewallLimits & {
 export type PdfStructureScan = {
   pageCount: number;
   violations: PdfViolation[];
+  /**
+   * Structural check buckets that actually executed, in pipeline order.
+   * The /admin report derives `skipped` states from this list: an absent
+   * bucket means its check never ran (early exit), it did not pass.
+   */
+  ranStages: PdfStructureStage[];
 };
+
+/** The check buckets the structural tier can execute or produce findings in. */
+export type PdfStructureStage =
+  | 'parse'
+  | 'encryption'
+  | 'active-content'
+  | 'external-streams'
+  | 'uris'
+  | 'metadata'
+  | 'resource-limits'
+  | 'page-count'
+  | 'hidden-content';
+
+/** Every early return reports the stages that ran up to that point. */
+function scanResult(
+  ranStages: PdfStructureStage[],
+  pageCount: number,
+  violations: PdfViolation[],
+): PdfStructureScan {
+  return { pageCount, violations, ranStages };
+}
 
 /**
  * Tier 2 of the PDF firewall: pre-parse stream/object bounds, `pdf-lib` load
@@ -66,11 +93,15 @@ export async function inspectPdfStructure(
   buffer: Buffer,
   limits: PdfStructureLimits,
 ): Promise<PdfStructureScan> {
+  const ranStages: PdfStructureStage[] = [];
+
+  ranStages.push('resource-limits');
   const preParseViolations = inspectRawPreParseBounds(buffer, limits);
   if (preParseViolations.length > 0) {
-    return { pageCount: 0, violations: preParseViolations };
+    return scanResult(ranStages, 0, preParseViolations);
   }
 
+  ranStages.push('parse', 'encryption');
   let doc: PDFDocument;
   try {
     doc = await PDFDocument.load(buffer, {
@@ -80,39 +111,38 @@ export async function inspectPdfStructure(
     });
   } catch (error) {
     if (error instanceof EncryptedPDFError) {
-      return {
-        pageCount: 0,
-        violations: [{ code: 'ENCRYPTED', detail: '/Encrypt' }],
-      };
+      return scanResult(ranStages, 0, [{ code: 'ENCRYPTED', detail: '/Encrypt' }]);
     }
-    return {
-      pageCount: 0,
-      violations: [{ code: 'PARSE_ERROR', detail: describeError(error) }],
-    };
+    return scanResult(ranStages, 0, [{ code: 'PARSE_ERROR', detail: describeError(error) }]);
   }
 
   try {
     if (!(doc.catalog instanceof PDFDict)) {
-      return {
-        pageCount: 0,
-        violations: [{ code: 'PARSE_ERROR', detail: 'catálogo PDF ausente o inválido' }],
-      };
+      return scanResult(ranStages, 0, [
+        { code: 'PARSE_ERROR', detail: 'catálogo PDF ausente o inválido' },
+      ]);
     }
 
     const indirectObjects = doc.context.enumerateIndirectObjects();
     if (indirectObjects.length > limits.maxObjects) {
-      return {
-        pageCount: 0,
-        violations: [
-          {
-            code: 'RESOURCE_LIMIT_EXCEEDED',
-            detail: `${indirectObjects.length} objetos indirectos (máximo ${limits.maxObjects})`,
-          },
-        ],
-      };
+      return scanResult(ranStages, 0, [
+        {
+          code: 'RESOURCE_LIMIT_EXCEEDED',
+          detail: `${indirectObjects.length} objetos indirectos (máximo ${limits.maxObjects})`,
+        },
+      ]);
     }
 
     const violations: PdfViolation[] = [];
+    ranStages.push(
+      'parse',
+      'resource-limits',
+      'active-content',
+      'encryption',
+      'external-streams',
+      'uris',
+      'metadata',
+    );
     violations.push(...scanObjectGraph(doc, indirectObjects, limits));
     violations.push(...inspectTrailerInfoMetadata(doc));
 
@@ -122,9 +152,10 @@ export async function inspectPdfStructure(
     const pageTreeCheck = countPageTreeSafely(doc, limits.maxPages);
     if (pageTreeCheck.violation) {
       violations.push(pageTreeCheck.violation);
-      return { pageCount: pageTreeCheck.pageCount, violations: deduplicateViolations(violations) };
+      return scanResult(ranStages, pageTreeCheck.pageCount, deduplicateViolations(violations));
     }
 
+    ranStages.push('page-count');
     const pageCount = pageTreeCheck.pageCount;
     if (pageCount < MIN_FIREWALL_PAGES) {
       violations.push({
@@ -139,15 +170,13 @@ export async function inspectPdfStructure(
     }
 
     if (violations.length === 0) {
+      ranStages.push('hidden-content');
       violations.push(...inspectPagesForHiddenContent(doc, limits.maxStreamBytes));
     }
 
-    return { pageCount, violations: deduplicateViolations(violations) };
+    return scanResult(ranStages, pageCount, deduplicateViolations(violations));
   } catch (error) {
-    return {
-      pageCount: 0,
-      violations: [{ code: 'PARSE_ERROR', detail: describeError(error) }],
-    };
+    return scanResult(ranStages, 0, [{ code: 'PARSE_ERROR', detail: describeError(error) }]);
   }
 }
 

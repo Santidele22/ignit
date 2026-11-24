@@ -70,4 +70,17 @@ export class BooksAdminController {
     const user = requireSessionUser(req.user);
     return this.booksAdminService.review(id, reviewBookDto, user.id);
   }
+
+  @Get(':id/firewall')
+  @ApiOperation({
+    summary: 'Firewall pipeline report of one book (admin only)',
+    description:
+      'The stored per-tier pipeline report captured when the PDF was attached: tier 0 (header sanity + polyglot), tier 1 (lexical forbidden-name scan) and tier 2 (structural walk), each check marked `passed`, `violation` or `skipped`, with the raw violation codes. Rejected uploads keep their report even though the file was dropped. `404` when no report exists.',
+  })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiOkResponse({ description: 'PdfFirewallReport JSON sidecar contents' })
+  @ApiNotFoundResponse({ description: 'Book not found or no firewall report for it' })
+  firewall(@Param('id', ParseIntPipe) id: number) {
+    return this.booksAdminService.firewall(id);
+  }
 }

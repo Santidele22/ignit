@@ -1,5 +1,7 @@
 import { For, Show, createSignal, onCleanup, onMount } from 'solid-js';
 import { signOutCleanly } from '../../auth/api/authActions';
+import { FirewallPipeline } from './FirewallPipeline';
+import { StyleReferenceSection } from './StyleReferenceSection';
 import { ADMIN_QUEUE_PAGE_SIZE, fetchAdminQueue, submitAdminReview } from '../lib/admin-api';
 import {
 	adminAiVerdict,
@@ -47,6 +49,7 @@ export default function AdminQueueApp(props: AdminQueueAppProps) {
 	const [note, setNote] = createSignal('');
 	const [announcement, setAnnouncement] = createSignal('');
 	const [signingOut, setSigningOut] = createSignal(false);
+	const [pipelineId, setPipelineId] = createSignal<number | null>(null);
 
 	let noteInput: HTMLInputElement | undefined;
 	let confirmInput: HTMLButtonElement | undefined;
@@ -204,6 +207,7 @@ export default function AdminQueueApp(props: AdminQueueAppProps) {
 						Cada PDF subido por la comunidad llega acá antes de publicarse. Revisá el archivo, aceptalo o
 						rechazalo con una nota.
 					</p>
+					<StyleReferenceSection />
 				</div>
 
 				<Show when={error()}>
@@ -271,6 +275,16 @@ export default function AdminQueueApp(props: AdminQueueAppProps) {
 													<span class="ai-notes">{verdict.notes}</span>
 												</Show>
 											</div>
+
+											<button
+												class="pipeline-toggle"
+												type="button"
+												aria-expanded={pipelineId() === book.id}
+												onClick={() => setPipelineId(pipelineId() === book.id ? null : book.id)}
+											>
+												{pipelineId() === book.id ? 'Ocultar pipeline' : 'Pipeline de seguridad'}
+											</button>
+											<FirewallPipeline bookId={book.id} open={pipelineId() === book.id} />
 										</div>
 
 										<div class="row-actions">

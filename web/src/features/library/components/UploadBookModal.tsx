@@ -1,4 +1,5 @@
 import { Show, createEffect, createSignal, onCleanup } from 'solid-js';
+import { pdfNameHints } from '../lib/upload-hints';
 import type { BookKind } from '../../../entities/book/types';
 import { createBookReturning, uploadBookFile } from '../../book/api/books-admin';
 import type { AdminBookRow } from '../../book/api/books-admin';
@@ -73,6 +74,12 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 		}
 		setFile(next);
 		setError(null);
+
+		// Prefill from the filename (e.g. `Título – Autor.pdf`), but only the
+		// fields the user has not typed into yet — never overwrites manual input.
+		const hints = pdfNameHints(next.name);
+		if (hints.title && !title().trim()) setTitle(hints.title);
+		if (hints.author && !author().trim()) setAuthor(hints.author);
 	}
 
 	async function handleSubmit(event: SubmitEvent) {

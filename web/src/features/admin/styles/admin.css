@@ -645,3 +645,215 @@ body.admin-body .pager-label {
 		text-align: center;
 	}
 }
+
+/* ------------------------------------------------- firewall pipeline (S4) -- */
+
+body.admin-body .pipeline-toggle {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 0;
+	border: none;
+	background: none;
+	font-family: var(--b-mono);
+	font-size: 10px;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--b-faint);
+	cursor: pointer;
+}
+
+body.admin-body .pipeline-toggle:hover,
+body.admin-body .pipeline-toggle[aria-expanded="true"] {
+	color: var(--b-accent, var(--b-fg));
+}
+
+body.admin-body .firewall-panel {
+	margin-top: 8px;
+	border: 1px solid var(--b-border);
+	background: color-mix(in oklab, var(--b-panel-2) 55%, var(--b-panel));
+	padding: 10px 12px;
+}
+
+body.admin-body .firewall-note {
+	font-family: var(--b-sans);
+	font-size: 12px;
+	color: var(--b-faint);
+	margin: 0;
+}
+
+body.admin-body .firewall-error {
+	color: var(--b-danger);
+}
+
+body.admin-body .firewall-summary {
+	margin: 0 0 8px;
+	font-family: var(--b-mono);
+	font-size: 10.5px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--b-fg);
+}
+
+body.admin-body .firewall-summary[data-verdict="ok"] {
+	color: var(--b-ok);
+}
+
+body.admin-body .firewall-summary[data-verdict="rejected"] {
+	color: var(--b-danger);
+}
+
+body.admin-body .firewall-tiers {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	gap: 8px;
+}
+
+body.admin-body .firewall-tier {
+	border-left: 3px solid var(--b-border-strong);
+	padding-left: 10px;
+}
+
+body.admin-body .firewall-tier[data-tone="violation"] {
+	border-left-color: var(--b-danger);
+}
+
+body.admin-body .firewall-tier[data-tone="passed"] {
+	border-left-color: var(--b-ok);
+}
+
+body.admin-body .tier-head {
+	display: flex;
+	justify-content: space-between;
+	gap: 8px;
+	margin: 0 0 4px;
+	font-family: var(--b-mono);
+	font-size: 10px;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--b-fg);
+}
+
+body.admin-body .tier-status {
+	color: var(--b-faint);
+}
+
+body.admin-body .tier-checks {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	gap: 2px;
+}
+
+body.admin-body .tier-check {
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
+	font-family: var(--b-mono);
+	font-size: 10.5px;
+	color: var(--b-faint);
+}
+
+body.admin-body .tier-check[data-tone="violation"] {
+	color: var(--b-danger);
+}
+
+body.admin-body .tier-check[data-tone="passed"] {
+	color: var(--b-ok);
+}
+
+body.admin-body .check-codes {
+	font-family: var(--b-sans);
+	font-size: 11px;
+	color: var(--b-danger);
+	text-transform: none;
+	letter-spacing: 0.02em;
+}
+
+/* ------------------------------------------------ style reference (S6) -- */
+
+body.admin-body .style-reference {
+	margin-top: 14px;
+	border: 1px solid var(--b-border);
+	background: color-mix(in oklab, var(--b-panel-2) 45%, var(--b-panel));
+}
+
+body.admin-body .style-toggle {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	width: 100%;
+	padding: 10px 12px;
+	border: none;
+	background: none;
+	font-family: var(--b-mono);
+	font-size: 10.5px;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--b-fg);
+	cursor: pointer;
+}
+
+body.admin-body .style-caret {
+	color: var(--b-faint);
+}
+
+body.admin-body .style-body {
+	padding: 4px 12px 12px;
+	display: grid;
+	gap: 8px;
+	font-family: var(--b-sans);
+	font-size: 12.5px;
+	color: var(--b-body);
+}
+
+body.admin-body .style-role {
+	margin: 0;
+	font-family: var(--b-serif);
+	font-size: 14px;
+	color: var(--b-fg);
+}
+
+body.admin-body .style-boundary,
+body.admin-body .style-label,
+body.admin-body .style-safety {
+	margin: 0;
+}
+
+body.admin-body .style-safety strong {
+	font-family: var(--b-mono);
+	font-size: 10px;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+}
+
+body.admin-body .style-rubric {
+	margin: 0;
+	padding-left: 18px;
+	display: grid;
+	gap: 4px;
+}
+
+body.admin-body .rubric-score {
+	font-family: var(--b-mono);
+	color: var(--b-fg);
+}
+
+body.admin-body .style-never-title {
+	margin: 0 0 2px;
+	font-family: var(--b-mono);
+	font-size: 10px;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--b-faint);
+}
+
+body.admin-body .style-never ul {
+	margin: 0;
+	padding-left: 18px;
+	display: grid;
+	gap: 2px;
+}

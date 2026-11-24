@@ -5,7 +5,11 @@ import { aiColumnsFor, analyzeReadingDocument } from '../ai/ai-analysis.service.
 import type { Book } from '../entities/book.entity.js';
 import type { BookStorage } from '../storage/book-storage.js';
 import { extractReadingFromPdf, writeBookReadingJson } from '../reading/book-reading.extractor.js';
-import { inspectSafePdfFile } from '../pdf-firewall/pdf-firewall.service.js';
+import {
+  inspectSafePdfFile,
+} from '../pdf-firewall/pdf-firewall.service.js';
+import type { PdfFirewallReport } from '../pdf-firewall/pdf-firewall.types.js';
+import { saveBookFirewallReport } from './book-firewall-report.js';
 import { emptyReadingDocument } from './book-reading.js';
 import { readingJsonKey } from './book-sidecar-keys.js';
 
@@ -32,8 +36,19 @@ export async function attachBookFile(
 ): Promise<Book> {
   // The firewall runs before anything else: a rejected upload never reaches
   // text extraction nor durable storage, and `inspectSafePdfFile` drops the
-  // multer temp file itself (same convention as `assertStoredPdf`).
-  const verdict = await inspectSafePdfFile(file.path);
+  // multer temp file itself (same convention as `assertStoredPdf`). The full
+  // per-tier report is captured for /admin and written in both outcomes (S2).
+  let firewallReport: PdfFirewallReport | null = null;
+  const verdict = await inspectSafePdfFile(file.path, (report) => {
+    firewallReport = report;
+  }).catch(async (error: unknown) => {
+    if (firewallReport) {
+      // Persisted before rethrowing so the 400 response and the report land
+      // together; a failed sidecar write never masks the original rejection.
+      await saveBookFirewallReport(book.id, firewallReport, bookStorage).catch(() => undefined);
+    }
+    throw error;
+  });
 
   // Extract `reading.json` while `file.path` is still on local disk (in S3
   // mode `bookStorage.persist` deletes the multer temp file after upload).
@@ -68,6 +83,10 @@ export async function attachBookFile(
     await bookStorage
       .putJson(readingJsonKey(book.id), readingDoc)
       .catch(() => undefined);
+  }
+
+  if (firewallReport) {
+    await saveBookFirewallReport(book.id, firewallReport, bookStorage).catch(() => undefined);
   }
 
   return book;
