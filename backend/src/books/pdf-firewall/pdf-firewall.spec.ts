@@ -11,7 +11,8 @@ import type { Book } from '../entities/book.entity.js';
 import { attachBookFile, type UploadedPdf } from '../lib/book-file.js';
 import type { BookStorage } from '../storage/book-storage.js';
 import { findForbiddenNames, inspectPdfUri, normalizePdfNames } from './pdf-firewall.rules.js';
-import { assertSafePdfFile, inspectPdfBuffer } from './pdf-firewall.service.js';
+import { assertSafePdfFile, inspectPdfBuffer, inspectPdfBufferWithPipeline } from './pdf-firewall.service.js';
+import type { PdfFirewallReport, PdfCheckReport } from './pdf-firewall.types.js';
 
 /** A structurally valid PDF built by `pdf-lib` itself (no active content). */
 async function cleanPdfBuffer(pageCount = 1): Promise<Buffer> {
@@ -802,5 +803,117 @@ describe('hardened firewall — verifier adversarial regression probes', () => {
     page.node.set(PDFName.of('Contents'), deepBracketsDoc.context.register(bracketStream));
     const bracketVerdict = await inspectPdfBuffer(Buffer.from(await deepBracketsDoc.save()));
     expect(bracketVerdict.safe).toBe(true);
+  });
+});
+
+/** Asserts one check of a tier by id, keeping the tier/report traversal typed. */
+function pipelineCheck(report: PdfFirewallReport, tier: 0 | 1 | 2, id: string): PdfCheckReport | undefined {
+  return report.tiers[tier]?.checks.find((check) => check.id === id);
+}
+
+describe('pdf firewall pipeline report (admin dashboard)', () => {
+  it('reports three passed tiers with every check for a clean PDF', async () => {
+    const report = await inspectPdfBufferWithPipeline(await cleanPdfBuffer());
+
+    expect(report).toMatchObject({ schemaVersion: 1, safe: true, pageCount: 1, violations: [] });
+    expect(report.tiers.map((tier) => tier.index)).toEqual([0, 1, 2]);
+    expect(report.tiers.map((tier) => tier.name)).toEqual(['header', 'lexical', 'structure']);
+    expect(report.tiers.map((tier) => tier.status)).toEqual(['passed', 'passed', 'passed']);
+    for (const tier of report.tiers) {
+      expect(tier.checks.length).toBeGreaterThan(0);
+      for (const check of tier.checks) {
+        expect(check.status).toBe('passed');
+        expect(check.violations).toEqual([]);
+      }
+    }
+  });
+
+  it('marks the failing tier 0 check and skips tiers 1 and 2', async () => {
+    const report = await inspectPdfBufferWithPipeline(Buffer.from('not a pdf'));
+
+    expect(report.safe).toBe(false);
+    const [tier0, tier1, tier2] = report.tiers;
+    expect(tier0.status).toBe('violation');
+    expect(pipelineCheck(report, 0, 'header')).toMatchObject({
+      status: 'violation',
+      violations: [{ code: 'MISSING_PDF_HEADER' }],
+    });
+    expect(pipelineCheck(report, 0, 'polyglot')?.status).toBe('passed');
+    expect(tier1.status).toBe('skipped');
+    expect(tier1.checks.every((check) => check.status === 'skipped')).toBe(true);
+    expect(tier2.status).toBe('skipped');
+    expect(tier2.checks.every((check) => check.status === 'skipped')).toBe(true);
+  });
+
+  it('attributes a tier 1 lexical violation to its check without touching tier 0', async () => {
+    const report = await inspectPdfBufferWithPipeline(
+      rawPdf('<< /OpenAction << /S /JavaScript >> >>'),
+    );
+
+    expect(report.tiers[0].status).toBe('passed');
+    expect(report.tiers[1].status).toBe('violation');
+    expect(pipelineCheck(report, 1, 'active-content')).toMatchObject({
+      status: 'violation',
+    });
+    expect(pipelineCheck(report, 1, 'active-content')?.violations).toEqual(
+      expect.arrayContaining([
+        { code: 'ACTIVE_CONTENT_KEY', detail: '/JavaScript' },
+        { code: 'ACTIVE_CONTENT_KEY', detail: '/OpenAction' },
+      ]),
+    );
+    expect(pipelineCheck(report, 1, 'encryption')?.status).toBe('passed');
+    expect(report.tiers[2].status).toBe('skipped');
+  });
+
+  it('classifies tier 2 violations into their per-code checks', async () => {
+    const hostileDoc = await PDFDocument.create();
+    const hostilePage = hostileDoc.addPage();
+    hostilePage.node.set(
+      PDFName.of('Annots'),
+      hostileDoc.context.obj([
+        {
+          Type: 'Annot',
+          Subtype: 'Link',
+          Rect: [10, 10, 100, 30],
+          A: { Type: 'Action', S: 'URI', URI: PDFHexString.fromText('javascript:alert(1)') },
+        },
+      ]),
+    );
+
+    const report = await inspectPdfBufferWithPipeline(
+      Buffer.from(await hostileDoc.save({ useObjectStreams: true })),
+    );
+
+    expect(report.safe).toBe(false);
+    expect(report.tiers[2].status).toBe('violation');
+    expect(pipelineCheck(report, 2, 'uris')).toMatchObject({
+      status: 'violation',
+      violations: [{ code: 'SUSPICIOUS_URI' }],
+    });
+    // Hidden-content inspection is conditional: another violation short-circuits it.
+    expect(pipelineCheck(report, 2, 'hidden-content')?.status).toBe('skipped');
+  });
+
+  it('classifies a PARSE_ERROR into its own check, not the skipped report', async () => {
+    // Structurally-hostile-looking header, valid tier 0/1: pdf-lib must fail inside tier 2.
+    const report = await inspectPdfBufferWithPipeline(
+      rawPdf('1 0 obj\n<< /Type /Pages /Kids [(not-a-dict)] /Count 1 >>\nendobj'),
+    );
+
+    expect(report.tiers[2].status).toBe('violation');
+    expect(pipelineCheck(report, 2, 'parse')?.status).toBe('violation');
+    expect(pipelineCheck(report, 2, 'parse')?.violations[0]?.code).toBe('PARSE_ERROR');
+  });
+
+  it('keeps inspectPdfBuffer verdicts identical to the pipeline verdict', async () => {
+    const buffers = [
+      Buffer.from('not a pdf'),
+      rawPdf('<< /OpenAction << /S /JavaScript >> >>'),
+      await cleanPdfBuffer(3),
+    ];
+    for (const buffer of buffers) {
+      const report = await inspectPdfBufferWithPipeline(buffer);
+      expect(report).toMatchObject(await inspectPdfBuffer(buffer));
+    }
   });
 });

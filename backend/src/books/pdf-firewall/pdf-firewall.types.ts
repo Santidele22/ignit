@@ -28,3 +28,34 @@ export type PdfFirewallVerdict = {
   pageCount: number;
   violations: PdfViolation[];
 };
+
+/** How one pipeline check ended: clean pass, finding, or it never ran. */
+export type PdfCheckStatus = 'passed' | 'violation' | 'skipped';
+
+/** One deterministic check of the firewall pipeline, keyed by stable `id`. */
+export type PdfCheckReport = {
+  id: string;
+  status: PdfCheckStatus;
+  violations: PdfViolation[];
+};
+
+/** One tier (0, 1 or 2) of the firewall pipeline with its ordered checks. */
+export type PdfTierReport = {
+  index: 0 | 1 | 2;
+  name: 'header' | 'lexical' | 'structure';
+  status: PdfCheckStatus;
+  checks: PdfCheckReport[];
+};
+
+/**
+ * Structured per-tier pipeline report (S1, /admin dashboard): every tier and
+ * every check with `passed` / `violation` / `skipped` states. Persistence and
+ * `/admin` consume exactly this object.
+ */
+export type PdfFirewallReport = {
+  schemaVersion: 1;
+  safe: boolean;
+  pageCount: number;
+  violations: PdfViolation[];
+  tiers: PdfTierReport[];
+};
