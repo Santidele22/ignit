@@ -1,7 +1,13 @@
-import { Show, createEffect, createSignal, onCleanup } from 'solid-js';
+import { For, Show, createEffect, createSignal, onCleanup } from 'solid-js';
 import { pdfNameHints } from '../lib/upload-hints';
 import type { BookKind } from '../../../entities/book/types';
-import { createBookReturning, uploadBookFile } from '../../book/api/books-admin';
+import {
+	createBookReturning,
+	searchBookCovers,
+	suggestBookMetadata,
+	uploadBookFile,
+	type CoverSearchCandidate,
+} from '../../book/api/books-admin';
 import type { AdminBookRow } from '../../book/api/books-admin';
 import { bookFormToBody } from '../../book/bookForm';
 import { formatSizeKb, kindFromValue, validatePdfUpload } from '../lib/sala';
@@ -32,6 +38,13 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 	const [authorManual, setAuthorManual] = createSignal(false);
 	const [kind, setKind] = createSignal<BookKind>('no_tecnico');
 	const [description, setDescription] = createSignal('');
+	const [descriptionManual, setDescriptionManual] = createSignal(false);
+	const [coverUrl, setCoverUrl] = createSignal('');
+	const [coverResults, setCoverResults] = createSignal<CoverSearchCandidate[]>([]);
+	const [coverModalOpen, setCoverModalOpen] = createSignal(false);
+	const [coverQuery, setCoverQuery] = createSignal('');
+	const [searchingCovers, setSearchingCovers] = createSignal(false);
+	const [suggestingMeta, setSuggestingMeta] = createSignal(false);
 	const [published, setPublished] = createSignal(false);
 	const [file, setFile] = createSignal<File | null>(null);
 	const [createdRow, setCreatedRow] = createSignal<AdminBookRow | null>(null);
@@ -52,6 +65,13 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 		setAuthorManual(false);
 		setKind('no_tecnico');
 		setDescription('');
+		setDescriptionManual(false);
+		setCoverUrl('');
+		setCoverResults([]);
+		setCoverModalOpen(false);
+		setCoverQuery('');
+		setSearchingCovers(false);
+		setSuggestingMeta(false);
 		setPublished(false);
 		setFile(null);
 		setCreatedRow(null);
@@ -87,6 +107,57 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 		const hints = pdfNameHints(next.name);
 		if (!titleManual()) setTitle(hints.title ?? '');
 		if (!authorManual()) setAuthor(hints.author ?? '');
+		void runSmartPrefill(next.name);
+	}
+
+	async function runSmartPrefill(filename: string) {
+		setSuggestingMeta(true);
+		try {
+			const suggested = await suggestBookMetadata(filename);
+			if (suggested.title && !titleManual()) setTitle(suggested.title);
+			if (suggested.author && !authorManual()) setAuthor(suggested.author);
+			if (suggested.description && !descriptionManual()) setDescription(suggested.description);
+			const queryTitle = (suggested.title ?? title()).trim();
+			const queryAuthor = (suggested.author ?? author()).trim();
+			if (queryTitle) {
+				await handleSearchCovers(queryTitle, queryAuthor);
+			}
+		} catch {
+			// Fail-open: deterministic filename hints already populated the form.
+		} finally {
+			setSuggestingMeta(false);
+		}
+	}
+
+	async function handleSearchCovers(
+		customTitle = title().trim(),
+		customAuthor = author().trim(),
+	) {
+		if (!customTitle || searchingCovers()) return;
+		setSearchingCovers(true);
+		try {
+			const results = await searchBookCovers(customTitle, customAuthor);
+			setCoverResults(results);
+			if (!coverUrl().trim() && results[0]?.coverUrl) {
+				setCoverUrl(results[0].coverUrl);
+			}
+		} catch {
+			setCoverResults([]);
+		} finally {
+			setSearchingCovers(false);
+		}
+	}
+
+	function openCoverModal() {
+		const currentTitle = title().trim();
+		const currentAuthor = author().trim();
+		if (!coverQuery().trim() && currentTitle) {
+			setCoverQuery(currentAuthor ? `${currentTitle} ${currentAuthor}` : currentTitle);
+		}
+		setCoverModalOpen(true);
+		if (coverResults().length === 0 && currentTitle) {
+			void handleSearchCovers(currentTitle, currentAuthor);
+		}
 	}
 
 	async function handleSubmit(event: SubmitEvent) {
@@ -120,6 +191,7 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 			kind: kind(),
 			review: '',
 			published: published(),
+			coverUrl: coverUrl().trim() || undefined,
 		});
 
 		let created = createdRow();
@@ -340,6 +412,10 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 							</div>
 						</div>
 
+						<Show when={suggestingMeta()}>
+							<p class="pipe-notice">Autocompletando título, autor y descripción con IA…</p>
+						</Show>
+
 						<div class="field">
 							<label for="upDesc">Descripción breve</label>
 							<textarea
@@ -348,8 +424,48 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 								placeholder="De qué trata el libro…"
 								value={description()}
 								disabled={submitting()}
-								onInput={(event) => setDescription(event.currentTarget.value)}
+								onInput={(event) => {
+									const next = event.currentTarget.value;
+									setDescriptionManual(next.trim().length > 0);
+									setDescription(next);
+								}}
 							/>
+						</div>
+
+						<div class="field">
+							<div class="cover-field-head">
+								<label>Portada del libro</label>
+								<button
+									type="button"
+									class="btn-sec cover-search-btn"
+									disabled={submitting() || (!title().trim() && coverResults().length === 0)}
+									onClick={() => openCoverModal()}
+								>
+									{searchingCovers()
+										? 'Buscando en Google…'
+										: coverResults().length > 0
+											? `Elegir portada (${coverResults().length})`
+											: 'Buscar portada en Google'}
+								</button>
+							</div>
+							<div class="cover-preview-row">
+								<Show
+									when={coverUrl().trim()}
+									fallback={<span class="cover-preview-empty">Sin portada seleccionada (usará tapa editorial)</span>}
+								>
+									<img class="cover-preview-thumb" src={coverUrl()} alt="Portada seleccionada" />
+									<div class="cover-preview-info">
+										<span class="cover-preview-label">Portada real seleccionada</span>
+										<button
+											type="button"
+											class="btn-ghost cover-clear-btn"
+											onClick={() => setCoverUrl('')}
+										>
+											Quitar
+										</button>
+									</div>
+								</Show>
+							</div>
 						</div>
 
 						<label class="field checkbox-field">
@@ -386,6 +502,98 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 				</form>
 				</Show>
 			</div>
+
+			<Show when={coverModalOpen()}>
+				<div
+					class="modal-backdrop cover-modal-backdrop"
+					role="dialog"
+					aria-modal="true"
+					aria-label="Elegir portada en Google Books"
+					onClick={(event) => {
+						if (event.target === event.currentTarget) setCoverModalOpen(false);
+					}}
+				>
+					<div class="modal-box cover-modal-box">
+						<div class="modal-head">
+							<span>Elegir portada de Google</span>
+							<button class="btn-ghost modal-close" type="button" onClick={() => setCoverModalOpen(false)}>
+								Cerrar ✕
+							</button>
+						</div>
+						<div class="modal-body">
+							<div class="cover-modal-search">
+								<input
+									type="text"
+									placeholder="Buscar por título o autor…"
+									value={coverQuery()}
+									onInput={(event) => setCoverQuery(event.currentTarget.value)}
+									onKeyDown={(event) => {
+										if (event.key === 'Enter') {
+											event.preventDefault();
+											void handleSearchCovers(coverQuery(), '');
+										}
+									}}
+								/>
+								<button
+									type="button"
+									class="btn-primary"
+									disabled={searchingCovers() || !coverQuery().trim()}
+									onClick={() => void handleSearchCovers(coverQuery(), '')}
+								>
+									{searchingCovers() ? 'Buscando…' : 'Buscar'}
+								</button>
+							</div>
+
+							<Show when={searchingCovers()}>
+								<p class="pipe-notice">Buscando portadas en Google Books…</p>
+							</Show>
+
+							<Show when={!searchingCovers() && coverResults().length === 0}>
+								<p class="pipe-notice">No se encontraron portadas para esa búsqueda. Probá con otro título.</p>
+							</Show>
+
+							<Show when={coverResults().length > 0}>
+								<div class="cover-modal-grid">
+									<For each={coverResults()}>
+										{(item) => (
+											<button
+												type="button"
+												class="cover-modal-card"
+												data-selected={String(coverUrl() === item.coverUrl)}
+												onClick={() => {
+													setCoverUrl(item.coverUrl);
+													setCoverModalOpen(false);
+												}}
+											>
+												<img src={item.coverUrl} alt={item.title} loading="lazy" />
+												<span class="cover-modal-title">{item.title}</span>
+												<Show when={item.authors.length > 0}>
+													<span class="cover-modal-author">{item.authors[0]}</span>
+												</Show>
+											</button>
+										)}
+									</For>
+								</div>
+							</Show>
+						</div>
+						<div class="modal-foot">
+							<button
+								type="button"
+								class="btn-sec"
+								onClick={() => {
+									setCoverUrl('');
+									setCoverModalOpen(false);
+								}}
+							>
+								Usar tapa editorial
+							</button>
+							<button type="button" class="btn-primary" onClick={() => setCoverModalOpen(false)}>
+								Listo
+							</button>
+						</div>
+					</div>
+				</div>
+			</Show>
 		</div>
 	);
 }

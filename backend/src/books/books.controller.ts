@@ -43,6 +43,8 @@ import { BooksPaginationQueryDto } from './dto/books-pagination.query.dto.js';
 import { CreateBookDto } from './dto/create-book.dto.js';
 import { UpdateBookDto } from './dto/update-book.dto.js';
 import { UpdateReadingStateDto } from './dto/update-reading-state.dto.js';
+import { suggestMetadataFromFilename } from './ai/ai-metadata.service.js';
+import { searchGoogleBookCovers } from './ai/cover-search.service.js';
 import { respondWithDownload } from './download/download-response.js';
 import type { Book } from './entities/book.entity.js';
 import { MulterExceptionFilter } from './filters/multer-exception.filter.js';
@@ -114,6 +116,20 @@ export class BooksController {
       ...page,
       items: page.items.map((book) => presentBook(book, req.user)),
     };
+  }
+
+  @Post('suggest-metadata')
+  @ApiSessionAuth()
+  @ApiOperation({ summary: 'Fast LLM metadata prefill from a PDF filename' })
+  suggestMetadata(@Body() body: { filename?: string }) {
+    return suggestMetadataFromFilename(typeof body?.filename === 'string' ? body.filename : '');
+  }
+
+  @Get('cover-search')
+  @ApiSessionAuth()
+  @ApiOperation({ summary: 'Search Google Books for real book cover images' })
+  coverSearch(@Query('title') title = '', @Query('author') author = '') {
+    return searchGoogleBookCovers(title, author);
   }
 
   @Get(':id')

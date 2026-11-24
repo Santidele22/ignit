@@ -10,6 +10,7 @@ export type AdminBookRow = {
 	kind?: BookKind | null;
 	review?: string | null;
 	published?: boolean | null;
+	coverUrl?: string | null;
 	originalName?: string | null;
 	fileSize?: string | null;
 	mimeType?: string | null;
@@ -26,7 +27,30 @@ export type BookWriteBody = {
 	kind: BookKind;
 	review: string | null;
 	published: boolean;
+	coverUrl?: string | null;
 };
+
+export type SuggestedBookMetadata = {
+	title: string | null;
+	author: string | null;
+	description: string | null;
+};
+
+export type CoverSearchCandidate = {
+	title: string;
+	authors: string[];
+	coverUrl: string;
+};
+
+export function suggestBookMetadata(filename: string): Promise<SuggestedBookMetadata> {
+	return postJsonReturning<SuggestedBookMetadata>('/books/suggest-metadata', { filename });
+}
+
+export function searchBookCovers(title: string, author = ''): Promise<CoverSearchCandidate[]> {
+	const params = new URLSearchParams({ title });
+	if (author.trim()) params.set('author', author.trim());
+	return getJson<CoverSearchCandidate[]>(`/books/cover-search?${params.toString()}`);
+}
 
 const baseUrl = (import.meta.env.PUBLIC_API_BASE_URL || '/api').replace(/\/+$/, '');
 

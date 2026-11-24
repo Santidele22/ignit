@@ -1,4 +1,4 @@
-import { Show } from 'solid-js';
+import { Show, createSignal } from 'solid-js';
 import { formatSizeKb, type SalaBook } from '../lib/sala';
 import BookCoverSvg from './BookCoverSvg';
 
@@ -33,6 +33,7 @@ export default function BookTomoCard(props: BookTomoCardProps) {
 
 	const progressSuffix = () => (props.book.progressPct > 0 ? ` · ${props.book.progressPct}%` : '');
 
+	const [coverFailed, setCoverFailed] = createSignal(false);
 	const hasFile = () => props.book.hasFile !== false;
 
 	const downloadDisabled = () => !hasFile() || props.busy === true || (props.appOffline && !props.book.isOffline);
@@ -45,11 +46,21 @@ export default function BookTomoCard(props: BookTomoCardProps) {
 	return (
 		<article class="tomo" data-offline={String(props.book.isOffline)}>
 			<a class="tomo-tapa" href={`/lecturas/${props.book.id}`}>
-				<BookCoverSvg
-					variant={props.book.coverVariant}
-					bookId={props.book.id}
-					prefix={props.coverPrefix}
-				/>
+				{props.book.coverUrl && !coverFailed() ? (
+					<img
+						class="tomo-art tomo-cover-img"
+						src={props.book.coverUrl}
+						alt={`Portada de ${props.book.title}`}
+						loading="lazy"
+						onError={() => setCoverFailed(true)}
+					/>
+				) : (
+					<BookCoverSvg
+						variant={props.book.coverVariant}
+						bookId={props.book.id}
+						prefix={props.coverPrefix}
+					/>
+				)}
 				<div class="tomo-top">
 					<span class="tomo-idx">{props.book.idx}</span>
 					<span class="tomo-badge">{badgeLabel()}</span>

@@ -52,11 +52,20 @@ export default function HeroDash(props: HeroDashProps) {
 				{(continuity) => (
 					<div class="resume-card">
 						<div class="resume-cover">
-							<BookCoverSvg
-								variant={continuity().book.coverVariant}
-								bookId={continuity().book.id}
-								prefix="hero"
-							/>
+							{continuity().book.coverUrl ? (
+								<img
+									class="tomo-art tomo-cover-img"
+									src={continuity().book.coverUrl!}
+									alt={`Portada de ${continuity().book.title}`}
+									loading="lazy"
+								/>
+							) : (
+								<BookCoverSvg
+									variant={continuity().book.coverVariant}
+									bookId={continuity().book.id}
+									prefix="hero"
+								/>
+							)}
 						</div>
 						<div class="resume-info">
 							<div>

@@ -11,6 +11,7 @@ export type BookFormState = {
 	kind: string;
 	review: string;
 	published: boolean;
+	coverUrl?: string;
 };
 
 export const EMPTY_BOOK_FORM: BookFormState = {
@@ -21,6 +22,7 @@ export const EMPTY_BOOK_FORM: BookFormState = {
 	kind: 'no_tecnico',
 	review: '',
 	published: false,
+	coverUrl: '',
 };
 
 export const BOOK_STATUS_OPTIONS: { value: ReadingStatus; label: string }[] = [
@@ -57,11 +59,13 @@ export function bookToForm(row: AdminBookRow): BookFormState {
 		kind: row.kind ?? 'no_tecnico',
 		review: row.review ?? '',
 		published: row.published === true,
+		...(row.coverUrl ? { coverUrl: row.coverUrl } : {}),
 	};
 }
 
 /** Maps form state into the API write payload. */
 export function bookFormToBody(form: BookFormState): BookWriteBody {
+	const cleanCover = form.coverUrl?.trim();
 	return {
 		title: form.title.trim(),
 		author: form.author.trim(),
@@ -70,6 +74,7 @@ export function bookFormToBody(form: BookFormState): BookWriteBody {
 		kind: KIND_KEYS.includes(form.kind) ? (form.kind as BookKind) : 'no_tecnico',
 		review: form.review.trim() || null,
 		published: form.published,
+		...(cleanCover ? { coverUrl: cleanCover } : {}),
 	};
 }
 

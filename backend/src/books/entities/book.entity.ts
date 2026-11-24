@@ -96,6 +96,10 @@ export class Book {
   @Column({ type: 'text', nullable: true })
   mimeType?: string | null;
 
+  /** Optional external cover image URL (e.g. from Google Books search). */
+  @Column({ type: 'text', nullable: true })
+  coverUrl?: string | null;
+
   /**
    * Admin review state (S4): `pending` until an admin accepts or rejects the
    * upload, so a new PDF never reaches the public surface on its own. The
