@@ -11,6 +11,46 @@ import type { OfflineBookRecord } from './offlineStore';
 
 export type SalaTabId = 'device' | 'library' | 'catalog' | 'submissions';
 
+/**
+ * Ordered metadata of the single `role="tablist"` of the sala (S1).
+ *
+ * `label` is the full desktop label (`> 768px`); `shortLabel` is the compact
+ * label the same tab renders inside the mobile PWA bottom bar (`<= 768px`), so
+ * the CSS only has to swap which one is displayed and both stay in one place.
+ */
+export interface SalaTabMeta {
+	id: SalaTabId;
+	label: string;
+	shortLabel: string;
+}
+
+export const SALA_TABS: readonly SalaTabMeta[] = [
+	{ id: 'device', label: 'En este dispositivo', shortLabel: 'Local' },
+	{ id: 'library', label: 'Mi biblioteca', shortLabel: 'Biblioteca' },
+	{ id: 'catalog', label: 'Catálogo', shortLabel: 'Catálogo' },
+	{ id: 'submissions', label: 'Mis aportes', shortLabel: 'Aportes' },
+];
+
+/** Short mobile label of a tab (bottom-bar caption). */
+export function salaTabShortLabel(id: SalaTabId): string {
+	const tab = SALA_TABS.find((entry) => entry.id === id);
+	return tab ? tab.shortLabel : id;
+}
+
+/**
+ * Next tab id for the roving tablist: `delta` of `1`/`-1` from the
+ * `ArrowRight`/`ArrowLeft` keys, wrapping around. Unknown ids fall back to the
+ * first tab so the tablist can never point at a non-existent panel.
+ */
+export function nextSalaTabId(current: SalaTabId, delta: number): SalaTabId {
+	const count = SALA_TABS.length;
+	const index = SALA_TABS.findIndex((entry) => entry.id === current);
+	if (index === -1) return SALA_TABS[0]!.id;
+	const step = Number.isFinite(delta) ? Math.trunc(delta) : 1;
+	const next = (((index + step) % count) + count) % count;
+	return SALA_TABS[next]!.id;
+}
+
 export type AporteStage = 'standby' | 'en_curso' | 'tested' | 'catalogo';
 
 export interface LocalReadingSnapshot {

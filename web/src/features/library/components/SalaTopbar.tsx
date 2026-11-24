@@ -1,4 +1,4 @@
-import { For, createSignal, onCleanup, onMount } from 'solid-js';
+import { For, Show, createSignal, onCleanup, onMount } from 'solid-js';
 import { signOutCleanly } from '../../auth/api/authActions';
 import {
 	PALETTE_CHANGE_EVENT,
@@ -6,16 +6,24 @@ import {
 	readDocumentPalette,
 	type AppPalette,
 } from '../../../shared/lib/palette';
-import type { SalaTabId } from '../lib/sala';
+import { SALA_TABS, nextSalaTabId, type SalaTabId } from '../lib/sala';
 
 /**
- * Sticky topbar of the Sala de lectura (S2).
+ * Sticky topbar of the Sala de lectura (S1/S2).
  *
- * Owns the accessible `role="tablist"` (← / → with wrap-around, roving
- * `tabindex`), the real online/offline indicator with its manual test toggle,
- * the discrete 2-palette group (`palette.ts` is the single source of truth for
- * the document), the `+ Subir libro` entry point and the authenticated
- * `.user-pill` with the CSP-safe sign-out.
+ * One single responsive header for both breakpoints:
+ *
+ * - `> 768px`: the desktop sala header — brand, the `role="tablist"` with the
+ *   full labels, online/offline indicator, palette group, `+ Subir libro` and
+ *   the authenticated `.user-pill`.
+ * - `<= 768px`: the same `role="tablist"` becomes the fixed PWA bottom tab bar
+ *   (icons + short labels + count badges), while `.top-inner` collapses to a
+ *   ~56px single row with `熒 Ignit`, a compact `+ Subir` and the `☰` toggle
+ *   that opens `#sala-mobile-menu` (network toggle, palette, user + `Salir`).
+ *
+ * The tablist is rendered exactly once, so `id="tab-*"` stays unique and the
+ * roving `tabindex` / `ArrowLeft`–`ArrowRight` navigation work on both layouts.
+ * No new inline `<script>`: the menu is plain SolidJS state (CSP untouched).
  */
 export interface SalaTopbarProps {
 	activeTab: SalaTabId;
@@ -27,41 +35,115 @@ export interface SalaTopbarProps {
 	onOpenUpload: () => void;
 }
 
-const TABS: ReadonlyArray<{ id: SalaTabId; label: string }> = [
-	{ id: 'device', label: 'En este dispositivo' },
-	{ id: 'library', label: 'Mi biblioteca' },
-	{ id: 'catalog', label: 'Catálogo' },
-	{ id: 'submissions', label: 'Mis aportes' },
-];
-
 const PALETTES: ReadonlyArray<{ id: AppPalette; label: string }> = [
 	{ id: 'noche-azul', label: 'Noche azul' },
 	{ id: 'original', label: 'Original' },
 ];
 
+/** Crisp 24×24 stroke icons of the bottom tab bar (decorative only). */
+const TAB_ICON_PATHS: Record<SalaTabId, readonly string[]> = {
+	device: ['M4.5 5.5h15v10h-15z', 'M9.5 19.5h5', 'M12 15.5v4'],
+	library: ['M5 4.5h4v15H5z', 'M10.5 4.5h4v15h-4z', 'M16.5 6l3 13.4'],
+	catalog: ['M4.5 4.5h6v6h-6z', 'M13.5 4.5h6v6h-6z', 'M4.5 13.5h6v6h-6z', 'M13.5 13.5h6v6h-6z'],
+	submissions: ['M12 16.5V5.5', 'M7.5 10 12 5.5 16.5 10', 'M4.5 19.5h15'],
+};
+
+/** Real online/offline indicator with its manual test toggle. */
+function NetToggle(props: { isOffline: boolean; onToggleOffline: () => void }) {
+	return (
+		<button
+			class="net-toggle"
+			type="button"
+			aria-pressed={props.isOffline}
+			title="Probar estado online / offline"
+			onClick={() => props.onToggleOffline()}
+		>
+			<span class="net-dot" aria-hidden="true" />
+			<span>{props.isOffline ? 'Offline · leyendo local' : 'Online · sync al día'}</span>
+		</button>
+	);
+}
+
+/** Discrete 2-palette group; `palette.ts` stays the single document source. */
+function PaletteGroup(props: { palette: AppPalette; onSelect: (next: AppPalette) => void }) {
+	return (
+		<div class="palette-mini" role="group" aria-label="Paleta de colores">
+			<For each={PALETTES}>
+				{(option) => (
+					<button
+						type="button"
+						data-palette-option={option.id}
+						aria-pressed={props.palette === option.id}
+						onClick={() => props.onSelect(option.id)}
+					>
+						{option.label}
+					</button>
+				)}
+			</For>
+		</div>
+	);
+}
+
+/** Authenticated pill with the CSP-safe sign-out. */
+function UserPill(props: { label: string; signingOut: boolean; onSignOut: () => void }) {
+	const initial = () => {
+		const trimmed = props.label.trim();
+		return trimmed.length > 0 ? trimmed.charAt(0).toUpperCase() : '·';
+	};
+
+	return (
+		<div class="user-pill">
+			<span class="user-avatar" aria-hidden="true">
+				{initial()}
+			</span>
+			<span class="user-name" title={props.label}>
+				{props.label}
+			</span>
+			<button
+				class="btn-ghost"
+				type="button"
+				disabled={props.signingOut}
+				onClick={() => props.onSignOut()}
+			>
+				{props.signingOut ? 'Saliendo…' : 'Salir'}
+			</button>
+		</div>
+	);
+}
+
 export default function SalaTopbar(props: SalaTopbarProps) {
 	const [palette, setPalette] = createSignal<AppPalette>('noche-azul');
 	const [signingOut, setSigningOut] = createSignal(false);
-	let tabRefs: HTMLButtonElement[] = [];
+	const [menuOpen, setMenuOpen] = createSignal(false);
 
-	const avatarInitial = () => {
-		const trimmed = props.userLabel.trim();
-		return trimmed.length > 0 ? trimmed.charAt(0).toUpperCase() : '·';
-	};
+	let tabRefs: HTMLButtonElement[] = [];
+	let menuToggleRef: HTMLButtonElement | undefined;
+	let menuRef: HTMLDivElement | undefined;
 
 	function selectPalette(next: AppPalette) {
 		const applied = applyPaletteToDocument(next, { save: true, emit: true });
 		setPalette(applied);
 	}
 
+	function closeMenu(restoreFocus = false) {
+		if (!menuOpen()) return;
+		setMenuOpen(false);
+		if (restoreFocus) menuToggleRef?.focus();
+	}
+
+	function toggleMenu() {
+		const next = !menuOpen();
+		setMenuOpen(next);
+		if (next) return;
+		menuToggleRef?.focus();
+	}
+
 	function handleTabKeyDown(event: KeyboardEvent, index: number) {
 		if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
 		event.preventDefault();
-		const delta = event.key === 'ArrowRight' ? 1 : -1;
-		const nextIndex = (index + delta + TABS.length) % TABS.length;
-		const next = TABS[nextIndex];
-		if (!next) return;
-		props.onTabChange(next.id);
+		const next = nextSalaTabId(SALA_TABS[index]?.id ?? 'device', event.key === 'ArrowRight' ? 1 : -1);
+		const nextIndex = SALA_TABS.findIndex((entry) => entry.id === next);
+		props.onTabChange(next);
 		tabRefs[nextIndex]?.focus();
 	}
 
@@ -87,6 +169,31 @@ export default function SalaTopbar(props: SalaTopbarProps) {
 		onCleanup(() => window.removeEventListener(PALETTE_CHANGE_EVENT, onPaletteChange));
 	});
 
+	// Compact menu panel: `Escape` closes it and returns focus to the toggle,
+	// any pointer press outside the panel (bottom tab bar included) dismisses it.
+	onMount(() => {
+		const onKeyDown = (event: KeyboardEvent) => {
+			if (event.key !== 'Escape' || !menuOpen()) return;
+			event.preventDefault();
+			closeMenu(true);
+		};
+		const onPointerDown = (event: PointerEvent) => {
+			if (!menuOpen()) return;
+			const target = event.target;
+			if (!(target instanceof Node)) return;
+			if (menuRef?.contains(target)) return;
+			if (menuToggleRef?.contains(target)) return;
+			closeMenu();
+		};
+
+		document.addEventListener('keydown', onKeyDown);
+		document.addEventListener('pointerdown', onPointerDown);
+		onCleanup(() => {
+			document.removeEventListener('keydown', onKeyDown);
+			document.removeEventListener('pointerdown', onPointerDown);
+		});
+	});
+
 	return (
 		<header class="app-top">
 			<div class="top-inner">
@@ -98,7 +205,7 @@ export default function SalaTopbar(props: SalaTopbarProps) {
 				</a>
 
 				<nav class="top-tabs" role="tablist" aria-label="Espacio de lectura">
-					<For each={TABS}>
+					<For each={SALA_TABS}>
 						{(tab, index) => (
 							<button
 								ref={(element) => {
@@ -115,58 +222,82 @@ export default function SalaTopbar(props: SalaTopbarProps) {
 								onClick={() => props.onTabChange(tab.id)}
 								onKeyDown={(event) => handleTabKeyDown(event, index())}
 							>
-								{tab.label} <span class="tab-count">{props.counts[tab.id]}</span>
+								<svg
+									class="tab-icon"
+									viewBox="0 0 24 24"
+									aria-hidden="true"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="1.6"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+								>
+									<For each={TAB_ICON_PATHS[tab.id]}>{(d) => <path d={d} />}</For>
+								</svg>
+								<span class="tab-label">{tab.label}</span>
+								<span class="tab-label-short">{tab.shortLabel}</span>
+								<span class="tab-count">{props.counts[tab.id]}</span>
 							</button>
 						)}
 					</For>
 				</nav>
 
 				<div class="top-actions">
-					<button
-						class="net-toggle"
-						type="button"
-						aria-pressed={props.isOffline}
-						title="Probar estado online / offline"
-						onClick={() => props.onToggleOffline()}
-					>
-						<span class="net-dot" aria-hidden="true" />
-						<span>{props.isOffline ? 'Offline · leyendo local' : 'Online · sync al día'}</span>
-					</button>
-
-					<div class="palette-mini" role="group" aria-label="Paleta de colores">
-						<For each={PALETTES}>
-							{(option) => (
-								<button
-									type="button"
-									data-palette-option={option.id}
-									aria-pressed={palette() === option.id}
-									onClick={() => selectPalette(option.id)}
-								>
-									{option.label}
-								</button>
-							)}
-						</For>
-					</div>
-
+					<NetToggle isOffline={props.isOffline} onToggleOffline={props.onToggleOffline} />
+					<PaletteGroup palette={palette()} onSelect={selectPalette} />
 					<button class="btn-primary" type="button" onClick={() => props.onOpenUpload()}>
 						+ Subir libro
 					</button>
-
-					<div class="user-pill">
-						<span class="user-avatar" aria-hidden="true">
-							{avatarInitial()}
-						</span>
-						<span title={props.userLabel}>{props.userLabel}</span>
-						<button
-							class="btn-ghost"
-							type="button"
-							disabled={signingOut()}
-							onClick={() => void handleSignOut()}
-						>
-							{signingOut() ? 'Saliendo…' : 'Salir'}
-						</button>
-					</div>
+					<UserPill
+						label={props.userLabel}
+						signingOut={signingOut()}
+						onSignOut={() => void handleSignOut()}
+					/>
 				</div>
+
+				<div class="top-compact-actions">
+					<button
+						class="btn-primary btn-subir-mini"
+						type="button"
+						aria-label="Subir libro"
+						onClick={() => props.onOpenUpload()}
+					>
+						+ Subir
+					</button>
+					<button
+						ref={(element) => {
+							menuToggleRef = element;
+						}}
+						class="mobile-menu-toggle"
+						type="button"
+						aria-expanded={menuOpen()}
+						aria-controls="sala-mobile-menu"
+						aria-label="Menú de sala"
+						onClick={() => toggleMenu()}
+					>
+						<span aria-hidden="true">{menuOpen() ? '✕' : '☰'}</span>
+					</button>
+				</div>
+			</div>
+
+			<div
+				ref={(element) => {
+					menuRef = element;
+				}}
+				class="mobile-menu"
+				id="sala-mobile-menu"
+				data-open={String(menuOpen())}
+				hidden={!menuOpen()}
+			>
+				<Show when={menuOpen()}>
+					<NetToggle isOffline={props.isOffline} onToggleOffline={props.onToggleOffline} />
+					<PaletteGroup palette={palette()} onSelect={selectPalette} />
+					<UserPill
+						label={props.userLabel}
+						signingOut={signingOut()}
+						onSignOut={() => void handleSignOut()}
+					/>
+				</Show>
 			</div>
 		</header>
 	);

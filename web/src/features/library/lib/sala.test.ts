@@ -2,14 +2,18 @@ import { describe, expect, it } from 'vitest';
 import type { Book } from '../../../entities/book/types';
 import type { OfflineBookRecord } from './offlineStore';
 import {
+	SALA_TABS,
 	computeStorageMeter,
 	deriveAporteRows,
 	filterSalaCatalog,
 	formatRelativeSync,
 	mergeSalaBooks,
+	nextSalaTabId,
 	readLocalReadingSnapshots,
+	salaTabShortLabel,
 	selectContinuityBook,
 	validatePdfUpload,
+	type SalaTabId,
 } from './sala';
 
 function makeBook(overrides: Partial<Book> & Pick<Book, 'id' | 'title' | 'author'>): Book {
@@ -37,6 +41,35 @@ function makeOffline(bookId: number, kb: number, pdfPages = 214): OfflineBookRec
 		reading: { bookId: String(bookId), pdfPages, ocrPending: false, chunks: [] },
 	};
 }
+
+describe('sala navigation metadata (desktop tablist + mobile PWA bottom bar)', () => {
+	it('exposes the four ordered tabs with full desktop and short mobile labels', () => {
+		expect(SALA_TABS).toEqual([
+			{ id: 'device', label: 'En este dispositivo', shortLabel: 'Local' },
+			{ id: 'library', label: 'Mi biblioteca', shortLabel: 'Biblioteca' },
+			{ id: 'catalog', label: 'Catálogo', shortLabel: 'Catálogo' },
+			{ id: 'submissions', label: 'Mis aportes', shortLabel: 'Aportes' },
+		]);
+	});
+
+	it('maps each tab id to its short mobile label', () => {
+		expect(salaTabShortLabel('device')).toBe('Local');
+		expect(salaTabShortLabel('library')).toBe('Biblioteca');
+		expect(salaTabShortLabel('catalog')).toBe('Catálogo');
+		expect(salaTabShortLabel('submissions')).toBe('Aportes');
+	});
+
+	it('cycles the roving tab with wrap-around in both directions', () => {
+		expect(nextSalaTabId('device', 1)).toBe('library');
+		expect(nextSalaTabId('library', 1)).toBe('catalog');
+		expect(nextSalaTabId('catalog', 1)).toBe('submissions');
+		expect(nextSalaTabId('submissions', 1)).toBe('device');
+		expect(nextSalaTabId('device', -1)).toBe('submissions');
+		expect(nextSalaTabId('catalog', -1)).toBe('library');
+		expect(nextSalaTabId('submissions', -1)).toBe('catalog');
+		expect(nextSalaTabId('desconocido' as SalaTabId, 1)).toBe('device');
+	});
+});
 
 describe('sala domain helpers', () => {
 	it('reads only matching user reading snapshots from storage and ignores malformed entries', () => {
