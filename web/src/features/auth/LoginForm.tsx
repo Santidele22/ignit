@@ -57,7 +57,7 @@ export default function LoginForm() {
 					onInput={(event) => setEmail(event.currentTarget.value)}
 					disabled={pending()}
 					placeholder="lector@correo.com"
-					class="h-11 rounded-md border border-input bg-background px-4 text-sm outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-aka focus:ring-2 focus:ring-aka/20 disabled:opacity-60"
+					class="h-11 rounded-md border border-input bg-background px-4 text-base outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-aka focus:ring-2 focus:ring-aka/20 disabled:opacity-60 sm:text-sm"
 				/>
 			</div>
 			<div class="flex flex-col gap-2">
@@ -71,7 +71,7 @@ export default function LoginForm() {
 					value={password()}
 					onInput={(event) => setPassword(event.currentTarget.value)}
 					disabled={pending()}
-					class="h-11 rounded-md border border-input bg-background px-4 text-sm outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-aka focus:ring-2 focus:ring-aka/20 disabled:opacity-60"
+					class="h-11 rounded-md border border-input bg-background px-4 text-base outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-aka focus:ring-2 focus:ring-aka/20 disabled:opacity-60 sm:text-sm"
 				/>
 			</div>
 			<button
