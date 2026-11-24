@@ -1575,15 +1575,21 @@ body.biblioteca-body .pipe-notice b {
 	color: var(--b-fg);
 }
 
-/* AI prefill loading: the form fades away and a page-flipping book overlay
-   carries the live status text. */
-body.biblioteca-body .modal-body[data-prefill="true"] > * {
-	opacity: 0;
-	pointer-events: none;
-	transition: opacity 0.35s ease;
+/* AI prefill loading: the form fades away (keeping `.modal-head` visible) and
+   a 3D page-flipping open-book stage carries the live status and steps. */
+body.biblioteca-body .upload-form-wrap {
+	position: relative;
 }
 
-body.biblioteca-body .modal-body[data-prefill="false"] > * {
+body.biblioteca-body .upload-form-wrap[data-prefill="true"] .modal-body,
+body.biblioteca-body .upload-form-wrap[data-prefill="true"] .modal-foot {
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 0.25s ease;
+}
+
+body.biblioteca-body .upload-form-wrap[data-prefill="false"] .modal-body,
+body.biblioteca-body .upload-form-wrap[data-prefill="false"] .modal-foot {
 	transition: opacity 0.35s ease;
 }
 
@@ -1591,93 +1597,343 @@ body.biblioteca-body .prefill-overlay {
 	position: absolute;
 	inset: 0;
 	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 32px 24px;
+	background:
+		radial-gradient(ellipse 68% 48% at 50% 40%, rgb(var(--b-accent-rgb) / 0.14), transparent 72%),
+		linear-gradient(90deg, var(--b-grid-line) 1px, transparent 1px) 0 0 / 32px 32px,
+		linear-gradient(0deg, var(--b-grid-line) 1px, transparent 1px) 0 0 / 32px 32px,
+		var(--b-panel-2);
+	color: var(--b-body);
+	z-index: 2;
+	animation: prefill-fade-in 0.28s ease-out both;
+}
+
+body.biblioteca-body .prefill-stage {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 22px;
+	max-width: 340px;
+	width: 100%;
+	text-align: center;
+}
+
+body.biblioteca-body .book-scene {
+	position: relative;
+	width: 156px;
+	height: 108px;
+	display: flex;
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
-	gap: 14px;
-	text-align: center;
-	padding: 24px;
-	background: var(--b-bg);
-	color: var(--b-body);
-	z-index: 2;
 }
 
-.book-flip {
+body.biblioteca-body .book-glow {
+	position: absolute;
+	width: 164px;
+	height: 92px;
+	border-radius: 50%;
+	background: radial-gradient(circle, rgb(var(--b-accent-rgb) / 0.28) 0%, transparent 70%);
+	filter: blur(12px);
+	pointer-events: none;
+	animation: book-glow-pulse 2.4s ease-in-out infinite;
+}
+
+body.biblioteca-body .book-flip {
 	position: relative;
-	width: 56px;
-	height: 38px;
-	perspective: 140px;
+	width: 120px;
+	height: 78px;
+	perspective: 560px;
+	transform-style: preserve-3d;
+	transform: rotateX(14deg);
+}
+
+body.biblioteca-body .book-cover {
+	position: absolute;
+	inset: 6px 0 0;
+	border-radius: 4px;
+	background: color-mix(in oklab, var(--b-accent) 18%, var(--b-panel));
+	border: 1px solid var(--b-border-strong);
+	box-shadow:
+		0 10px 22px rgb(0 0 0 / 0.34),
+		inset 0 1px 0 rgb(var(--b-accent-rgb) / 0.24);
+}
+
+body.biblioteca-body .book-stack {
+	position: absolute;
+	bottom: 3px;
+	width: 52px;
+	height: 5px;
+	background: repeating-linear-gradient(
+		180deg,
+		color-mix(in oklab, var(--b-fg) 22%, var(--b-panel)) 0 1px,
+		var(--b-panel) 1px 2px
+	);
+	border: 1px solid var(--b-border);
+}
+
+body.biblioteca-body .stack-left {
+	left: 6px;
+	border-radius: 0 0 0 2px;
+	border-right: none;
+}
+
+body.biblioteca-body .stack-right {
+	right: 6px;
+	border-radius: 0 0 2px 0;
+	border-left: none;
 }
 
 body.biblioteca-body .book-page {
 	position: absolute;
-	top: 4px;
-	bottom: 4px;
-	width: 24px;
-	border: 1px solid var(--b-border);
-	background: var(--b-bg-raised, var(--b-bg));
+	top: 3px;
+	bottom: 7px;
+	width: 53px;
+	border: 1px solid var(--b-border-strong);
+	overflow: hidden;
 }
 
 body.biblioteca-body .page-left {
-	left: 3px;
+	left: 6px;
 	border-radius: 3px 0 0 3px;
 	border-right: none;
+	background: linear-gradient(
+		90deg,
+		color-mix(in oklab, var(--b-panel) 92%, var(--b-fg)) 0%,
+		var(--b-panel) 74%,
+		color-mix(in oklab, var(--b-bg) 42%, var(--b-panel)) 100%
+	);
 }
 
 body.biblioteca-body .page-right {
-	right: 3px;
+	right: 6px;
 	border-radius: 0 3px 3px 0;
 	border-left: none;
+	background: linear-gradient(
+		270deg,
+		color-mix(in oklab, var(--b-panel) 92%, var(--b-fg)) 0%,
+		var(--b-panel) 74%,
+		color-mix(in oklab, var(--b-bg) 42%, var(--b-panel)) 100%
+	);
+}
+
+body.biblioteca-body .book-page::after,
+body.biblioteca-body .book-leaf::after {
+	content: "";
+	position: absolute;
+	inset: 11px 9px;
+	background: repeating-linear-gradient(
+		180deg,
+		rgb(var(--b-accent-rgb) / 0.3) 0 1.5px,
+		transparent 1.5px 7px
+	);
+	opacity: 0.72;
 }
 
 body.biblioteca-body .book-spine {
 	position: absolute;
 	left: 50%;
-	top: 0;
-	bottom: 0;
-	width: 2px;
+	top: 2px;
+	bottom: 2px;
+	width: 4px;
 	transform: translateX(-50%);
-	background: var(--b-accent);
-	opacity: 0.55;
-	border-radius: 1px;
+	border-radius: 2px;
+	background: linear-gradient(90deg, var(--b-bg), var(--b-accent-bright), var(--b-bg));
+	box-shadow: 0 0 8px rgb(var(--b-accent-rgb) / 0.45);
+	z-index: 6;
 }
 
 body.biblioteca-body .book-leaf {
 	position: absolute;
 	left: 50%;
-	top: 4px;
-	bottom: 4px;
-	width: 24px;
+	top: 3px;
+	bottom: 7px;
+	width: 53px;
 	transform-origin: left center;
-	border: 1px solid var(--b-accent);
+	transform-style: preserve-3d;
+	border: 1px solid color-mix(in oklab, var(--b-accent-bright) 72%, var(--b-border-strong));
+	border-left: none;
 	border-radius: 0 3px 3px 0;
 	background: linear-gradient(
 		270deg,
-		rgb(var(--b-accent-rgb) / 0.18),
-		rgb(var(--b-accent-rgb) / 0.04)
+		color-mix(in oklab, var(--b-accent) 20%, var(--b-panel)) 0%,
+		color-mix(in oklab, var(--b-accent) 8%, var(--b-panel)) 72%,
+		color-mix(in oklab, var(--b-bg) 35%, var(--b-panel)) 100%
 	);
-	animation: leaf-flip 1.5s ease-in-out infinite;
+	animation: leaf-flip 2.1s cubic-bezier(0.645, 0.045, 0.355, 1) infinite;
 	backface-visibility: visible;
+	will-change: transform, opacity;
+}
+
+body.biblioteca-body .leaf-1 {
+	animation-delay: 0s;
+	z-index: 5;
+}
+
+body.biblioteca-body .leaf-2 {
+	animation-delay: -0.7s;
+	z-index: 4;
+}
+
+body.biblioteca-body .leaf-3 {
+	animation-delay: -1.4s;
+	z-index: 3;
+}
+
+body.biblioteca-body .book-shadow {
+	width: 112px;
+	height: 10px;
+	margin-top: 6px;
+	border-radius: 50%;
+	background: radial-gradient(ellipse, rgb(0 0 0 / 0.42) 0%, transparent 72%);
+}
+
+body.biblioteca-body .prefill-copy {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 8px;
+	max-width: 100%;
+}
+
+body.biblioteca-body .prefill-kicker {
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	font-family: var(--b-mono);
+	font-size: 9.5px;
+	letter-spacing: 0.22em;
+	text-transform: uppercase;
+	color: var(--b-accent-bright);
+}
+
+body.biblioteca-body .prefill-dot {
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: var(--b-accent-bright);
+	box-shadow: 0 0 8px var(--b-accent-bright);
+	animation: prefill-pulse 1.4s ease-in-out infinite;
+}
+
+body.biblioteca-body .prefill-label {
+	margin: 0;
+	font-family: var(--b-serif);
+	font-size: 18px;
+	line-height: 1.4;
+	color: var(--b-fg);
+}
+
+body.biblioteca-body .prefill-file {
+	max-width: 100%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-family: var(--b-mono);
+	font-size: 10px;
+	letter-spacing: 0.06em;
+	color: var(--b-ghost);
+	padding: 3px 9px;
+	border: 1px solid var(--b-border);
+	background: rgb(var(--b-bg-rgb) / 0.55);
+}
+
+body.biblioteca-body .prefill-steps {
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+	padding: 6px 12px;
+	border: 1px solid var(--b-border);
+	background: color-mix(in srgb, var(--b-panel) 84%, transparent);
+	font-family: var(--b-mono);
+	font-size: 9.5px;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+}
+
+body.biblioteca-body .prefill-step[data-state="active"] {
+	color: var(--b-accent-bright);
+	font-weight: 700;
+}
+
+body.biblioteca-body .prefill-step[data-state="done"] {
+	color: var(--b-fg);
+	opacity: 0.72;
+}
+
+body.biblioteca-body .prefill-step[data-state="pending"] {
+	color: var(--b-ghost);
+	opacity: 0.55;
+}
+
+body.biblioteca-body .prefill-step-sep {
+	width: 18px;
+	height: 1px;
+	background: var(--b-border-strong);
+}
+
+@keyframes prefill-fade-in {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes book-glow-pulse {
+	0%, 100% {
+		opacity: 0.65;
+		transform: scale(0.96);
+	}
+	50% {
+		opacity: 1;
+		transform: scale(1.06);
+	}
+}
+
+@keyframes prefill-pulse {
+	0%, 100% {
+		opacity: 0.45;
+		transform: scale(0.85);
+	}
+	50% {
+		opacity: 1;
+		transform: scale(1.1);
+	}
 }
 
 @keyframes leaf-flip {
 	0% {
 		transform: rotateY(0deg);
+		opacity: 0;
+		border-color: var(--b-border-strong);
+	}
+	8% {
+		transform: rotateY(-6deg);
 		opacity: 1;
 	}
-	85% {
-		transform: rotateY(-180deg);
+	45% {
+		transform: rotateY(-90deg);
 		opacity: 1;
+		border-color: var(--b-accent-bright);
+		filter: brightness(1.18);
+	}
+	82% {
+		transform: rotateY(-174deg);
+		opacity: 1;
+		border-color: var(--b-accent);
+		filter: brightness(0.94);
+	}
+	92% {
+		transform: rotateY(-180deg);
+		opacity: 0;
 	}
 	100% {
 		transform: rotateY(-180deg);
 		opacity: 0;
-	}
-}
-
-@media (prefers-reduced-motion: reduce) {
-	body.biblioteca-body .book-leaf {
-		animation-duration: 3.6s;
 	}
 }
 

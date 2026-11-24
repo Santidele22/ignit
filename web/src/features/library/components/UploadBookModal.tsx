@@ -46,6 +46,7 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 	const [coverQuery, setCoverQuery] = createSignal('');
 	const [searchingCovers, setSearchingCovers] = createSignal(false);
 	const [prefillStatus, setPrefillStatus] = createSignal('');
+	const [prefillStage, setPrefillStage] = createSignal<'idle' | 'metadata' | 'cover'>('idle');
 	const [published, setPublished] = createSignal(false);
 	const [file, setFile] = createSignal<File | null>(null);
 	const [createdRow, setCreatedRow] = createSignal<AdminBookRow | null>(null);
@@ -73,6 +74,7 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 		setCoverQuery('');
 		setSearchingCovers(false);
 		setPrefillStatus('');
+		setPrefillStage('idle');
 		setPublished(false);
 		setFile(null);
 		setCreatedRow(null);
@@ -116,6 +118,7 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 	}
 
 	async function runSmartPrefill(filename: string) {
+		setPrefillStage('metadata');
 		setPrefillStatus('Rellenando título, autor y descripción con IA…');
 		try {
 			const suggested = await suggestBookMetadata(filename);
@@ -125,6 +128,7 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 			const queryTitle = (suggested.title ?? title()).trim();
 			const queryAuthor = (suggested.author ?? author()).trim();
 			if (queryTitle) {
+				setPrefillStage('cover');
 				setPrefillStatus('Buscando portada en Google…');
 				await handleSearchCovers(queryTitle, queryAuthor);
 			}
@@ -132,6 +136,7 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 			// Fail-open: deterministic filename hints already populated the form.
 		} finally {
 			setPrefillStatus('');
+			setPrefillStage('idle');
 		}
 	}
 
@@ -332,7 +337,11 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 						</div>
 					}
 				>
-					<form onSubmit={(event) => void handleSubmit(event)}>
+					<form
+						class="upload-form-wrap"
+						data-prefill={String(prefillStatus().length > 0)}
+						onSubmit={(event) => void handleSubmit(event)}
+					>
 					<div
 						class="modal-body"
 						data-prefill={String(prefillStatus().length > 0)}
@@ -501,18 +510,55 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 							{submitting() ? 'Enviando…' : published() ? 'Publicar libro' : 'Enviar a standby'}
 						</button>
 					</div>
-				</form>
-				<Show when={prefillStatus()}>
-					<div class="prefill-overlay" role="status" aria-live="polite">
-						<div class="book-flip" aria-hidden="true">
-							<span class="book-page page-left" />
-							<span class="book-page page-right" />
-							<span class="book-leaf" />
-							<span class="book-spine" />
+					<Show when={prefillStatus()}>
+						<div class="prefill-overlay" role="status" aria-live="polite">
+							<div class="prefill-stage">
+								<div class="book-scene" aria-hidden="true">
+									<div class="book-glow" />
+									<div class="book-flip">
+										<span class="book-cover" />
+										<span class="book-stack stack-left" />
+										<span class="book-stack stack-right" />
+										<span class="book-page page-left" />
+										<span class="book-page page-right" />
+										<span class="book-leaf leaf-1" />
+										<span class="book-leaf leaf-2" />
+										<span class="book-leaf leaf-3" />
+										<span class="book-spine" />
+									</div>
+									<div class="book-shadow" />
+								</div>
+
+								<div class="prefill-copy">
+									<span class="prefill-kicker">
+										<span class="prefill-dot" aria-hidden="true" />
+										Lectura asistida · IA
+									</span>
+									<p class="prefill-label">{prefillStatus()}</p>
+									<Show when={file()}>
+										{(selected) => <span class="prefill-file">{selected().name}</span>}
+									</Show>
+								</div>
+
+								<div class="prefill-steps" aria-hidden="true">
+									<span
+										class="prefill-step"
+										data-state={prefillStage() === 'metadata' ? 'active' : 'done'}
+									>
+										01 · Metadatos
+									</span>
+									<span class="prefill-step-sep" />
+									<span
+										class="prefill-step"
+										data-state={prefillStage() === 'cover' ? 'active' : 'pending'}
+									>
+										02 · Portada
+									</span>
+								</div>
+							</div>
 						</div>
-						<span class="prefill-label">{prefillStatus()}</span>
-					</div>
-				</Show>
+					</Show>
+				</form>
 				</Show>
 			</div>
 
