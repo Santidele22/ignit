@@ -109,6 +109,74 @@ export function initLanding(): () => void {
 	const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 	/* ---------------------------------------------------------------------
+	 * a0) Mobile header menu (S3) — `<= 860px` only.
+	 *
+	 * One `<nav id="landing-mobile-nav">` is both the desktop anchor row and the
+	 * mobile dropdown panel; this block only flips its `data-open` attribute and
+	 * the toggle's `aria-expanded`, and closes it on `Escape` (returning focus to
+	 * the toggle), on an outside pointer press and on any link click.
+	 * ------------------------------------------------------------------ */
+
+	const menuToggle = byId<HTMLButtonElement>('landing-menu-toggle');
+	const mobileNav = byId<HTMLElement>('landing-mobile-nav');
+
+	if (menuToggle && mobileNav) {
+		const menuGlyph = menuToggle.querySelector<HTMLElement>('[aria-hidden="true"]');
+
+		const isMenuOpen = () => mobileNav.dataset.open === 'true';
+
+		const setMenuOpen = (open: boolean) => {
+			mobileNav.dataset.open = open ? 'true' : 'false';
+			menuToggle.setAttribute('aria-expanded', String(open));
+			if (menuGlyph) menuGlyph.textContent = open ? '✕' : '☰';
+		};
+
+		const closeMenu = (restoreFocus = false) => {
+			if (!isMenuOpen()) return;
+			setMenuOpen(false);
+			if (restoreFocus) menuToggle.focus();
+		};
+
+		setMenuOpen(isMenuOpen());
+
+		menuToggle.addEventListener('click', () => setMenuOpen(!isMenuOpen()), { signal });
+
+		document.addEventListener(
+			'keydown',
+			(event) => {
+				if (event.key !== 'Escape' || !isMenuOpen()) return;
+				event.preventDefault();
+				closeMenu(true);
+			},
+			{ signal },
+		);
+
+		document.addEventListener(
+			'pointerdown',
+			(event) => {
+				if (!isMenuOpen()) return;
+				const target = event.target;
+				if (!(target instanceof Node)) return;
+				if (mobileNav.contains(target) || menuToggle.contains(target)) return;
+				closeMenu();
+			},
+			{ signal },
+		);
+
+		// Any anchor inside the panel (section jump or session link) dismisses it.
+		mobileNav.addEventListener(
+			'click',
+			(event) => {
+				const target = event.target;
+				if (!(target instanceof Element)) return;
+				if (!target.closest('a')) return;
+				closeMenu();
+			},
+			{ signal },
+		);
+	}
+
+	/* ---------------------------------------------------------------------
 	 * a) Chrome & motion — lamp, scroll thread, section reveal, needle and the
 	 *    Canvas 2D mote field reacting to the pointer.
 	 * ------------------------------------------------------------------ */

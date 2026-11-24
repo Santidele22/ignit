@@ -155,7 +155,11 @@ body.landing-body .hiloglobal i {
 	background: linear-gradient(90deg, var(--l-accent), var(--l-accent-bright));
 }
 
-/* Fixed glass header */
+/* Fixed glass header.
+   The translucent pane + blur live on `::before` on purpose: a
+   `backdrop-filter` on the header itself would turn it into a containing block
+   for fixed/absolute descendants and trap the mobile dropdown panel inside it
+   (same fix as `header.app-top` in `biblioteca.css`). */
 body.landing-body header.marcas {
 	position: fixed;
 	top: 2px;
@@ -167,15 +171,28 @@ body.landing-body header.marcas {
 	align-items: center;
 	gap: 20px;
 	padding: 14px clamp(20px, 4vw, 44px);
-	background: rgb(var(--l-bg-rgb) / 0.78);
-	backdrop-filter: blur(12px);
-	-webkit-backdrop-filter: blur(12px);
 	border-bottom: 1px solid color-mix(in srgb, var(--l-border) 70%, transparent);
 	font-family: var(--font-mono);
 	font-size: 11px;
 	letter-spacing: 0.18em;
 	text-transform: uppercase;
 	color: var(--l-faint);
+}
+
+body.landing-body header.marcas::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	z-index: -1;
+	pointer-events: none;
+	background: rgb(var(--l-bg-rgb) / 0.78);
+	backdrop-filter: blur(12px);
+	-webkit-backdrop-filter: blur(12px);
+}
+
+/* Compact bar controls + dropdown: mobile only (see the `<= 860px` block). */
+body.landing-body .marcas-mobile-actions {
+	display: none;
 }
 
 body.landing-body header.marcas a {
@@ -230,6 +247,169 @@ body.landing-body .nav-install {
 body.landing-body .nav-install:hover {
 	background: var(--l-accent);
 	color: var(--l-accent-fg) !important;
+}
+
+/* ------------------------------------------------- mobile header (S3) ---- */
+
+/* `<= 860px`: one single fixed row (`熒 Ignit` · session CTA · `☰`) and the
+   desktop nav turned into a glass dropdown under that row. Every hit target is
+   ≥44px and the first section clears the row + `env(safe-area-inset-top)`. */
+@media (max-width: 860px) {
+	body.landing-body header.marcas {
+		top: 0;
+		flex-wrap: nowrap;
+		gap: 10px;
+		min-height: 56px;
+		padding: calc(6px + env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) 6px
+			max(14px, env(safe-area-inset-left));
+	}
+
+	body.landing-body header.marcas::before {
+		background: rgb(var(--l-bg-rgb) / 0.88);
+	}
+
+	body.landing-body .marca-brand {
+		gap: 9px;
+		font-size: 12px;
+		white-space: nowrap;
+	}
+
+	body.landing-body header.marcas .sello {
+		width: 26px;
+		height: 26px;
+		font-size: 13px;
+	}
+
+	body.landing-body .marcas-mobile-actions {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		margin-left: auto;
+	}
+
+	body.landing-body .marca-cta {
+		display: inline-flex;
+		align-items: center;
+		min-height: 44px;
+		padding: 0 13px;
+		border: 1px solid var(--l-border-strong);
+		background: rgb(var(--l-accent-rgb) / 0.1);
+		color: var(--l-fg) !important;
+		font-size: 10px;
+		letter-spacing: 0.14em;
+		white-space: nowrap;
+		transition: background 0.18s, border-color 0.18s, color 0.18s;
+	}
+
+	body.landing-body .marca-cta:hover {
+		background: var(--l-accent);
+		border-color: var(--l-accent-bright);
+		color: var(--l-accent-fg) !important;
+	}
+
+	body.landing-body .marca-menu-toggle {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 44px;
+		height: 44px;
+		min-height: 44px;
+		padding: 0;
+		border: 1px solid var(--l-border-strong);
+		background: var(--l-panel);
+		color: var(--l-fg);
+		font-family: var(--font-mono);
+		font-size: 17px;
+		line-height: 1;
+		letter-spacing: 0;
+		cursor: pointer;
+		transition: background 0.18s, border-color 0.18s, color 0.18s;
+	}
+
+	body.landing-body .marca-menu-toggle[aria-expanded="true"] {
+		background: rgb(var(--l-accent-rgb) / 0.18);
+		border-color: var(--l-accent-bright);
+		color: var(--l-accent-bright);
+	}
+
+	/* The panel is absolutely positioned inside the header, so it drops under the
+	   bar and can never be clipped by it (the header's blur sits on `::before`). */
+	body.landing-body header.marcas .nav-links {
+		position: absolute;
+		top: 100%;
+		left: 0;
+		right: 0;
+		display: none;
+		flex-direction: column;
+		align-items: stretch;
+		gap: 0;
+		padding: 6px max(14px, env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom))
+			max(14px, env(safe-area-inset-left));
+		border-bottom: 1px solid var(--l-border);
+		background: rgb(var(--l-bg-rgb) / 0.94);
+		backdrop-filter: blur(14px);
+		-webkit-backdrop-filter: blur(14px);
+		box-shadow: 0 24px 52px rgb(var(--l-bg-rgb) / 0.55);
+	}
+
+	body.landing-body header.marcas .nav-links[data-open="true"] {
+		display: flex;
+	}
+
+	body.landing-body header.marcas .nav-links > a {
+		display: flex;
+		align-items: center;
+		min-height: 44px;
+		padding: 0 4px;
+		border-bottom: 1px solid color-mix(in srgb, var(--l-border) 55%, transparent);
+		font-size: 11px;
+		letter-spacing: 0.18em;
+	}
+
+	body.landing-body header.marcas .nav-links > a:last-child {
+		border-bottom: none;
+	}
+
+	body.landing-body header.marcas .nav-links > .nav-install {
+		justify-content: center;
+		margin-top: 6px;
+		padding: 0 14px;
+	}
+
+	/* Palette group (plain Astro) + session chip (`HeaderAuth`, wrapped in an
+	   `astro-island` whose `display:contents` makes its `<div>` the flex item). */
+	body.landing-body header.marcas .nav-links > div,
+	body.landing-body header.marcas .nav-links > astro-island > div {
+		display: flex;
+		align-items: stretch;
+		justify-content: space-between;
+		gap: 8px;
+		width: 100%;
+		margin-top: 6px;
+	}
+
+	body.landing-body header.marcas .nav-links button {
+		min-height: 44px;
+	}
+
+	body.landing-body header.marcas .nav-links [data-palette-option] {
+		flex: 1 1 0;
+		font-size: 10px;
+	}
+
+	/* First section + every section clears the compact fixed bar. */
+	.landing-page .capa {
+		padding-left: max(clamp(20px, 6vw, 96px), env(safe-area-inset-left));
+		padding-right: max(clamp(20px, 6vw, 96px), env(safe-area-inset-right));
+	}
+
+	.landing-page .capa.s1 {
+		padding-top: calc(84px + env(safe-area-inset-top));
+	}
+
+	body.landing-body .landing-footer {
+		padding-bottom: max(24px, env(safe-area-inset-bottom));
+	}
 }
 
 /* Lateral station needle */
@@ -2242,5 +2422,10 @@ body.landing-body .landing-footer a:hover {
 
 	body.landing-body #lampara {
 		opacity: 0;
+	}
+
+	body.landing-body .marca-cta,
+	body.landing-body .marca-menu-toggle {
+		transition: none;
 	}
 }
