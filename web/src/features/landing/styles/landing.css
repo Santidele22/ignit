@@ -376,10 +376,8 @@ body.landing-body .nav-install:hover {
 		padding: 0 14px;
 	}
 
-	/* Palette group (plain Astro) + session chip (`HeaderAuth`, wrapped in an
-	   `astro-island` whose `display:contents` makes its `<div>` the flex item). */
-	body.landing-body header.marcas .nav-links > div,
-	body.landing-body header.marcas .nav-links > astro-island > div {
+	/* Palette group (plain Astro): its own `<div>` is the flex item. */
+	body.landing-body header.marcas .nav-links > div {
 		display: flex;
 		align-items: stretch;
 		justify-content: space-between;

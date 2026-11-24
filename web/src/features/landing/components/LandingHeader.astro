@@ -2,7 +2,8 @@
 /**
  * Header fijo con vidrio de la landing (S2/S3): sello hanko `熒`, anclas de las
  * seis estaciones, selector de paleta y controles que dependen de la sesión
- * (Mi biblioteca + salir cuando hay sesión, Entrar + Instalar app cuando no).
+ * (Mi biblioteca cuando hay sesión, Entrar + Instalar app cuando no). Sin
+ * pill de usuario ni `Salir`: eso vive en la sala, no en la landing.
  *
  * Un solo `<nav id="landing-mobile-nav">` sirve a los dos breakpoints:
  *
@@ -19,7 +20,6 @@
  * seguir siendo legible en `original`.
  */
 import type { ServerSession } from '../../auth/api/serverSession';
-import HeaderAuth from '../../auth/HeaderAuth';
 import PaletteToggle from '../../../shared/ui/PaletteToggle.astro';
 
 interface Props {
@@ -27,7 +27,6 @@ interface Props {
 }
 
 const { session } = Astro.props;
-const userLabel = session.authenticated ? session.user.name || session.user.email : '';
 ---
 
 <header class="marcas" aria-label="Principal">
@@ -40,10 +39,7 @@ const userLabel = session.authenticated ? session.user.name || session.user.emai
 		<PaletteToggle />
 		{
 			session.authenticated ? (
-				<>
-					<a href="/biblioteca">Mi biblioteca</a>
-					<HeaderAuth label={userLabel} client:load />
-				</>
+				<a href="/biblioteca">Mi biblioteca</a>
 			) : (
 				<>
 					<a href="/login">Entrar</a>
