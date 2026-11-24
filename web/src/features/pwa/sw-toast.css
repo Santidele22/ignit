@@ -1,0 +1,121 @@
+/**
+ * Toast «Nueva versión disponible» del Service Worker (S2).
+ *
+ * Hoja propia, importada por `registerSW.ts`: el módulo empaquetado la arrastra
+ * y `script-src 'self'` no suma hashes. Tokens tomados de la paleta
+ * `noche-azul` / sala de lectura: panel `#060810`, hairline `#232941`, acento
+ * `#5f86c9`, texto `#e6edf7`, mono `--font-geist-mono`.
+ *
+ * El panel es siempre tinta oscura: flota sobre el shell de la landing y el de
+ * la biblioteca, y también sobre la paleta clara (`original`), donde el borde
+ * cálido y la sombra más densa lo separan del fondo papel.
+ *
+ * Sin `bottom` fijo en px del todo: suma `env(safe-area-inset-bottom)` y
+ * `env(safe-area-inset-right)` para no quedar debajo del home indicator de iOS.
+ * Ningún shell tiene barra inferior fija, así que 16px alcanza; si alguna suma
+ * una, este `bottom` es el único valor a subir.
+ */
+
+#ignit-sw-toast {
+	position: fixed;
+	right: max(16px, env(safe-area-inset-right));
+	bottom: calc(16px + env(safe-area-inset-bottom));
+	z-index: 2147483000;
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	max-width: min(360px, calc(100vw - 32px));
+	padding: 10px 10px 10px 14px;
+	background: #060810;
+	border: 1px solid #232941;
+	border-left: 2px solid #5f86c9;
+	color: #e6edf7;
+	font-family: var(--font-geist-mono, 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace);
+	font-size: 12px;
+	font-weight: 400;
+	letter-spacing: 0.02em;
+	line-height: 1.3;
+	text-align: left;
+	box-shadow: 0 18px 40px -22px rgb(0 0 0 / 0.9);
+	animation: ignit-sw-toast-in 180ms ease-out both;
+}
+
+#ignit-sw-toast .sw-toast-text {
+	margin: 0;
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+#ignit-sw-toast .sw-toast-action {
+	flex: none;
+	min-width: 44px;
+	min-height: 44px;
+	padding: 0 14px;
+	border: 1px solid #5f86c9;
+	border-radius: 0;
+	background: transparent;
+	color: #9fc0ee;
+	font: inherit;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	cursor: pointer;
+	touch-action: manipulation;
+	-webkit-tap-highlight-color: transparent;
+	transition:
+		background-color 120ms ease-out,
+		color 120ms ease-out;
+}
+
+#ignit-sw-toast .sw-toast-action:hover:enabled {
+	background: #5f86c9;
+	color: #04050a;
+}
+
+#ignit-sw-toast .sw-toast-action:focus-visible {
+	outline: 2px solid #9fc0ee;
+	outline-offset: 2px;
+}
+
+#ignit-sw-toast .sw-toast-action:disabled {
+	opacity: 0.65;
+	cursor: default;
+}
+
+@keyframes ignit-sw-toast-in {
+	from {
+		opacity: 0;
+		transform: translateY(6px);
+	}
+
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	#ignit-sw-toast {
+		animation: none;
+	}
+}
+
+@media (prefers-color-scheme: light) {
+	#ignit-sw-toast {
+		border-color: #3a3026;
+		border-left-color: #b44637;
+		box-shadow:
+			0 0 0 1px rgb(20 17 13 / 0.04),
+			0 22px 44px -18px rgb(20 17 13 / 0.7);
+	}
+
+	#ignit-sw-toast .sw-toast-action {
+		border-color: #b44637;
+		color: #d4a759;
+	}
+
+	#ignit-sw-toast .sw-toast-action:hover:enabled {
+		background: #b44637;
+		color: #f4eadb;
+	}
+}

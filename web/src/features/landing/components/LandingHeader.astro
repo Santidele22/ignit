@@ -78,3 +78,14 @@ const userLabel = session.authenticated ? session.user.name || session.user.emai
 		</button>
 	</div>
 </header>
+
+<script>
+	// PWA (S2): registra `/sw.js` con el mismo guard de producción que la sala.
+	// El módulo decide (PROD + `serviceWorker` en `navigator`), así que en dev no
+	// registra nada; `registerSW.ts` viaja como bundle ES y no suma scripts
+	// inline a `script-src 'self'`. Se engancha acá en vez de `initLanding.ts`
+	// para no tocar el runtime de la landing (1 línea de código cliente).
+	import { registerServiceWorker } from '../../pwa/registerSW';
+
+	registerServiceWorker();
+</script>
