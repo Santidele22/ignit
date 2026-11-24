@@ -404,7 +404,10 @@ body.biblioteca-body .user-name {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-	max-width: 16ch;
+}
+
+body.biblioteca-body .user-pill .user-name {
+	max-width: min(24ch, 34vw);
 }
 
 body.biblioteca-body .btn-ghost {
@@ -1844,6 +1847,9 @@ body.biblioteca-body .cov-svg-label {
 	body.biblioteca-body .section-hint {
 		max-width: 100%;
 	}
+body.biblioteca-body .user-pill .user-name {
+	max-width: 14ch;
+}
 
 	/* iOS Safari zooms the page on any focused field below 16px (S2). */
 	body.biblioteca-body .search-input,

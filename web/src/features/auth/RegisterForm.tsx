@@ -67,7 +67,7 @@ export default function RegisterForm() {
 					onInput={(event) => setName(event.currentTarget.value)}
 					disabled={pending()}
 					placeholder="Tu nombre"
-					class="h-11 rounded-md border border-input bg-background px-4 text-base outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-aka focus:ring-2 focus:ring-aka/20 disabled:opacity-60 sm:text-sm"
+					class="h-11 rounded-md border border-input bg-background px-4 text-base md:text-sm outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-aka focus:ring-2 focus:ring-aka/20 disabled:opacity-60 sm:text-sm"
 				/>
 			</div>
 			<div class="flex flex-col gap-2">
@@ -82,7 +82,7 @@ export default function RegisterForm() {
 					onInput={(event) => setEmail(event.currentTarget.value)}
 					disabled={pending()}
 					placeholder="lector@correo.com"
-					class="h-11 rounded-md border border-input bg-background px-4 text-base outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-aka focus:ring-2 focus:ring-aka/20 disabled:opacity-60 sm:text-sm"
+					class="h-11 rounded-md border border-input bg-background px-4 text-base md:text-sm outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-aka focus:ring-2 focus:ring-aka/20 disabled:opacity-60 sm:text-sm"
 				/>
 			</div>
 			<div class="flex flex-col gap-2">
@@ -98,7 +98,7 @@ export default function RegisterForm() {
 					onInput={(event) => setPassword(event.currentTarget.value)}
 					disabled={pending()}
 					placeholder="Mínimo 8 caracteres"
-					class="h-11 rounded-md border border-input bg-background px-4 text-base outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-aka focus:ring-2 focus:ring-aka/20 disabled:opacity-60 sm:text-sm"
+					class="h-11 rounded-md border border-input bg-background px-4 text-base md:text-sm outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-aka focus:ring-2 focus:ring-aka/20 disabled:opacity-60 sm:text-sm"
 				/>
 			</div>
 			<button
