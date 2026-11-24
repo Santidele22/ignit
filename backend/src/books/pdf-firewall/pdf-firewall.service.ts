@@ -1,8 +1,20 @@
 import { BadRequestException } from '@nestjs/common';
 import { readFile, unlink } from 'node:fs/promises';
 import { findPdfHeader } from '../pdf.util.js';
-import { detectPolyglotSignature, findForbiddenNames } from './pdf-firewall.rules.js';
-import { inspectPdfStructure } from './pdf-firewall.structure.js';
+import {
+  detectPolyglotSignature,
+  findForbiddenNames,
+  isEncryptionPdfName,
+} from './pdf-firewall.rules.js';
+import {
+  DEFAULT_MAX_STREAM_BYTES,
+  DEFAULT_MAX_TOTAL_STREAM_BYTES,
+} from './pdf-firewall.streams.js';
+import {
+  DEFAULT_MAX_FIREWALL_OBJECTS,
+  inspectPdfStructure,
+  type PdfStructureLimits,
+} from './pdf-firewall.structure.js';
 import type { PdfFirewallVerdict, PdfViolation } from './pdf-firewall.types.js';
 
 /** Default upper bound for the page count (`MAX_FIREWALL_PAGES`). */
@@ -12,20 +24,18 @@ export const DEFAULT_MAX_FIREWALL_PAGES = 2000;
 const UNREADABLE_FILE_MESSAGE = 'El archivo subido no se pudo leer para validarlo';
 
 /**
- * The PDF firewall (S1) in three tiers, in order and with early exits:
+ * The PDF firewall (S1 + hardened rules) in three tiers, in order and with
+ * early exits:
  *
- * 0. header sanity — `%PDF-1.` inside the first 1024 bytes, no ZIP/HTML/ELF/
- *    Mach-O signature in front of it (the 50 MB size cap is enforced earlier
- *    by multer, so it is not duplicated here);
- * 1. lexical scan of the whole buffer with `#XX` escape normalization — the
- *    names that enable active content, plus `/Encrypt` which makes inspection
- *    impossible;
- * 2. structural walk with `pdf-lib` — parse errors are hostile, the catalog
- *    and every indirect object are checked for the same names, and the page
- *    count must sit between 1 and `MAX_FIREWALL_PAGES`.
- *
- * Tiers 0 and 1 short-circuit on purpose: rejecting before parsing keeps a
- * hostile file from spending CPU inside `pdf-lib`.
+ * 0. header sanity — `%PDF-1.[0-7]` or `%PDF-2.0` inside the first 1024 bytes,
+ *    no executable/archive/script/HTML polyglot signature in front of it;
+ * 1. lexical scan of the whole buffer with `#XX` escape normalization — active
+ *    actions, embedded files, multimedia, external proxies and encryption keys;
+ * 2. structural walk with `pdf-lib` — parse errors are hostile, indirect object
+ *    count, nesting depth and Flate decompression bounds are enforced, links
+ *    (`/URI`), metadata (`/Info`, XMP), contextual actions (`/Screen`, `/Hide`,
+ *    interactive `/AcroForm`), external streams (`/F`) and hidden-text tricks
+ *    (`<1pt`, `3 Tr` without OCR image, white-on-white) are inspected.
  */
 export async function inspectPdfBuffer(buffer: Buffer): Promise<PdfFirewallVerdict> {
   const verdict = inspectHeaderSanity(buffer);
@@ -38,15 +48,14 @@ export async function inspectPdfBuffer(buffer: Buffer): Promise<PdfFirewallVerdi
     return lexical;
   }
 
-  const { pageCount, violations } = await inspectPdfStructure(buffer, maxFirewallPages());
+  const { pageCount, violations } = await inspectPdfStructure(buffer, firewallLimits());
   return { safe: violations.length === 0, pageCount, violations };
 }
 
 /**
  * Reads the multer temp file, runs the firewall and answers a `400` with the
  * violation codes when the file is rejected. The temp file is dropped on
- * rejection — the same convention as `assertStoredPdf` — so a refused upload
- * never leaks a file on disk.
+ * rejection so a refused upload never leaks a file on disk.
  */
 export async function assertSafePdfFile(filePath: string): Promise<void> {
   await inspectSafePdfFile(filePath);
@@ -54,8 +63,7 @@ export async function assertSafePdfFile(filePath: string): Promise<void> {
 
 /**
  * Same check as `assertSafePdfFile`, but answers the accepted verdict so the
- * caller can persist the page count the structural tier measured. A rejected
- * or unreadable file still throws the `400` and drops the temp file.
+ * caller can persist the page count the structural tier measured.
  */
 export async function inspectSafePdfFile(filePath: string): Promise<PdfFirewallVerdict> {
   let buffer: Buffer;
@@ -66,7 +74,16 @@ export async function inspectSafePdfFile(filePath: string): Promise<PdfFirewallV
     throw new BadRequestException(UNREADABLE_FILE_MESSAGE);
   }
 
-  const verdict = await inspectPdfBuffer(buffer);
+  let verdict: PdfFirewallVerdict;
+  try {
+    verdict = await inspectPdfBuffer(buffer);
+  } catch (error) {
+    await dropTempFile(filePath);
+    const detail = error instanceof Error ? error.message : 'el documento no se pudo analizar';
+    throw new BadRequestException(
+      firewallRejectionMessage([{ code: 'PARSE_ERROR', detail }]),
+    );
+  }
   if (verdict.safe) {
     return verdict;
   }
@@ -85,8 +102,24 @@ export function firewallRejectionMessage(violations: PdfViolation[]): string {
 
 /** `MAX_FIREWALL_PAGES`, defaulting to 2000 when unset or not a positive integer. */
 export function maxFirewallPages(env: NodeJS.ProcessEnv = process.env): number {
-  const parsed = Number.parseInt(env.MAX_FIREWALL_PAGES ?? '', 10);
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : DEFAULT_MAX_FIREWALL_PAGES;
+  return positiveIntEnv(env.MAX_FIREWALL_PAGES, DEFAULT_MAX_FIREWALL_PAGES);
+}
+
+export function firewallLimits(env: NodeJS.ProcessEnv = process.env): PdfStructureLimits {
+  return {
+    maxPages: maxFirewallPages(env),
+    maxObjects: positiveIntEnv(env.MAX_FIREWALL_OBJECTS, DEFAULT_MAX_FIREWALL_OBJECTS),
+    maxStreamBytes: positiveIntEnv(env.MAX_FIREWALL_STREAM_BYTES, DEFAULT_MAX_STREAM_BYTES),
+    maxTotalStreamBytes: positiveIntEnv(
+      env.MAX_FIREWALL_TOTAL_STREAM_BYTES,
+      DEFAULT_MAX_TOTAL_STREAM_BYTES,
+    ),
+  };
+}
+
+function positiveIntEnv(raw: string | undefined, fallback: number): number {
+  const parsed = Number.parseInt(raw ?? '', 10);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 }
 
 /** Tier 0; `null` means the file may continue to the next tier. */
@@ -116,12 +149,12 @@ function inspectForbiddenNames(buffer: Buffer): PdfFirewallVerdict | null {
   }
 
   const violations: PdfViolation[] = [];
-  if (names.includes('Encrypt')) {
-    violations.push({ code: 'ENCRYPTED', detail: '/Encrypt' });
-  }
   for (const name of names) {
-    if (name === 'Encrypt') continue;
-    violations.push({ code: 'ACTIVE_CONTENT_KEY', detail: `/${name}` });
+    if (isEncryptionPdfName(name)) {
+      violations.push({ code: 'ENCRYPTED', detail: `/${name}` });
+    } else {
+      violations.push({ code: 'ACTIVE_CONTENT_KEY', detail: `/${name}` });
+    }
   }
 
   return { safe: false, pageCount: 0, violations };

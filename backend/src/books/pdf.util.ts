@@ -14,14 +14,21 @@ const PDF_MAGIC_BYTES = Buffer.from('%PDF-');
  */
 export const PDF_HEADER_SCAN_WINDOW = 1024;
 
-const PDF_HEADER_SIGNATURE = '%PDF-1.';
+/**
+ * Valid PDF version headers accepted by the firewall: ISO 32000-1 (`%PDF-1.0`
+ * through `%PDF-1.7`) and ISO 32000-2 (`%PDF-2.0`), with a trailing non-digit
+ * boundary so `%PDF-1.70` does not masquerade as `1.7`.
+ */
+const PDF_HEADER_PATTERN = /%PDF-(?:1\.[0-7]|2\.0)(?![0-9])/;
 
 /**
- * Offset of the `%PDF-1.` header inside the first 1024 bytes, or `-1` when the
- * buffer carries no versioned PDF header (an empty or spoofed file).
+ * Offset of the versioned `%PDF-1.x` / `%PDF-2.0` header inside the first 1024
+ * bytes, or `-1` when the buffer carries no valid PDF header.
  */
 export function findPdfHeader(buffer: Buffer): number {
-  return buffer.subarray(0, PDF_HEADER_SCAN_WINDOW).indexOf(PDF_HEADER_SIGNATURE);
+  const windowText = buffer.subarray(0, PDF_HEADER_SCAN_WINDOW).toString('latin1');
+  const match = PDF_HEADER_PATTERN.exec(windowText);
+  return match ? match.index : -1;
 }
 
 export async function hasPdfMagicBytes(filePath: string): Promise<boolean> {
