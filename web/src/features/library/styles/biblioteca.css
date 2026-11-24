@@ -1575,32 +1575,109 @@ body.biblioteca-body .pipe-notice b {
 	color: var(--b-fg);
 }
 
-/* AI prefill loading: inline spinner + live status text. */
-body.biblioteca-body .pipe-notice.pipe-loading {
+/* AI prefill loading: the form fades away and a page-flipping book overlay
+   carries the live status text. */
+body.biblioteca-body .modal-body[data-prefill="true"] > * {
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 0.35s ease;
+}
+
+body.biblioteca-body .modal-body[data-prefill="false"] > * {
+	transition: opacity 0.35s ease;
+}
+
+body.biblioteca-body .prefill-overlay {
+	position: absolute;
+	inset: 0;
 	display: flex;
+	flex-direction: column;
 	align-items: center;
-	gap: 8px;
+	justify-content: center;
+	gap: 14px;
+	text-align: center;
+	padding: 24px;
+	background: var(--b-bg);
+	color: var(--b-body);
+	z-index: 2;
 }
 
-body.biblioteca-body .pipe-spinner {
-	flex: none;
-	width: 12px;
-	height: 12px;
-	border: 1.5px solid rgb(var(--b-accent-rgb) / 0.3);
-	border-top-color: var(--b-accent-bright);
-	border-radius: 50%;
-	animation: pipe-spin 0.8s linear infinite;
+.book-flip {
+	position: relative;
+	width: 56px;
+	height: 38px;
+	perspective: 140px;
 }
 
-@keyframes pipe-spin {
-	to {
-		transform: rotate(360deg);
+body.biblioteca-body .book-page {
+	position: absolute;
+	top: 4px;
+	bottom: 4px;
+	width: 24px;
+	border: 1px solid var(--b-border);
+	background: var(--b-bg-raised, var(--b-bg));
+}
+
+body.biblioteca-body .page-left {
+	left: 3px;
+	border-radius: 3px 0 0 3px;
+	border-right: none;
+}
+
+body.biblioteca-body .page-right {
+	right: 3px;
+	border-radius: 0 3px 3px 0;
+	border-left: none;
+}
+
+body.biblioteca-body .book-spine {
+	position: absolute;
+	left: 50%;
+	top: 0;
+	bottom: 0;
+	width: 2px;
+	transform: translateX(-50%);
+	background: var(--b-accent);
+	opacity: 0.55;
+	border-radius: 1px;
+}
+
+body.biblioteca-body .book-leaf {
+	position: absolute;
+	left: 50%;
+	top: 4px;
+	bottom: 4px;
+	width: 24px;
+	transform-origin: left center;
+	border: 1px solid var(--b-accent);
+	border-radius: 0 3px 3px 0;
+	background: linear-gradient(
+		270deg,
+		rgb(var(--b-accent-rgb) / 0.18),
+		rgb(var(--b-accent-rgb) / 0.04)
+	);
+	animation: leaf-flip 1.5s ease-in-out infinite;
+	backface-visibility: visible;
+}
+
+@keyframes leaf-flip {
+	0% {
+		transform: rotateY(0deg);
+		opacity: 1;
+	}
+	85% {
+		transform: rotateY(-180deg);
+		opacity: 1;
+	}
+	100% {
+		transform: rotateY(-180deg);
+		opacity: 0;
 	}
 }
 
 @media (prefers-reduced-motion: reduce) {
-	body.biblioteca-body .pipe-spinner {
-		animation-duration: 2.4s;
+	body.biblioteca-body .book-leaf {
+		animation-duration: 3.6s;
 	}
 }
 

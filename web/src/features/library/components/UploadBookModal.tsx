@@ -333,7 +333,10 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 					}
 				>
 					<form onSubmit={(event) => void handleSubmit(event)}>
-					<div class="modal-body">
+					<div
+						class="modal-body"
+						data-prefill={String(prefillStatus().length > 0)}
+					>
 						<div
 							class="drop-pdf"
 							data-has-file={String(file() !== null)}
@@ -414,13 +417,6 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 								</select>
 							</div>
 						</div>
-
-						<Show when={prefillStatus()}>
-							<p class="pipe-notice pipe-loading" role="status" aria-live="polite">
-								<span class="pipe-spinner" aria-hidden="true" />
-								{prefillStatus()}
-							</p>
-						</Show>
 
 						<div class="field">
 							<label for="upDesc">Descripción breve</label>
@@ -506,6 +502,17 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 						</button>
 					</div>
 				</form>
+				<Show when={prefillStatus()}>
+					<div class="prefill-overlay" role="status" aria-live="polite">
+						<div class="book-flip" aria-hidden="true">
+							<span class="book-page page-left" />
+							<span class="book-page page-right" />
+							<span class="book-leaf" />
+							<span class="book-spine" />
+						</div>
+						<span class="prefill-label">{prefillStatus()}</span>
+					</div>
+				</Show>
 				</Show>
 			</div>
 
