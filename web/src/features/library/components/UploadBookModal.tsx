@@ -1,6 +1,7 @@
-import { For, Show, createEffect, createSignal, onCleanup } from 'solid-js';
+import { Show, createEffect, createSignal, onCleanup } from 'solid-js';
 import { pdfNameHints } from '../lib/upload-hints';
 import type { BookKind } from '../../../entities/book/types';
+import CoverPickerModal from '../../book/components/CoverPickerModal';
 import {
 	createBookReturning,
 	searchBookCovers,
@@ -82,6 +83,10 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 
 	function close() {
 		if (submitting()) return;
+		if (coverModalOpen()) {
+			setCoverModalOpen(false);
+			return;
+		}
 		props.onClose();
 	}
 
@@ -155,9 +160,6 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 			setCoverQuery(currentAuthor ? `${currentTitle} ${currentAuthor}` : currentTitle);
 		}
 		setCoverModalOpen(true);
-		if (coverResults().length === 0 && currentTitle) {
-			void handleSearchCovers(currentTitle, currentAuthor);
-		}
 	}
 
 	async function handleSubmit(event: SubmitEvent) {
@@ -503,97 +505,19 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 				</Show>
 			</div>
 
-			<Show when={coverModalOpen()}>
-				<div
-					class="modal-backdrop cover-modal-backdrop"
-					role="dialog"
-					aria-modal="true"
-					aria-label="Elegir portada en Google Books"
-					onClick={(event) => {
-						if (event.target === event.currentTarget) setCoverModalOpen(false);
-					}}
-				>
-					<div class="modal-box cover-modal-box">
-						<div class="modal-head">
-							<span>Elegir portada de Google</span>
-							<button class="btn-ghost modal-close" type="button" onClick={() => setCoverModalOpen(false)}>
-								Cerrar ✕
-							</button>
-						</div>
-						<div class="modal-body">
-							<div class="cover-modal-search">
-								<input
-									type="text"
-									placeholder="Buscar por título o autor…"
-									value={coverQuery()}
-									onInput={(event) => setCoverQuery(event.currentTarget.value)}
-									onKeyDown={(event) => {
-										if (event.key === 'Enter') {
-											event.preventDefault();
-											void handleSearchCovers(coverQuery(), '');
-										}
-									}}
-								/>
-								<button
-									type="button"
-									class="btn-primary"
-									disabled={searchingCovers() || !coverQuery().trim()}
-									onClick={() => void handleSearchCovers(coverQuery(), '')}
-								>
-									{searchingCovers() ? 'Buscando…' : 'Buscar'}
-								</button>
-							</div>
-
-							<Show when={searchingCovers()}>
-								<p class="pipe-notice">Buscando portadas en Google Books…</p>
-							</Show>
-
-							<Show when={!searchingCovers() && coverResults().length === 0}>
-								<p class="pipe-notice">No se encontraron portadas para esa búsqueda. Probá con otro título.</p>
-							</Show>
-
-							<Show when={coverResults().length > 0}>
-								<div class="cover-modal-grid">
-									<For each={coverResults()}>
-										{(item) => (
-											<button
-												type="button"
-												class="cover-modal-card"
-												data-selected={String(coverUrl() === item.coverUrl)}
-												onClick={() => {
-													setCoverUrl(item.coverUrl);
-													setCoverModalOpen(false);
-												}}
-											>
-												<img src={item.coverUrl} alt={item.title} loading="lazy" />
-												<span class="cover-modal-title">{item.title}</span>
-												<Show when={item.authors.length > 0}>
-													<span class="cover-modal-author">{item.authors[0]}</span>
-												</Show>
-											</button>
-										)}
-									</For>
-								</div>
-							</Show>
-						</div>
-						<div class="modal-foot">
-							<button
-								type="button"
-								class="btn-sec"
-								onClick={() => {
-									setCoverUrl('');
-									setCoverModalOpen(false);
-								}}
-							>
-								Usar tapa editorial
-							</button>
-							<button type="button" class="btn-primary" onClick={() => setCoverModalOpen(false)}>
-								Listo
-							</button>
-						</div>
-					</div>
-				</div>
-			</Show>
+			<CoverPickerModal
+				open={coverModalOpen()}
+				selectedUrl={coverUrl()}
+				defaultQuery={coverQuery()}
+				onResults={(results) => {
+					setCoverResults(results);
+					if (!coverUrl().trim() && results[0]?.coverUrl) {
+						setCoverUrl(results[0].coverUrl);
+					}
+				}}
+				onClose={() => setCoverModalOpen(false)}
+				onSelect={(url) => setCoverUrl(url)}
+			/>
 		</div>
 	);
 }

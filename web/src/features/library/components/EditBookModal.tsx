@@ -1,5 +1,6 @@
 import { Show, createEffect, createSignal, onCleanup } from 'solid-js';
 import type { Book } from '../../../entities/book/types';
+import CoverPickerModal from '../../book/components/CoverPickerModal';
 import { deleteBook, updateBook, uploadBookFile } from '../../book/api/books-admin';
 import {
 	BOOK_KIND_OPTIONS,
@@ -48,6 +49,7 @@ const EMPTY_FORM: BookFormState = {
 export default function EditBookModal(props: EditBookModalProps) {
 	const [form, setForm] = createSignal<BookFormState>(EMPTY_FORM);
 	const [pdfFile, setPdfFile] = createSignal<File | null>(null);
+	const [coverModalOpen, setCoverModalOpen] = createSignal(false);
 	const [deleteArmed, setDeleteArmed] = createSignal(false);
 	const [saving, setSaving] = createSignal(false);
 	const [error, setError] = createSignal<string | null>(null);
@@ -69,7 +71,15 @@ export default function EditBookModal(props: EditBookModalProps) {
 
 	function close() {
 		if (saving()) return;
+		if (coverModalOpen()) {
+			setCoverModalOpen(false);
+			return;
+		}
 		props.onClose();
+	}
+
+	function openCoverModal() {
+		setCoverModalOpen(true);
 	}
 
 	function pickFile(next: File | null) {
@@ -192,6 +202,7 @@ export default function EditBookModal(props: EditBookModalProps) {
 			if (wasOpen) {
 				wasOpen = false;
 				clearPdf();
+				setCoverModalOpen(false);
 				setDeleteArmed(false);
 				setError(null);
 				const trigger = lastTrigger;
@@ -208,6 +219,7 @@ export default function EditBookModal(props: EditBookModalProps) {
 
 		setForm(bookToForm(current));
 		clearPdf();
+		setCoverModalOpen(false);
 		setDeleteArmed(false);
 		setError(null);
 		queueMicrotask(() => titleInput?.focus());
@@ -329,6 +341,45 @@ export default function EditBookModal(props: EditBookModalProps) {
 							/>
 						</div>
 
+						<div class="field">
+							<div class="cover-field-head">
+								<label>Portada del libro</label>
+								<button
+									type="button"
+									class="btn-sec cover-search-btn"
+									disabled={saving() || !form().title.trim()}
+									onClick={() => openCoverModal()}
+								>
+									Elegir portada en Google
+								</button>
+							</div>
+							<div class="cover-preview-row">
+								<Show
+									when={form().coverUrl?.trim()}
+									fallback={
+										<span class="cover-preview-empty">Este libro usa tapa editorial (sin portada real)</span>
+									}
+								>
+									<img
+										class="cover-preview-thumb"
+										src={form().coverUrl}
+										alt="Portada seleccionada"
+									/>
+									<div class="cover-preview-info">
+										<span class="cover-preview-label">Portada real seleccionada</span>
+										<button
+											type="button"
+											class="btn-ghost cover-clear-btn"
+											disabled={saving()}
+											onClick={() => update('coverUrl', '')}
+										>
+											Quitar
+										</button>
+									</div>
+								</Show>
+							</div>
+						</div>
+
 						<label class="field checkbox-field">
 							<input
 								id="editBookPublished"
@@ -419,6 +470,14 @@ export default function EditBookModal(props: EditBookModalProps) {
 						</button>
 					</div>
 				</form>
+
+				<CoverPickerModal
+					open={coverModalOpen()}
+					selectedUrl={form().coverUrl ?? ''}
+					defaultQuery={[form().title.trim(), form().author.trim()].filter(Boolean).join(' ')}
+					onClose={() => setCoverModalOpen(false)}
+					onSelect={(url) => update('coverUrl', url)}
+				/>
 			</div>
 		</div>
 	);

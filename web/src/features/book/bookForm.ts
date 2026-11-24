@@ -22,7 +22,6 @@ export const EMPTY_BOOK_FORM: BookFormState = {
 	kind: 'no_tecnico',
 	review: '',
 	published: false,
-	coverUrl: '',
 };
 
 export const BOOK_STATUS_OPTIONS: { value: ReadingStatus; label: string }[] = [
@@ -74,7 +73,10 @@ export function bookFormToBody(form: BookFormState): BookWriteBody {
 		kind: KIND_KEYS.includes(form.kind) ? (form.kind as BookKind) : 'no_tecnico',
 		review: form.review.trim() || null,
 		published: form.published,
-		...(cleanCover ? { coverUrl: cleanCover } : {}),
+		// An untouched cover field stays out of the payload; an explicitly
+		// cleared one (`''` after `Quitar`) writes `null` so editing can undo a
+		// previously stored cover instead of silently keeping it.
+		...(form.coverUrl === undefined ? {} : { coverUrl: cleanCover || null }),
 	};
 }
 

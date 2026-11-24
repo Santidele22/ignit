@@ -169,3 +169,56 @@ describe('formatBookFileSize', () => {
 		expect(formatBookFileSize(String(2 * 1024 * 1024 * 1024))).toBe('2.0 GB');
 	});
 });
+
+describe('bookFormToBody coverUrl contract', () => {
+	const baseForm = {
+		title: 'Libro',
+		author: 'Autor',
+		description: 'Desc',
+		status: 'reading',
+		kind: 'no_tecnico',
+		review: '',
+		published: false,
+	} as const;
+
+	it('omits coverUrl entirely when the form never touched it', () => {
+		const body = bookFormToBody({ ...baseForm });
+		expect('coverUrl' in body).toBe(false);
+	});
+
+	it('sends a non-empty coverUrl trimmed', () => {
+		expect(
+			bookFormToBody({ ...baseForm, coverUrl: ' https://covers.example/x.jpg ' }).coverUrl,
+		).toBe('https://covers.example/x.jpg');
+	});
+
+	it('writes coverUrl null when the cover was explicitly cleared while editing', () => {
+		expect(bookFormToBody({ ...baseForm, coverUrl: '' }).coverUrl).toBeNull();
+		expect(bookFormToBody({ ...baseForm, coverUrl: '   ' }).coverUrl).toBeNull();
+	});
+});
+
+describe('bookFormToBody shared-code regression guard', () => {
+	const baseForm = {
+		title: 'Libro',
+		author: 'Autor',
+		description: 'Desc',
+		status: 'reading',
+		kind: 'no_tecnico',
+		review: '',
+		published: false,
+	} as const;
+
+	it('upload shape (trim() || undefined) never produces a coverUrl key when empty', () => {
+		for (const raw of ['', '   ', ' https://c.example/a.jpg ']) {
+			const body = bookFormToBody({ ...baseForm, coverUrl: raw.trim() || undefined });
+			expect('coverUrl' in body).toBe(Boolean(raw.trim()));
+			expect(body.coverUrl).not.toBeNull();
+		}
+	});
+
+	it('EMPTY_BOOK_FORM (BooksEditorPanel create path) omits coverUrl, as before the edit-cover feature', () => {
+		const body = bookFormToBody({ ...EMPTY_BOOK_FORM });
+		expect('coverUrl' in body).toBe(false);
+	});
+});
