@@ -158,7 +158,11 @@ const indexLabel = (position: number) => String(position).padStart(2, '0');
 									data-search={bookSearchIndex(book)}
 								>
 									<a class="tomo-tapa" href={`/lecturas/${book.id}`}>
+										{book.coverUrl ? (
+										<img class="tomo-cover-img" src={book.coverUrl} alt="" loading="lazy" />
+									) : (
 										<BookCoverArt variant={coverVariantIndex(book.id)} bookId={book.id} />
+									)}
 										<div class="tomo-top">
 											<span class="tomo-idx">{indexLabel(offset + index + 1)}</span>
 											<span class="tomo-badge">{offline ? 'offline ✓' : 'nube'}</span>

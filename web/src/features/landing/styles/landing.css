@@ -1122,6 +1122,25 @@ body.landing-body .nav-install:focus-visible {
 	filter: brightness(1.14);
 }
 
+/* Real cover image (book.coverUrl): fills the tapa above the fallback motif,
+   under the same vignette + hover treatment. */
+.landing-page .tomo-cover-img {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	object-position: center top;
+	display: block;
+	transition: transform 0.45s cubic-bezier(0.22, 0.9, 0.32, 1), filter 0.35s ease;
+	pointer-events: none;
+}
+
+.landing-page .tomo:hover .tomo-cover-img {
+	transform: scale(1.035);
+	filter: brightness(1.14);
+}
+
 /* Editorial vignette keeps the title readable + spine hinge */
 .landing-page .tomo-tapa::after {
 	content: "";
