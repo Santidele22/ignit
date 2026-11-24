@@ -86,6 +86,16 @@ taken verbatim from `design/ignit-inmersiva/04-lampara-brutalista.html`
 | `--aka-foreground` | `#04050a` | Ink on `--aka` (artboard `::selection` / active toggle) |
 | `--ink-soft` | `#b9c6dd` | Artboard `--body` (soft ink) |
 
+**Interior contrast lift (`--b-*` bridge, L3).** The library and admin sheets
+rebuild these values as scoped `--b-*` tokens; since the interior contrast
+pass they deviate from the raw artboard for surfaces and hairlines (ink and
+accents unchanged): `--b-panel #0a101c`, `--b-panel-2 #10182e`,
+`--b-border #4d5c86` (3.1:1 on the panel), `--b-border-strong #56658f`
+(3.3:1), `--b-bar-track #233054`, `--b-surface-cover #131a2e`,
+`--b-faint #a9bcdf`, `--b-ghost #93a6cc`, washed-out `original`-palette ghost
+mix raised from 62% to 86% `muted-foreground`. The global tokens above (and
+the reader's own `--w-*` ink) keep the verbatim artboard values.
+
 Grain veil: `html[data-palette="noche-azul"] body::after` drops the noise
 opacity to `0.5` (from `0.6` under `.dark`) so the texture stays subtle on the
 blue-black surfaces.

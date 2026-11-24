@@ -3,8 +3,9 @@
    Every colour is routed through the same `--b-*` bridge as
    `features/library/styles/biblioteca.css`, following the dual-palette pattern:
 
-   - `noche-azul` reproduces the artboard values verbatim (`#04050a`, `#5f86c9`,
-     `#9fc0ee`, hairline `#232941`, ochre `#d4a759`, danger `#d96b6b`).
+   - `noche-azul` follows the artboard (`#04050a`, `#5f86c9`, `#9fc0ee`, ochre
+     `#d4a759`, danger `#d96b6b`) with hairlines/surfaces contrast-adjusted per
+     the palette doc L3 (hairline `#4d5c86`, strong `#56658f`).
    - `original` (light `:root` and `.dark`) borrows the app tokens so the panel
      stays warm paper/ink instead of inheriting the blue-black chrome.
 
@@ -29,9 +30,9 @@ body.admin-body {
 	--b-fg: var(--foreground);
 	--b-body: var(--ink-soft);
 	--b-faint: var(--muted-foreground);
-	--b-ghost: color-mix(in oklab, var(--muted-foreground) 62%, var(--background));
+	--b-ghost: color-mix(in oklab, var(--muted-foreground) 86%, var(--background));
 	--b-border: var(--border);
-	--b-border-strong: color-mix(in oklab, var(--foreground) 26%, var(--border));
+	--b-border-strong: color-mix(in oklab, var(--foreground) 45%, var(--border));
 	--b-accent: var(--aka);
 	--b-accent-bright: var(--aka-deep);
 	--b-accent-fg: var(--aka-foreground);
@@ -51,7 +52,7 @@ body.admin-body {
 }
 
 html.dark:not([data-palette="noche-azul"]) body.admin-body {
-	--b-ghost: color-mix(in oklab, var(--muted-foreground) 66%, var(--background));
+	--b-ghost: color-mix(in oklab, var(--muted-foreground) 86%, var(--background));
 	--b-accent-bright: color-mix(in oklab, var(--aka) 58%, var(--foreground));
 	--b-warn: #d4a759;
 	--b-ok: #74b98c;
@@ -61,21 +62,21 @@ html.dark:not([data-palette="noche-azul"]) body.admin-body {
 
 html[data-palette="noche-azul"] body.admin-body {
 	--b-bg: #04050a;
-	--b-panel: #060810;
-	--b-panel-2: #080c17;
+	--b-panel: #0a101c;
+	--b-panel-2: #10182e;
 	--b-fg: #e6edf7;
 	--b-body: #b9c6dd;
-	--b-faint: #8fa4c8;
-	--b-ghost: #7e91b8;
-	--b-border: #232941;
-	--b-border-strong: #344064;
+	--b-faint: #a9bcdf;
+	--b-ghost: #93a6cc;
+	--b-border: #4d5c86;
+	--b-border-strong: #56658f;
 	--b-accent: #5f86c9;
 	--b-accent-bright: #9fc0ee;
 	--b-accent-fg: #04050a;
 	--b-warn: #d4a759;
 	--b-ok: #7fb894;
 	--b-danger: #d96b6b;
-	--b-grid-line: rgba(35, 41, 65, 0.14);
+	--b-grid-line: rgba(77, 92, 134, 0.18);
 	--b-grid-glow: rgba(95, 134, 201, 0.11);
 }
 

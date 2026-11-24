@@ -32,9 +32,9 @@ body.biblioteca-body {
 	--b-fg: var(--foreground);
 	--b-body: var(--ink-soft);
 	--b-faint: var(--muted-foreground);
-	--b-ghost: color-mix(in oklab, var(--muted-foreground) 62%, var(--background));
+	--b-ghost: color-mix(in oklab, var(--muted-foreground) 86%, var(--background));
 	--b-border: var(--border);
-	--b-border-strong: color-mix(in oklab, var(--foreground) 26%, var(--border));
+	--b-border-strong: color-mix(in oklab, var(--foreground) 45%, var(--border));
 	--b-accent: var(--aka);
 	/* On warm paper the "bright" accent has to be the deeper red to keep the
 	   hairlines and hover labels readable; `.dark` flips it back to a lifted
@@ -80,19 +80,21 @@ html.dark:not([data-palette="noche-azul"]) body.biblioteca-body {
 	--b-shadow-modal: 0 36px 96px rgb(0 0 0 / 0.75);
 }
 
-/* Artboard values, verbatim. The two blocks never match at the same time
-   (`original` dark excludes this attribute), so the palette cannot be
+/* Artboard values with the L3 interior-contrast adjustments applied
+   (hairlines and surfaces lifted to clear WCAG 3:1 on surfaces; ink and
+   accents keep the artboard values). The two blocks never match at the same
+   time (`original` dark excludes this attribute), so the palette cannot be
    outranked by the warm `original` lifts above. */
 html[data-palette="noche-azul"] body.biblioteca-body {
 	--b-bg: #04050a;
-	--b-panel: #060810;
-	--b-panel-2: #080c17;
+	--b-panel: #0a101c;
+	--b-panel-2: #10182e;
 	--b-fg: #e6edf7;
 	--b-body: #b9c6dd;
-	--b-faint: #8fa4c8;
-	--b-ghost: #7e91b8;
-	--b-border: #232941;
-	--b-border-strong: #344064;
+	--b-faint: #a9bcdf;
+	--b-ghost: #93a6cc;
+	--b-border: #4d5c86;
+	--b-border-strong: #56658f;
 	--b-accent: #5f86c9;
 	--b-accent-bright: #9fc0ee;
 	--b-accent-fg: #04050a;
@@ -101,9 +103,9 @@ html[data-palette="noche-azul"] body.biblioteca-body {
 	--b-warn: #d4a759;
 	--b-danger: #d96b6b;
 	--b-surface-deep: #05070e;
-	--b-surface-cover: #070b15;
-	--b-bar-track: #101728;
-	--b-grid-line: rgba(35, 41, 65, 0.14);
+	--b-surface-cover: #131a2e;
+	--b-bar-track: #233054;
+	--b-grid-line: rgba(77, 92, 134, 0.18);
 	--b-grid-glow: rgba(95, 134, 201, 0.11);
 	--b-shadow-card: 0 24px 60px rgba(0, 0, 0, 0.45);
 	--b-shadow-modal: 0 36px 96px rgba(0, 0, 0, 0.75);
