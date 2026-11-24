@@ -36,12 +36,21 @@ export interface ReadingChunk {
   align?: 'left' | 'center' | 'right';
 }
 
+export interface AiClutterItem {
+  id: string;
+  page: number;
+  text: string;
+  reason: string;
+  action: 'dropped' | 'recommended';
+}
+
 export interface AiRefinementSummary {
   applied: boolean;
   model?: string;
   reclassified: number;
   merged: number;
   dropped: number;
+  clutter?: AiClutterItem[];
 }
 
 export interface BookReadingDocument {

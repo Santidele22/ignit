@@ -20,12 +20,20 @@ export type RefinerMergePatch = {
 export type RefinerDropPatch = {
   op: 'drop';
   id: string;
+  reason?: string;
+};
+
+export type RefinerRecommendDropPatch = {
+  op: 'recommend_drop';
+  id: string;
+  reason: string;
 };
 
 export type RefinerPatch =
   | RefinerReclassifyPatch
   | RefinerMergePatch
-  | RefinerDropPatch;
+  | RefinerDropPatch
+  | RefinerRecommendDropPatch;
 
 export type RefinementResult = {
   document: BookReadingDocument;

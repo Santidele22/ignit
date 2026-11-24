@@ -1,5 +1,6 @@
 import { For, Show, createSignal, onCleanup, onMount } from 'solid-js';
 import { signOutCleanly } from '../../auth/api/authActions';
+import { BookClutterPanel } from './BookClutterPanel';
 import { FirewallPipeline } from './FirewallPipeline';
 import { StyleReferenceSection } from './StyleReferenceSection';
 import { ADMIN_QUEUE_PAGE_SIZE, fetchAdminQueue, submitAdminReview } from '../lib/admin-api';
@@ -50,6 +51,7 @@ export default function AdminQueueApp(props: AdminQueueAppProps) {
 	const [announcement, setAnnouncement] = createSignal('');
 	const [signingOut, setSigningOut] = createSignal(false);
 	const [pipelineId, setPipelineId] = createSignal<number | null>(null);
+	const [clutterId, setClutterId] = createSignal<number | null>(null);
 
 	let noteInput: HTMLInputElement | undefined;
 	let confirmInput: HTMLButtonElement | undefined;
@@ -276,15 +278,26 @@ export default function AdminQueueApp(props: AdminQueueAppProps) {
 												</Show>
 											</div>
 
-											<button
-												class="pipeline-toggle"
-												type="button"
-												aria-expanded={pipelineId() === book.id}
-												onClick={() => setPipelineId(pipelineId() === book.id ? null : book.id)}
-											>
-												{pipelineId() === book.id ? 'Ocultar pipeline' : 'Pipeline de seguridad'}
-											</button>
+											<div class="row-toggles" role="group" aria-label="Etapas del pipeline">
+												<button
+													class="pipeline-toggle"
+													type="button"
+													aria-expanded={pipelineId() === book.id}
+													onClick={() => setPipelineId(pipelineId() === book.id ? null : book.id)}
+												>
+													{pipelineId() === book.id ? '1 · Ocultar seguridad' : '1 · Seguridad'}
+												</button>
+												<button
+													class="pipeline-toggle"
+													type="button"
+													aria-expanded={clutterId() === book.id}
+													onClick={() => setClutterId(clutterId() === book.id ? null : book.id)}
+												>
+													{clutterId() === book.id ? '2 · Ocultar diseño y preview' : '2 · Diseño, preview y IA'}
+												</button>
+											</div>
 											<FirewallPipeline bookId={book.id} open={pipelineId() === book.id} />
+											<BookClutterPanel bookId={book.id} open={clutterId() === book.id} />
 										</div>
 
 										<div class="row-actions">

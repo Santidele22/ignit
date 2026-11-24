@@ -88,6 +88,10 @@ export class Book {
   @Column({ type: 'bigint', nullable: true })
   fileSize?: string | null;
 
+  /** SHA-256 hex digest of the stored PDF bytes for duplicate detection. */
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  fileHash?: string | null;
+
   /** MIME type of the uploaded file (always application/pdf for now). */
   @Column({ type: 'text', nullable: true })
   mimeType?: string | null;

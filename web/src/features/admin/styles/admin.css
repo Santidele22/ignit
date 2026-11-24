@@ -447,6 +447,83 @@ body.admin-body .row-ai {
 	color: var(--b-faint);
 }
 
+body.admin-body .row-toggles {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	align-items: center;
+}
+
+body.admin-body .clutter-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin-bottom: 8px;
+}
+
+body.admin-body .clutter-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+body.admin-body .clutter-group {
+	margin-top: 10px;
+}
+
+body.admin-body .clutter-list {
+	margin: 6px 0 10px;
+	padding: 0;
+	list-style: none;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+body.admin-body .clutter-item {
+	font-size: 12px;
+	color: var(--b-body);
+}
+
+body.admin-body .clutter-check {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 8px;
+	cursor: pointer;
+}
+
+body.admin-body .clutter-meta {
+	font-family: var(--b-mono);
+	font-size: 10px;
+	text-transform: uppercase;
+	color: var(--b-faint);
+}
+
+body.admin-body .clutter-text {
+	color: var(--b-fg);
+}
+
+body.admin-body .clutter-reason {
+	font-size: 11px;
+	color: var(--b-ghost);
+}
+
+body.admin-body .clutter-preview {
+	margin: 10px 0;
+	border: 1px solid var(--b-border);
+	background: var(--b-bg);
+}
+
+body.admin-body .clutter-preview iframe {
+	display: block;
+	width: 100%;
+	height: 460px;
+	border: 0;
+}
+
 body.admin-body .row-ai[data-tone="ok"] {
 	border-color: color-mix(in oklab, var(--b-ok) 55%, var(--b-border));
 	color: var(--b-ok);

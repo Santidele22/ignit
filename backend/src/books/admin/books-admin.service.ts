@@ -124,6 +124,72 @@ export class BooksAdminService {
     return { bookId: book.id, reverted: true };
   }
 
+  /** Returns the AI-detected clutter list (`dropped` + `recommended`) for a book. */
+  async readingClutter(id: number) {
+    const book = await findBookOrFail(this.booksRepository, id);
+    const current = await this.loadReadingSidecar(book.id, 'current');
+    if (!current) {
+      throw new NotFoundException('Este libro todavía no tiene lectura extraída');
+    }
+    return {
+      bookId: book.id,
+      refinedByAi: Boolean(current.refinedByAi),
+      clutter: current.aiRefinement?.clutter ?? [],
+    };
+  }
+
+  /** Drops admin-approved recommended clutter chunks from `reading.json`. */
+  async dropReadingClutter(id: number, chunkIds: string[]) {
+    const book = await findBookOrFail(this.booksRepository, id);
+    const current = await this.loadReadingSidecar(book.id, 'current');
+    if (!current) {
+      throw new NotFoundException('Este libro todavía no tiene lectura extraída');
+    }
+
+    const targets = new Set(chunkIds.map((c) => c.trim()).filter((c) => c.length > 0));
+    if (targets.size === 0) {
+      return { bookId: book.id, dropped: 0, clutter: current.aiRefinement?.clutter ?? [] };
+    }
+
+    const existingDeterministic = await this.loadReadingSidecar(book.id, 'deterministic');
+    if (!existingDeterministic) {
+      await writeBookDeterministicReadingJson(book.id, current).catch(() => undefined);
+      if (this.bookStorage.putJson) {
+        await this.bookStorage
+          .putJson(readingDeterministicJsonKey(book.id), current)
+          .catch(() => undefined);
+      }
+    }
+
+    const beforeCount = current.chunks.length;
+    const nextChunks = current.chunks.filter((chunk) => !targets.has(chunk.id));
+    const droppedNow = beforeCount - nextChunks.length;
+    const nextClutter = (current.aiRefinement?.clutter ?? []).map((item) =>
+      targets.has(item.id) ? { ...item, action: 'dropped' as const } : item,
+    );
+
+    const updated: BookReadingDocument = {
+      ...current,
+      refinedByAi: true,
+      aiRefinement: {
+        applied: true,
+        model: current.aiRefinement?.model,
+        reclassified: current.aiRefinement?.reclassified ?? 0,
+        merged: current.aiRefinement?.merged ?? 0,
+        dropped: (current.aiRefinement?.dropped ?? 0) + droppedNow,
+        clutter: nextClutter,
+      },
+      chunks: nextChunks,
+    };
+
+    await writeBookReadingJson(book.id, updated).catch(() => undefined);
+    if (this.bookStorage.putJson) {
+      await this.bookStorage.putJson(readingJsonKey(book.id), updated).catch(() => undefined);
+    }
+
+    return { bookId: book.id, dropped: droppedNow, clutter: nextClutter };
+  }
+
   private async loadReadingSidecar(
     bookId: number,
     kind: 'deterministic' | 'current',

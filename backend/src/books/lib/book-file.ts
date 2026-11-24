@@ -1,5 +1,6 @@
-import { HttpException, HttpStatus } from '@nestjs/common';
-import { unlink } from 'node:fs/promises';
+import { ConflictException, HttpException, HttpStatus } from '@nestjs/common';
+import { createHash } from 'node:crypto';
+import { readFile, unlink } from 'node:fs/promises';
 import type { Repository } from 'typeorm';
 import { aiColumnsFor, analyzeReadingDocument } from '../ai/ai-analysis.service.js';
 import { refineReadingDocument } from '../ai/ai-refiner.service.js';
@@ -55,6 +56,9 @@ export async function attachBookFile(
     throw error;
   });
 
+  const fileHash = await hashFileSha256(file.path);
+  await assertNoDuplicateUpload(booksRepository, book, file, fileHash);
+
   // Extract `reading.json` while `file.path` is still on local disk (in S3
   // mode `bookStorage.persist` deletes the multer temp file after upload).
   const deterministicDoc = await extractReadingFromPdf(book.id, file.path).catch(
@@ -79,6 +83,7 @@ export async function attachBookFile(
   book.filePath = ref;
   book.originalName = file.originalname;
   book.fileSize = String(file.size);
+  book.fileHash = fileHash;
   book.filePages = verdict.pageCount;
   book.mimeType = file.mimetype;
   Object.assign(book, aiColumns);
@@ -110,6 +115,42 @@ export async function attachBookFile(
   }
 
   return book;
+}
+
+async function hashFileSha256(filePath: string): Promise<string> {
+  const bytes = await readFile(filePath);
+  return createHash('sha256').update(bytes).digest('hex');
+}
+
+async function assertNoDuplicateUpload(
+  booksRepository: Repository<Book>,
+  book: Book,
+  file: UploadedPdf,
+  fileHash: string,
+): Promise<void> {
+  if (typeof booksRepository.find !== 'function') {
+    return;
+  }
+
+  const existing = await booksRepository.find({ where: { ownerId: book.ownerId } });
+  if (!Array.isArray(existing)) {
+    return;
+  }
+  const incomingName = file.originalname.trim().toLowerCase();
+
+  for (const row of existing) {
+    if (row.id === book.id) continue;
+    if (row.fileHash && row.fileHash === fileHash) {
+      await unlink(file.path).catch(() => undefined);
+      throw new ConflictException('Este PDF ya fue subido anteriormente (archivo duplicado).');
+    }
+    if (incomingName && row.originalName && row.originalName.trim().toLowerCase() === incomingName) {
+      await unlink(file.path).catch(() => undefined);
+      throw new ConflictException(
+        'Ya subiste otro PDF con el mismo nombre de archivo. Renombralo o editá el libro existente.',
+      );
+    }
+  }
 }
 
 /**

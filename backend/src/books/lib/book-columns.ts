@@ -1,3 +1,4 @@
+import { ConflictException } from '@nestjs/common';
 import type { Repository } from 'typeorm';
 import { ensureUserExists, type SessionUserIdentity } from '../../users/ensure-user-exists.js';
 import type { User } from '../../users/entities/user.entity.js';
@@ -22,6 +23,22 @@ export async function createBookRow(
   owner: SessionUserIdentity,
 ): Promise<Book> {
   await ensureUserExists(usersRepository, owner);
+
+  if (typeof booksRepository.find === 'function') {
+    const existing = await booksRepository.find({ where: { ownerId: owner.id } });
+    if (Array.isArray(existing)) {
+      const normTitle = dto.title.trim().toLowerCase();
+      const normAuthor = dto.author.trim().toLowerCase();
+      const duplicate = existing.some(
+        (row) =>
+          row.title.trim().toLowerCase() === normTitle &&
+          row.author.trim().toLowerCase() === normAuthor,
+      );
+      if (duplicate) {
+        throw new ConflictException('Ya tenés un libro cargado con el mismo título y autor.');
+      }
+    }
+  }
 
   const book = booksRepository.create(dto);
   book.ownerId = owner.id;

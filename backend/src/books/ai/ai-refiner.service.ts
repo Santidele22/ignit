@@ -1,22 +1,21 @@
 import type { BookReadingDocument } from '../reading/reading.types.js';
 import {
-  AI_REQUEST_TIMEOUT_MS,
   chatCompletionsUrl,
   llmEndpoint,
 } from './ai-analysis.config.js';
 import type { AiAnalysisOptions } from './ai-analysis.service.js';
 import { applyRefinementPatches, parseRefinerPatches } from './ai-refiner.parser.js';
-import { refinerMessages, selectRefinerCandidates } from './ai-refiner.prompt.js';
-import type { RefinementResult } from './ai-refiner.types.js';
+import { refinerMessages, selectRefinerCandidateBatches } from './ai-refiner.prompt.js';
+import type { RefinerPatch, RefinementResult } from './ai-refiner.types.js';
+
+/** Refiner calls output structured patch lists and need more headroom than 10s. */
+const REFINER_TIMEOUT_MS = 25_000;
 
 /**
  * Optional LLM structural refiner for `reading.json`: keeps Ignit's unified
- * Vigilia aesthetic and the deterministic extraction as the base, and asks the
- * configured OpenAI-compatible model for `chunk.id` patches to fix misclassified
- * `toc`, `heading` levels, broken cross-page paragraphs and residual noise.
- *
- * Strictly fail-open: missing env, empty candidates, network errors, timeouts
- * or invalid JSON return the original deterministic `document` untouched.
+ * Vigilia aesthetic and the deterministic extraction as the base, and processes
+ * up to 5 batches of candidate chunks (`toc`, headings, cross-page splits,
+ * converter/OCR clutter) fail-open.
  */
 export async function refineReadingDocument(
   document: BookReadingDocument,
@@ -32,8 +31,8 @@ export async function refineReadingDocument(
     return skipped;
   }
 
-  const candidates = selectRefinerCandidates(document);
-  if (candidates.length === 0) {
+  const batches = selectRefinerCandidateBatches(document);
+  if (batches.length === 0) {
     return skipped;
   }
 
@@ -42,28 +41,36 @@ export async function refineReadingDocument(
     return skipped;
   }
 
-  try {
-    const response = await fetchImpl(chatCompletionsUrl(endpoint.baseUrl), {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        authorization: `Bearer ${endpoint.apiKey}`,
-      },
-      body: JSON.stringify({
-        model: endpoint.model,
-        messages: refinerMessages(candidates),
-        temperature: 0.1,
-      }),
-      signal: AbortSignal.timeout(options.timeoutMs ?? AI_REQUEST_TIMEOUT_MS),
-    });
+  const allPatches: RefinerPatch[] = [];
+  for (const batch of batches) {
+    try {
+      const response = await fetchImpl(chatCompletionsUrl(endpoint.baseUrl), {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          authorization: `Bearer ${endpoint.apiKey}`,
+        },
+        body: JSON.stringify({
+          model: endpoint.model,
+          messages: refinerMessages(batch),
+          temperature: 0.1,
+        }),
+        signal: AbortSignal.timeout(options.timeoutMs ?? REFINER_TIMEOUT_MS),
+      });
 
-    if (!response.ok) {
-      return skipped;
+      if (!response.ok) {
+        continue;
+      }
+
+      allPatches.push(...parseRefinerPatches(await response.json()));
+    } catch {
+      continue;
     }
+  }
 
-    const patches = parseRefinerPatches(await response.json());
-    return applyRefinementPatches(document, patches, endpoint.model);
-  } catch {
+  if (allPatches.length === 0) {
     return skipped;
   }
+
+  return applyRefinementPatches(document, allPatches, endpoint.model);
 }

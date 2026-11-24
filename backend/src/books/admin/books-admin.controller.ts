@@ -108,4 +108,35 @@ export class BooksAdminController {
   revertRefinement(@Param('id', ParseIntPipe) id: number) {
     return this.booksAdminService.revertReadingRefinement(id);
   }
+
+  @Get(':id/clutter')
+  @ApiOperation({
+    summary: 'List AI-detected clutter (dropped and recommended) for a book (admin only)',
+    description:
+      'Returns the list of artifacts the LLM dropped automatically (e.g. `ePUB v2.1`, page numbers) and items it recommends dropping for human review.',
+  })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiOkResponse({ description: 'Clutter list for the book' })
+  @ApiNotFoundResponse({ description: 'Book not found or no extracted reading.json' })
+  clutter(@Param('id', ParseIntPipe) id: number) {
+    return this.booksAdminService.readingClutter(id);
+  }
+
+  @Post(':id/clutter/drop')
+  @ApiOperation({
+    summary: 'Confirm dropping recommended clutter chunks from reading.json (admin only)',
+    description: 'Removes the specified chunk IDs from `reading.json` while keeping `reading.deterministic.json` intact.',
+  })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiCreatedResponse({ description: 'Updated clutter list and dropped count' })
+  @ApiNotFoundResponse({ description: 'Book not found or no extracted reading.json' })
+  dropClutter(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { chunkIds?: string[] },
+  ) {
+    return this.booksAdminService.dropReadingClutter(
+      id,
+      Array.isArray(body?.chunkIds) ? body.chunkIds : [],
+    );
+  }
 }

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { BookReadingDocument, ReadingChunk } from '../reading/reading.types.js';
 import { applyRefinementPatches, parseRefinerPatches } from './ai-refiner.parser.js';
-import { selectRefinerCandidates } from './ai-refiner.prompt.js';
+import { selectRefinerCandidateBatches } from './ai-refiner.prompt.js';
 import { refineReadingDocument } from './ai-refiner.service.js';
 
 function makeChunk(overrides: Partial<ReadingChunk> & { id: string }): ReadingChunk {
@@ -93,6 +93,15 @@ describe('applyRefinementPatches', () => {
       reclassified: 2,
       merged: 1,
       dropped: 1,
+      clutter: [
+        {
+          id: 'c5',
+          page: 3,
+          text: 'Página 3',
+          reason: 'Ruido de maquetación o conversión',
+          action: 'dropped',
+        },
+      ],
     });
     expect(refined.refinedByAi).toBe(true);
     expect(refined.chunks.map((c) => c.id)).toEqual(['c1', 'c2', 'c3']);
@@ -126,6 +135,48 @@ describe('applyRefinementPatches', () => {
     expect(summary.dropped).toBe(1);
     expect(refined.chunks.some((c) => c.id === 'c1')).toBe(true);
   });
+
+  it('drops conversion clutter like ePUB v2.1 and records recommend_drop items without deleting them', () => {
+    const doc = makeDoc([
+      makeChunk({ id: 'c1', page: 1, text: '陰翳礼讃' }),
+      makeChunk({ id: 'c2', page: 1, text: 'ePUB v2.1' }),
+      makeChunk({ id: 'c3', page: 2, text: 'El elogio de la sombra comienza en la penumbra.' }),
+    ]);
+
+    const patches = parseRefinerPatches({
+      choices: [
+        {
+          message: {
+            content: JSON.stringify({
+              patches: [
+                { op: 'recommend_drop', id: 'c1', reason: 'Título suelto en idioma original' },
+                { op: 'drop', id: 'c2', reason: 'Etiqueta de conversión ePUB' },
+              ],
+            }),
+          },
+        },
+      ],
+    });
+
+    const { document: refined, summary } = applyRefinementPatches(doc, patches, 'deepseek-v4-flash');
+    expect(refined.chunks.map((c) => c.id)).toEqual(['c1', 'c3']);
+    expect(summary.clutter).toEqual([
+      {
+        id: 'c1',
+        page: 1,
+        text: '陰翳礼讃',
+        reason: 'Título suelto en idioma original',
+        action: 'recommended',
+      },
+      {
+        id: 'c2',
+        page: 1,
+        text: 'ePUB v2.1',
+        reason: 'Etiqueta de conversión ePUB',
+        action: 'dropped',
+      },
+    ]);
+  });
 });
 
 describe('selectRefinerCandidates & refineReadingDocument', () => {
@@ -157,7 +208,7 @@ describe('selectRefinerCandidates & refineReadingDocument', () => {
       }),
     );
 
-    const candidates = selectRefinerCandidates(makeDoc(chunks));
+    const candidates = selectRefinerCandidateBatches(makeDoc(chunks)).flat();
     const ids = candidates.map((c) => c.id);
     expect(ids).toContain('split-a');
     expect(ids).toContain('split-b');

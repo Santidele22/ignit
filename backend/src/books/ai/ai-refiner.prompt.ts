@@ -3,48 +3,45 @@ import type { ChatMessage } from './ai-analysis.prompt.js';
 
 const FRONT_MATTER_LIMIT = 40;
 const CHUNK_PREVIEW_LIMIT = 240;
-const REFINER_CHAR_BUDGET = 18_000;
+const REFINER_CHAR_BUDGET = 10_000;
 
 const SENTENCE_END_RE = /[.!?…"»)\]]\s*$/;
 
 export const REFINER_SYSTEM_PROMPT = [
   'Sos el diagramador editorial de Ignit (lector Vigilia).',
-  'Recibís chunks extraídos de un PDF por un algoritmo determinista. Todos los libros comparten la estética de Vigilia, pero a veces el algoritmo clasifica mal el índice (toc), títulos (heading + level 1|2|3), dedicatorias (dedication), citas (quote), código (code), epígrafes (caption), deja párrafos cortados entre páginas o cuela encabezados repetidos.',
+  'Recibís chunks extraídos de un PDF por un algoritmo determinista. Todos los libros comparten la estética de Vigilia, pero a veces el algoritmo clasifica mal el índice (toc), títulos (heading + level 1|2|3), dedicatorias (dedication), citas (quote), código (code), epígrafes (caption), deja párrafos cortados entre páginas o cuela suciedad (artefactos de conversión, banners de descarga, encabezados repetidos, metadatos sueltos).',
   'Reglas estrictas:',
   '- NUNCA reescribas ni inventes texto: solo emití parches por `id`.',
   '- `reclassify`: cambiá `type` (`para` | `heading` | `toc` | `quote` | `dedication` | `list` | `code` | `caption` | `verse` | `meta`), opcionalmente `level` (1|2|3 para `heading`) y `align` (`left`|`center`|`right`).',
   '- `merge`: uní el chunk `id` con el siguiente si el primero quedó cortado a mitad de oración por salto de página.',
-  '- `drop`: descartá un chunk SOLO si es ruido repetido de encabezado/pie de página o número de página suelto.',
+  '- `drop`: descartá directamente con `reason` breve en español SOLO cuando es suciedad evidente: etiquetas de conversión/versión (`ePUB v2.1`, `Calibre`, `Converted by...`), banners o marcas de sitios de descarga (`Le Libros`, `Descargar Libros Gratis`, `Lectulandia`, `epublibre`, `z-lib`), tags rotos tipo `Imagen svg: ...`, números de página sueltos o encabezados/pies de página repetidos.',
+  '- `recommend_drop`: recomendá descartar con `reason` breve en español cuando es contenido extra dudoso que no borrás automáticamente pero conviene que revise el editor (ej: título suelto en idioma original como `陰翳礼讃` en un libro traducido, avisos de ISBN/copyright, colofones o créditos de edición).',
   '- Si un chunk ya está bien clasificado, NO emitas parche para ese `id`.',
   'Respondé SOLO con JSON válido, sin markdown ni comentarios:',
-  '{"patches":[{"op":"reclassify","id":"...","type":"heading","level":1},{"op":"merge","id":"..."},{"op":"drop","id":"..."}]}',
+  '{"patches":[{"op":"reclassify","id":"...","type":"heading","level":1},{"op":"merge","id":"..."},{"op":"drop","id":"...","reason":"Banner de sitio de descarga"},{"op":"recommend_drop","id":"...","reason":"Título suelto en idioma original"}]}',
 ].join('\n');
 
 /**
- * Selects structurally interesting chunks (front matter + short/ambiguous
- * blocks + page-boundary splits) up to `REFINER_CHAR_BUDGET` characters so the
- * LLM does not waste tokens on long clean narrative paragraphs.
+ * Splits structurally interesting chunks (front matter + short/ambiguous
+ * blocks + page-boundary splits) into batches of up to `REFINER_CHAR_BUDGET`
+ * characters (capped at `maxBatches`) so multi-chapter books are covered
+ * beyond the first 18k characters.
  */
-export function selectRefinerCandidates(document: BookReadingDocument): ReadingChunk[] {
+export function selectRefinerCandidateBatches(
+  document: BookReadingDocument,
+  maxBatches = 5,
+): ReadingChunk[][] {
   const chunks = document.chunks;
   if (chunks.length === 0) {
     return [];
   }
 
-  const selected: ReadingChunk[] = [];
+  const candidates: ReadingChunk[] = [];
   const seen = new Set<string>();
-  let totalChars = 0;
-
-  const tryPush = (chunk: ReadingChunk): boolean => {
-    if (seen.has(chunk.id)) return true;
-    const lineLen = formatChunkLine(chunk).length + 1;
-    if (totalChars + lineLen > REFINER_CHAR_BUDGET) {
-      return false;
-    }
+  const pushCandidate = (chunk: ReadingChunk) => {
+    if (seen.has(chunk.id)) return;
     seen.add(chunk.id);
-    selected.push(chunk);
-    totalChars += lineLen;
-    return true;
+    candidates.push(chunk);
   };
 
   for (let i = 0; i < chunks.length; i += 1) {
@@ -60,14 +57,40 @@ export function selectRefinerCandidates(document: BookReadingDocument): ReadingC
       !SENTENCE_END_RE.test(chunk.text);
 
     if (isFrontMatter || isAmbiguousShort || isSpecialType || isBrokenPageSplit) {
-      if (!tryPush(chunk)) break;
+      pushCandidate(chunk);
       if (isBrokenPageSplit && next) {
-        if (!tryPush(next)) break;
+        pushCandidate(next);
       }
     }
   }
 
-  return selected;
+  if (candidates.length === 0) return [];
+
+  const batches: ReadingChunk[][] = [];
+  let current: ReadingChunk[] = [];
+  let currentChars = 0;
+
+  for (const chunk of candidates) {
+    const lineLen = formatChunkLine(chunk).length + 1;
+    if (current.length > 0 && currentChars + lineLen > REFINER_CHAR_BUDGET) {
+      batches.push(current);
+      if (batches.length >= maxBatches) break;
+      current = [];
+      currentChars = 0;
+    }
+    current.push(chunk);
+    currentChars += lineLen;
+  }
+
+  if (current.length > 0 && batches.length < maxBatches) {
+    batches.push(current);
+  }
+
+  return batches;
+}
+
+export function selectRefinerCandidates(document: BookReadingDocument): ReadingChunk[] {
+  return selectRefinerCandidateBatches(document, 1)[0] ?? [];
 }
 
 export function formatChunkLine(chunk: ReadingChunk): string {

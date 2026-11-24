@@ -64,3 +64,50 @@ export type StyleReference = {
 export function fetchStyleReference(): Promise<StyleReference> {
 	return getJson<StyleReference>('/admin/ai/style-reference');
 }
+
+export type ClutterItem = {
+	id: string;
+	page: number;
+	text: string;
+	reason: string;
+	action: 'dropped' | 'recommended';
+};
+
+export type BookClutterResponse = {
+	bookId: number;
+	refinedByAi: boolean;
+	clutter: ClutterItem[];
+};
+
+export type RefineSummaryResponse = {
+	bookId: number;
+	applied: boolean;
+	model?: string;
+	reclassified: number;
+	merged: number;
+	dropped: number;
+	clutter?: ClutterItem[];
+};
+
+/** `GET /admin/books/:id/clutter` — AI-detected clutter list for one book. */
+export function fetchBookClutter(id: number): Promise<BookClutterResponse> {
+	return getJson<BookClutterResponse>(`/admin/books/${id}/clutter`);
+}
+
+/** `POST /admin/books/:id/clutter/drop` — drops recommended clutter chunks. */
+export function dropBookClutter(
+	id: number,
+	chunkIds: string[],
+): Promise<{ bookId: number; dropped: number; clutter: ClutterItem[] }> {
+	return postJsonReturning(`/admin/books/${id}/clutter/drop`, { chunkIds });
+}
+
+/** `POST /admin/books/:id/refine` — re-runs LLM structural refiner. */
+export function rerunBookRefinement(id: number): Promise<RefineSummaryResponse> {
+	return postJsonReturning(`/admin/books/${id}/refine`, {});
+}
+
+/** `POST /admin/books/:id/refine/revert` — restores deterministic baseline. */
+export function revertBookRefinement(id: number): Promise<{ bookId: number; reverted: boolean }> {
+	return postJsonReturning(`/admin/books/${id}/refine/revert`, {});
+}

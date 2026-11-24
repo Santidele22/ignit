@@ -28,6 +28,8 @@ const FOCUSABLE = 'button, input, select, textarea, a[href]';
 export default function UploadBookModal(props: UploadBookModalProps) {
 	const [title, setTitle] = createSignal('');
 	const [author, setAuthor] = createSignal('');
+	const [titleManual, setTitleManual] = createSignal(false);
+	const [authorManual, setAuthorManual] = createSignal(false);
 	const [kind, setKind] = createSignal<BookKind>('no_tecnico');
 	const [description, setDescription] = createSignal('');
 	const [published, setPublished] = createSignal(false);
@@ -45,6 +47,8 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 	function resetForm() {
 		setTitle('');
 		setAuthor('');
+		setTitleManual(false);
+		setAuthorManual(false);
 		setKind('no_tecnico');
 		setDescription('');
 		setPublished(false);
@@ -75,11 +79,12 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 		setFile(next);
 		setError(null);
 
-		// Prefill from the filename (e.g. `Título – Autor.pdf`), but only the
-		// fields the user has not typed into yet — never overwrites manual input.
+		// Prefill from the filename (e.g. `Título – Autor.pdf`) in real time
+		// whenever the user changes the selected PDF, without overwriting fields
+		// the user edited manually.
 		const hints = pdfNameHints(next.name);
-		if (hints.title && !title().trim()) setTitle(hints.title);
-		if (hints.author && !author().trim()) setAuthor(hints.author);
+		if (!titleManual()) setTitle(hints.title ?? '');
+		if (!authorManual()) setAuthor(hints.author ?? '');
 	}
 
 	async function handleSubmit(event: SubmitEvent) {
@@ -269,7 +274,11 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 								placeholder="Ej. Ficciones"
 								value={title()}
 								disabled={submitting()}
-								onInput={(event) => setTitle(event.currentTarget.value)}
+								onInput={(event) => {
+									const next = event.currentTarget.value;
+									setTitleManual(next.trim().length > 0);
+									setTitle(next);
+								}}
 							/>
 						</div>
 
@@ -283,7 +292,11 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 									placeholder="Jorge Luis Borges"
 									value={author()}
 									disabled={submitting()}
-									onInput={(event) => setAuthor(event.currentTarget.value)}
+									onInput={(event) => {
+										const next = event.currentTarget.value;
+										setAuthorManual(next.trim().length > 0);
+										setAuthor(next);
+									}}
 								/>
 							</div>
 							<div class="field">
