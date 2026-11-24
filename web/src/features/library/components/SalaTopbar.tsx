@@ -18,7 +18,8 @@ import { SALA_TABS, nextSalaTabId, type SalaTabId } from '../lib/sala';
  *   the authenticated `.user-pill`.
  * - `<= 768px`: the same `role="tablist"` becomes the fixed PWA bottom tab bar
  *   (icons + short labels + count badges), while `.top-inner` collapses to a
- *   ~56px single row with `熒 Ignit`, a compact `+ Subir` and the `☰` toggle
+ *   ~56px single row with `熒 Ignit`, a compact `+ Subir` and the account-avatar
+ *   toggle
  *   that opens `#sala-mobile-menu` (network toggle, palette, user + `Salir`).
  *
  * The tablist is rendered exactly once, so `id="tab-*"` stays unique and the
@@ -271,11 +272,15 @@ export default function SalaTopbar(props: SalaTopbarProps) {
 						class="mobile-menu-toggle"
 						type="button"
 						aria-expanded={menuOpen()}
+						aria-haspopup="dialog"
 						aria-controls="sala-mobile-menu"
-						aria-label="Menú de sala"
+						aria-label={`Cuenta y ajustes de ${props.userLabel}`}
+						title="Cuenta y ajustes"
 						onClick={() => toggleMenu()}
 					>
-						<span aria-hidden="true">{menuOpen() ? '✕' : '☰'}</span>
+						<span class="avatar-initial" aria-hidden="true">
+							{avatarInitial()}
+						</span>
 					</button>
 				</div>
 			</div>

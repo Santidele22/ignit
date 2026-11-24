@@ -1684,24 +1684,29 @@ body.biblioteca-body .cov-svg-label {
 		height: 44px;
 		min-height: 44px;
 		padding: 0;
-		background: var(--b-panel);
-		border: 1px solid var(--b-border-strong);
-		color: var(--b-fg);
-		font-family: var(--b-mono);
-		font-size: 17px;
+		background: var(--b-accent);
+		border: 1px solid var(--b-accent-bright);
+		border-radius: 0;
+		color: var(--b-accent-fg);
+		font-family: var(--b-serif);
+		font-size: 15px;
+		font-weight: 700;
 		line-height: 1;
 	}
 
-	body.biblioteca-body .mobile-menu-toggle[aria-expanded="true"] {
-		background: rgb(var(--b-accent-rgb) / 0.14);
-		border-color: var(--b-accent-bright);
-		color: var(--b-accent-bright);
+	body.biblioteca-body .mobile-menu-toggle .avatar-initial {
+		display: block;
 	}
 
-	/* Panel drops from the sticky header, so it never covers the bottom bar. */
+	body.biblioteca-body .mobile-menu-toggle[aria-expanded="true"] {
+		outline: 2px solid var(--b-accent-bright);
+		outline-offset: 1px;
+	}
+
+	/* Account popover anchored under the avatar (no hamburger). */
 	body.biblioteca-body .mobile-menu {
 		position: absolute;
-		top: 100%;
+		top: calc(100% + 6px);
 		left: max(12px, env(safe-area-inset-left));
 		right: max(12px, env(safe-area-inset-right));
 		z-index: 25;
