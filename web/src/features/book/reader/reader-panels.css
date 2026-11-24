@@ -56,14 +56,16 @@
 
 /* Popover compacto de lectura: tamaño, tipografía, alineación y foco */
 .view-deck {
-	position:fixed; z-index:36; bottom:100px; right:26px; width:min(312px, calc(100vw - 32px));
+	position:fixed; z-index:36; right:26px; width:min(312px, calc(100vw - 32px));
+	/* Clears the fixed bottom bar *and* the iOS home indicator (S4). */
+	bottom:calc(100px + env(safe-area-inset-bottom));
 	border:1px solid var(--w-border); background:var(--w-panel);
 	box-shadow:0 24px 60px -20px rgba(0,0,0,.95);
 	padding:16px 18px;
 	opacity:0; transform:translateY(8px); pointer-events:none;
 	transition:opacity .25s ease, transform .25s ease;
 }
-@media (max-width: 760px) { .view-deck { bottom:108px; right:16px; } }
+@media (max-width: 760px) { .view-deck { bottom:calc(108px + env(safe-area-inset-bottom)); right:16px; } }
 .view-deck.open { opacity:1; transform:none; pointer-events:auto; }
 .view-deck .vd-head {
 	display:flex; align-items:center; justify-content:space-between;
@@ -185,7 +187,8 @@
 .chapter-nav button[aria-expanded="true"] { color:var(--aka); }
 
 .chapter-deck {
-	position:fixed; z-index:36; bottom:100px; right:26px;
+	position:fixed; z-index:36; right:26px;
+	bottom:calc(100px + env(safe-area-inset-bottom));
 	width:min(352px, calc(100vw - 32px));
 	border:1px solid var(--w-border); background:var(--w-panel);
 	box-shadow:0 24px 60px -20px rgba(0,0,0,.95);
@@ -194,7 +197,7 @@
 	transition:opacity .25s ease, transform .25s ease;
 }
 @media (max-width: 760px) {
-	.chapter-deck { bottom:108px; right:16px; }
+	.chapter-deck { bottom:calc(108px + env(safe-area-inset-bottom)); right:16px; }
 }
 .chapter-deck.open { opacity:1; transform:none; pointer-events:auto; }
 .deck-head {
@@ -211,7 +214,9 @@
 .deck-head button:hover { color:var(--w-foreground); }
 
 .chapter-list {
+	/* `dvh` follows the collapsing mobile browser chrome; `vh` stays as fallback. */
 	max-height:min(48vh, 340px); overflow-y:auto;
+	max-height:min(48dvh, 340px);
 	display:flex; flex-direction:column; gap:4px;
 	scrollbar-width:thin;
 }
@@ -250,6 +255,16 @@
 	.bottombar-right { gap:6px; }
 	.chapter-nav button.chap-step { width:26px; }
 	.chapter-nav button.chap-open { padding:0 9px; }
+}
+
+/* ≥44px hit targets for the selection pill and the chapter nav on phones and
+   touch screens (S4). `placeSelbarAtRect()` clamps the pill inside the
+   viewport, so the wider pill never overflows a 360px screen. */
+@media (max-width: 720px), (pointer: coarse) {
+	.selbar .ink { width:44px; height:44px; }
+	.selbar .kwbtn, .selbar .delbtn { height:44px; min-height:44px; padding:0 14px; }
+	.chapter-nav button { height:44px; }
+	.chapter-nav button.chap-step { width:44px; }
 }
 @media (prefers-reduced-motion: reduce) {
 	.chapter-deck { transition:none; }

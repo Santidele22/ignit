@@ -85,6 +85,17 @@ export async function fetchBooks(serverOrigin?: string): Promise<Book[] | null> 
 	}
 }
 
+export async function fetchMyBooksServer(
+	optionsOrOrigin?: string | RequestOptions,
+): Promise<Book[] | null> {
+	try {
+		const rows = await getJson<ApiBook[]>('/books?mine=true', toRequestOptions(optionsOrOrigin));
+		return rows.map((row) => ({ ...mapBook(row), isOwner: true }));
+	} catch {
+		return null;
+	}
+}
+
 export async function fetchBooksPage(
 	serverOrigin: string | undefined,
 	offset: number | undefined,

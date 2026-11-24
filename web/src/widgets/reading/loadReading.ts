@@ -4,7 +4,7 @@ import {
 	findSavedProgressItemIndex,
 	prepareBookDisplayItems,
 } from '../../features/book/lib/reader';
-import { fetchBookClientReading } from '../../features/book/api/books';
+import { resolveReadingDocument } from './loadReadingFallback';
 import { renderChapterList, setCurrentItemIndex } from './chapterNav';
 import { BATCH_SIZE, getDisplayItems, getTotalParas, setChapters, setDisplayItems, setTotalParas } from './doc';
 import { body, progTotalPages, readerArticle } from './dom';
@@ -99,7 +99,8 @@ function renderReadingError(message: string) {
 async function loadReadingDocument() {
 	if (!hasBook || !readerArticle) return;
 	try {
-		const reading = await fetchBookClientReading(bookId, canSync);
+		const { reading, source } = await resolveReadingDocument(bookId, canSync);
+		body.dataset.readingSource = source;
 		setPdfPages(Math.max(1, reading.pdfPages || 1));
 		body.dataset.pdfPages = String(getPdfPages());
 		body.dataset.readingLoaded = '1';

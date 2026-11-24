@@ -2,10 +2,16 @@
 .stage {
 	position:fixed; inset:0; overflow-y:auto; scrollbar-width:none;
 	display:flex; align-items:flex-start; justify-content:center;
-	padding:21vh 8vw 54vh;
+	/* Horizontal/bottom safe insets only widen the gutters on notched devices
+	   (`env()` resolves to 0 on desktop, so the rhythm there is untouched). */
+	padding:21vh max(8vw, env(safe-area-inset-right)) calc(54vh + env(safe-area-inset-bottom))
+		max(8vw, env(safe-area-inset-left));
 }
 @media (max-width: 680px) {
-	.stage { padding:19vh 6vw 52vh; }
+	.stage {
+		padding:19vh max(6vw, env(safe-area-inset-right)) calc(52vh + env(safe-area-inset-bottom))
+			max(6vw, env(safe-area-inset-left));
+	}
 }
 .stage::-webkit-scrollbar { display:none; }
 .text { width:min(740px, 84vw); }

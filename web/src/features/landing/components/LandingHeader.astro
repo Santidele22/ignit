@@ -1,8 +1,18 @@
 ---
 /**
- * Header fijo con vidrio de la landing (S2): sello hanko `熒`, anclas de las
+ * Header fijo con vidrio de la landing (S2/S3): sello hanko `熒`, anclas de las
  * seis estaciones, selector de paleta y controles que dependen de la sesión
  * (Mi biblioteca + salir cuando hay sesión, Entrar + Instalar app cuando no).
+ *
+ * Un solo `<nav id="landing-mobile-nav">` sirve a los dos breakpoints:
+ *
+ * - `> 860px`: es la fila de anclas del header de vidrio, tal cual el artboard.
+ * - `<= 860px`: el mismo `<nav>` se convierte en el panel desplegable de vidrio
+ *   bajo la barra compacta (marca + CTA de sesión + `☰`), así que no hay IDs
+ *   duplicados, ni islas Solid duplicadas, ni un segundo juego de anclas.
+ *
+ * `initLanding.ts` (módulo empaquetado) sólo alterna `data-open` en el `<nav>` y
+ * `aria-expanded` en el botón: sin `<script>` inline, la CSP no cambia.
  *
  * Todo el estilo vive en `landing.css` (`header.marcas`), que se apoya en los
  * tokens semánticos `--l-*` para reproducir el artboard en `noche-azul` y
@@ -22,7 +32,7 @@ const userLabel = session.authenticated ? session.user.name || session.user.emai
 
 <header class="marcas" aria-label="Principal">
 	<a class="marca-brand" href="#s1"><span class="sello" aria-hidden="true">熒</span>Ignit</a>
-	<nav class="nav-links" aria-label="Secciones de la landing">
+	<nav class="nav-links" id="landing-mobile-nav" aria-label="Secciones de la landing" data-open="false">
 		<a href="#s2">Catálogo</a>
 		<a href="#s3">Publicar</a>
 		<a href="#s4">Vigilia</a>
@@ -44,4 +54,27 @@ const userLabel = session.authenticated ? session.user.name || session.user.emai
 			)
 		}
 	</nav>
+	<div class="marcas-mobile-actions">
+		{
+			session.authenticated ? (
+				<a class="marca-cta" href="/biblioteca">
+					Mi biblioteca
+				</a>
+			) : (
+				<a class="marca-cta" href="/login">
+					Entrar
+				</a>
+			)
+		}
+		<button
+			class="marca-menu-toggle"
+			id="landing-menu-toggle"
+			type="button"
+			aria-expanded="false"
+			aria-controls="landing-mobile-nav"
+			aria-label="Menú de navegación"
+		>
+			<span aria-hidden="true">☰</span>
+		</button>
+	</div>
 </header>

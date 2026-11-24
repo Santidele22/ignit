@@ -10,7 +10,11 @@ import ThemeScript from '../shared/ui/ThemeScript.astro';
 <html lang="es">
 	<head>
 		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+		{/* PWA shell metadata (S5): no manifest/Service Worker in this branch. */}
+		<meta name="theme-color" content="#04050a" />
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<link rel="icon" href="/favicon.ico" />
 		<meta name="generator" content={Astro.generator} />
@@ -20,9 +24,19 @@ import ThemeScript from '../shared/ui/ThemeScript.astro';
 		<Font cssVariable="--font-zen" preload />
 		<Font cssVariable="--font-geist-mono" />
 		<ThemeScript />
+		<style>
+			/* Safe-area gutters (S5): the card never sits under a notch, the status bar
+			   or the iOS home indicator when the app runs standalone. */
+			main.auth-shell {
+				padding-left: max(1rem, env(safe-area-inset-left));
+				padding-right: max(1rem, env(safe-area-inset-right));
+				padding-top: max(3rem, env(safe-area-inset-top));
+				padding-bottom: max(3rem, env(safe-area-inset-bottom));
+			}
+		</style>
 	</head>
 	<body class="bg-background font-sans text-foreground antialiased">
-		<main class="flex min-h-dvh items-center justify-center px-4 py-12">
+		<main class="auth-shell flex min-h-dvh items-center justify-center">
 			<div class="w-full max-w-sm">
 				<a href="/" class="flex items-center justify-center gap-2.5">
 					<span class="hanko size-8 rounded-[5px] font-mono text-[11px]" aria-hidden="true">IG</span>
