@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ignit — Design System</title>
+<style>
+  :root{
+    --background:#f4efe4; --foreground:#23201a; --card:#fbf8f0;
+    --secondary:#ece5d4; --muted:#ebe4d2; --muted-foreground:#6f6657;
+    --accent:#e9e1cd; --destructive:#a6362f; --border:#ddd2bc;
+    --aka:#c73e3a; --aka-deep:#a02f2b; --ink-soft:#57503f;
+    --d-background:#14110d; --d-foreground:#eae3d3; --d-card:#1c1812;
+    --d-secondary:#241f17; --d-muted:#231e16; --d-muted-foreground:#a29681;
+    --d-accent:#2a241a; --d-border:#322b20; --d-aka:#d95448;
+    --n-background:#0d0a07; --w-foreground:#ece5d5; --w-body:#d6ccb4;
+    --w-faint:#8f826b; --w-ghost:#786c57; --w-border:#352d22;
+    --bronce:#b98a44; --niebla:#8c96a0; --glow:rgba(201,62,58,.14);
+    --radius:0.375rem;
+  }
+  body{margin:0;font-family:system-ui,sans-serif;background:var(--background);color:var(--foreground);-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1240px;margin:0 auto;padding:48px 40px 96px}
+  h1{font-size:34px;margin:0 0 6px}
+  .sub{color:var(--muted-foreground);margin:0 0 40px;font-size:15px}
+  h2{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted-foreground);margin:48px 0 16px;border-bottom:1px solid var(--border);padding-bottom:10px}
+  .row{display:flex;flex-wrap:wrap;gap:14px}
+  .chip{width:150px;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border);background:var(--card)}
+  .sw{height:64px}
+  .lab{padding:8px 10px;font-size:11px;line-height:1.4;color:var(--ink-soft)}
+  .lab b{display:block;font-size:10px;font-family:ui-monospace,monospace;font-weight:500;color:var(--foreground)}
+  .scene{border-radius:calc(var(--radius) + 4px);margin-top:6px}
+  .night{background:var(--n-background);padding:22px;display:flex;flex-wrap:wrap;gap:14px}
+  .night .chip{border-color:var(--w-border)}
+  .night .lab{color:var(--w-faint)}
+  .night .lab b{color:var(--w-body)}
+  .dark{background:var(--d-background);padding:22px;display:grid}
+  .types{display:grid;gap:18px}
+  .sans{font-family:system-ui,sans-serif}
+  .serif{font-family:Georgia,'Times New Roman',serif}
+  .mono{font-family:ui-monospace,'SF Mono',monospace;font-size:13px}
+  .comp{display:flex;flex-wrap:wrap;gap:24px;align-items:center}
+  .btn{display:inline-flex;align-items:center;padding:10px 22px;border-radius:var(--radius);font-size:14px;cursor:pointer;border:1px solid transparent}
+  .btn-primary{background:var(--foreground);color:var(--background)}
+  .btn-ink{background:transparent;color:var(--foreground);border-color:var(--border)}
+  .hanko{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;background:var(--aka);color:#fdf8ee;font-family:Georgia,serif;font-size:20px}
+  .note{font-size:12px;color:var(--muted-foreground);max-width:520px;line-height:1.55}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Ignit — Design System</h1>
+  <p class="sub">Tokens sincronizados de <code>web/src/app/styles/global.css</code> y <code>web/src/features/book/reader/reader-tokens.css</code>. Tres ambientes: papel (claro), tinta (oscuro) y noche vigilia (escena del lector).</p>
+
+  <h2>Papel — tema claro</h2>
+  <div class="row" id="papel"></div>
+
+  <h2>Tinta — tema oscuro</h2>
+  <div class="dark scene">
+    <div class="row" id="tinta"></div>
+  </div>
+
+  <h2>Noche vigilia — escena del lector</h2>
+  <div class="night scene" id="noche"></div>
+
+  <h2>Tipografía</h2>
+  <div class="types sans">
+    <div class="serif" style="font-size:30px;line-height:1.25">Mincho / serif — títulos editoriales y pasajes de lectura</div>
+    <div class="sans" style="font-size:16px">Zen Kaku / sans — interfaz general, navegación y botones</div>
+    <div class="mono">Geist Mono — datos, métricas y código</div>
+    <div style="height:6px"></div>
+    <div class="note">Feature setting «palt» activo en el cuerpo. En artboards autocontenidos: system-ui para sans, Georgia/serif para Mincho, ui-monospace para mono.</div>
+  </div>
+
+  <h2>Componentes</h2>
+  <div class="comp">
+    <button class="btn btn-primary sans">Botón primario</button>
+    <button class="btn btn-ink sans">Botón borde</button>
+    <span class="hanko serif">熒</span>
+    <div class="note">Sello Hanko en <code>--aka</code> con texto <code>#fdf8ee</code>. Selección en <code>--aka</code>, foco 2px <code>--aka</code> con offset 3px, scroll con pulgar translúcido. Grano SVG fijo a 0.045 de opacidad sobre todo el sitio.</div>
+  </div>
+</div>
+<script>
+  const papel=[
+    ['#f4efe4','--background'],['#23201a','--foreground'],['#fbf8f0','--card'],['#ece5d4','--secondary'],
+    ['#ebe4d2','--muted'],['#6f6657','--muted-foreground'],['#e9e1cd','--accent'],['#ddd2bc','--border'],
+    ['#c73e3a','--aka'],['#a02f2b','--aka-deep'],['#57503f','--ink-soft'],['#a6362f','--destructive']];
+  const tinta=[
+    ['#14110d','--background'],['#eae3d3','--foreground'],['#1c1812','--card'],['#241f17','--secondary'],
+    ['#231e16','--muted'],['#a29681','--muted-foreground'],['#2a241a','--accent'],['#322b20','--border'],
+    ['#d95448','--aka'],['#c73e3a','--aka-deep'],['#d95448','--destructive']];
+  const noche=[
+    ['#0d0a07','scene bg'],['#ece5d5','--w-foreground'],['#d6ccb4','--w-body'],['#8f826b','--w-faint'],
+    ['#786c57','--w-ghost'],['#352d22','--w-border'],['#b98a44','--bronce'],['#8c96a0','--niebla'],['#d95448','--aka']];
+  function fill(id,vals,mode){
+    document.getElementById(id).innerHTML=vals.map(([hex,tok])=>`
+      <div class="chip"><div class="sw" style="background:${tok.startsWith('scene')?'transparent':hex};${tok.startsWith('scene')?'outline:1px dashed '+hex:''}"></div>
+      <div class="lab">${tok.replace('--','')}<b>${hex.toLowerCase()}</b></div></div>`).join('');
+  }
+  fill('papel',papel);fill('tinta',tinta);fill('noche',noche);
+</script>
+</body>
+</html>

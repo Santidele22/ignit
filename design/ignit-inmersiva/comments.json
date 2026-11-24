@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "comments": [
+    {
+      "id": "ms8115fh",
+      "file": "03-la-lampara.html",
+      "selector": "#c1",
+      "excerpt": "DONDE LA LÁMPARA PASA, SE LEE Movés la luz. La biblioteca aparece. Acá no hay secciones iluminadas de antemano: el catálogo vive en la penumbra y tu lámpara lo recorre. Todo lo publicado —revisado por personas— espera bajo el haz. Explorar el catálogo",
+      "comment": "Vamos con este. pero agreguemos imagenes que convivan la landing. porque ahora hay mucho espacio libre solo hay texto",
+      "createdAt": "2026-11-23T17:40:44.286Z",
+      "status": "resolved",
+      "sentAt": "2026-11-23T17:40:44.296Z",
+      "resolvedAt": "2026-11-23T17:42:14.531Z",
+      "resolution": "Cada sección ahora alterna texto y una escena SVG inline (estantería en penumbra con lomos generados, corredor del pipeline con cuatro puertas, lámpara sobre libro abierto con polvo), en layout a dos columnas que se revela con el haz."
+    },
+    {
+      "id": "wl83bjc6",
+      "file": "03-la-lampara.html",
+      "selector": "#c2 > figure > div > svg > rect",
+      "excerpt": "",
+      "comment": "Esto no me gusta.",
+      "createdAt": "2026-11-23T17:43:01.171Z",
+      "status": "resolved",
+      "sentAt": "2026-11-23T17:43:01.179Z",
+      "resolvedAt": "2026-11-23T17:43:44.070Z",
+      "resolution": "Reemplacé el corredor en perspectiva por una escena abstracta y sobria: un lomo que avanza por cuatro estaciones de luz progresivas (standby → catálogo) sobre repisa-guía, con siluetas tenues de sus pasos anteriores."
+    },
+    {
+      "id": "vcmrpbcb",
+      "file": "03-la-lampara.html",
+      "selector": "#c2 > figure > div > svg > rect:nth-of-type(3)",
+      "excerpt": "",
+      "comment": "Diseñate un pipeline bueno, este diseño es horrible. ponele voluntad o delegaselo a un deepseek a que lo diseñe",
+      "createdAt": "2026-11-23T17:46:33.080Z",
+      "status": "resolved",
+      "sentAt": "2026-11-23T17:46:33.087Z",
+      "resolvedAt": "2026-11-23T17:49:36.960Z",
+      "resolution": "Escena del pipeline rediseñada y delegada a Antigravity: un río de tinta luminosa que serpentea desde la penumbra, se decanta y se aclara (standby → en curso), cruza un sello de revisión humana (tested) y desemboca en un libro abierto iluminado (catálogo); sin flechas, cajas ni etiquetas en fila."
+    },
+    {
+      "id": "0o7cqcxa",
+      "file": "03-la-lampara.html",
+      "selector": "#c1 > figure > div > svg > rect:nth-of-type(2)",
+      "excerpt": "",
+      "comment": "Sigamos con esto. hagamos del estante una animacion un poco mejor. que aparezca una luz de fondo o algo",
+      "createdAt": "2026-11-23T18:10:15.336Z",
+      "status": "resolved",
+      "sentAt": "2026-11-23T18:10:15.343Z",
+      "resolvedAt": "2026-11-23T18:11:25.769Z",
+      "resolution": "Estante retroiluminado: banda de luz de fondo que respira tras los lomos en silueta, rendijas por donde se cuela la luz, cantos de lomos encendidos con brillo variable y una pasada lenta de luz barriendo el anaquel (respetando prefers-reduced-motion)."
+    },
+    {
+      "id": "4exdty4f",
+      "file": "03-la-lampara.html",
+      "selector": "#c1 > figure > div > svg > rect:nth-of-type(2)",
+      "excerpt": "",
+      "comment": "Hazlo mas lindo y que haya una mejor animacion que se integre perfecto a la landing",
+      "createdAt": "2026-11-23T18:13:03.612Z",
+      "status": "resolved",
+      "sentAt": "2026-11-23T18:13:03.619Z",
+      "resolvedAt": "2026-11-23T18:15:15.563Z",
+      "resolution": "Escena del estante más rica (pared con profundidad, lomos con fajas de título, rendijas difuminadas, doble luz de fondo desfasada, motas) y ahora integrada a la mecánica de la landing: el charco de luz de la escena sigue al puntero real y enciende los cantos de los lomos a su paso."
+    },
+    {
+      "id": "3dbrxx81",
+      "file": "03-la-lampara.html",
+      "selector": "#c3",
+      "excerpt": "LA LÁMPARA TE ESPERA Y al final, la lámpara te la dejamos Instalás la PWA, descargás, y el modo Vigilia te entrega el control: foco, luz templada y lectura sin conexión. La lámpara de esta landing es la misma que prenderás al leer. Empezar a leer Entrar ESCENA 03 · LA VIGILIA STORYBOARD · WEBGL",
+      "comment": "Esta ultima seccion no tiene mucho sentido con la app",
+      "createdAt": "2026-11-23T18:16:18.668Z",
+      "status": "resolved",
+      "sentAt": "2026-11-23T18:16:18.676Z",
+      "resolvedAt": "2026-11-23T18:18:26.318Z",
+      "resolution": "La sección final ahora habla de la app real (instalar PWA, descargar, leer offline, progreso que se sincroniza) y su imagen es una réplica del lector Vigilia —foco con velo, cita iluminada, chips de estado y HUD con tipografía, control de foco y progreso p. 214/348— en lugar de la escena poética de la lámpara."
+    },
+    {
+      "id": "fjrz3cjw",
+      "file": "03-la-lampara.html",
+      "selector": "#s1",
+      "excerpt": "BIBLIOTECA COMUNITARIA · PWA INSTALABLE Movés la luz. La biblioteca aparece. Ignit es una biblioteca de lectura inmersiva: cada libro fue escaneado, preparado y aprobado por una persona antes de publicarse para todos. Instalá la app, descargá un libro y leelo en paz — con red o sin ella. Explorar el",
+      "comment": "No me gusta este hero. prefiero un hero medio brutalista. que opinas?",
+      "createdAt": "2026-11-23T18:24:59.073Z",
+      "status": "resolved",
+      "sentAt": "2026-11-23T18:24:59.082Z",
+      "resolvedAt": "2026-11-23T18:25:59.804Z",
+      "resolution": "Hero medio brutalista: display en sans negrita mayúsculas con la segunda línea en bloque azulado, marco con borde duro y esquinas expuestas, fila de etiquetas en mono, ficha técnica en celdas de borde, CTAs cuadrados con sombra dura — manteniendo penumbra azul y la lámpara."
+    },
+    {
+      "id": "oitspi8m",
+      "file": "03-la-lampara.html",
+      "selector": "#s4",
+      "excerpt": "EL PIPELINE Cuatro estaciones de luz, una a una Standby, en curso, tested, catálogo. El escaneo y la extracción son automáticos; la aprobación, humana. Cada estación deja pasar el libro recién cuando corresponde: la penumbra va ganando luz hasta publicarse. decantaciónrevisión humanadesembocadura EL",
+      "comment": "Esto es medio raro. pero seria un: \"Queres subir un libro?\" Estos son los pasos o algo asi. sino, no tiene sentido",
+      "createdAt": "2026-11-23T18:26:20.113Z",
+      "status": "resolved",
+      "sentAt": "2026-11-23T18:26:20.121Z",
+      "resolvedAt": "2026-11-23T18:26:59.161Z",
+      "resolution": "La sección ahora arranca con «¿Querés subir un libro? esto es lo que pasa», nombra los cuatro pasos numerados dentro del cuerpo y cierra con CTA «Subir un libro»; el río lleva los números 1–4 discretos en sus estaciones para mapear el relato."
+    }
+  ]
+}

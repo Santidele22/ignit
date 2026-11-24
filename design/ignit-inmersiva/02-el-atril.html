@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Ignit — Inmersión 02 · El atril</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --negro:#05060b; --fg:#e6edf7; --body:#b9c6dd; --faint:#8296b8; --ghost:#67779a;
+    --border:#232941; --azul:#5f86c9; --azul-claro:#9fc0ee;
+    --sans:system-ui,-apple-system,'Segoe UI',sans-serif;
+    --serif:Georgia,'Times New Roman','Hiragino Mincho ProN',serif;
+    --mono:ui-monospace,'SF Mono',monospace;
+  }
+  html,body{height:100%}
+  body{background:var(--negro);color:var(--body);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow:hidden}
+  :focus-visible{outline:2px solid var(--azul-claro);outline-offset:3px}
+  ::selection{background:var(--azul);color:#05060b}
+  #escena{position:fixed;inset:0;z-index:0;display:block}
+  /* Sin scroll: el giro es horizontal (rueda, flechas, swipe) — GSAP horizontalLoop, en producción la cámara orbita la página 3D */
+  .pistas{position:fixed;inset:0;z-index:2;display:flex;flex-direction:column;justify-content:center;pointer-events:none}
+  .plano{position:absolute;width:min(88vw,1080px);left:50%;top:50%;transform:translate(-50%,-50%);display:grid;grid-template-columns:1fr 1fr;gap:0;opacity:0;transition:opacity .5s ease,filter .5s ease;pointer-events:none}
+  .plano.viva{opacity:1;pointer-events:auto}
+  .plano.saliendo{opacity:0;filter:blur(6px)}
+  /* Hoja izquierda: la copia; hoja derecha: tiempo/título, como doble página abierta */
+  .hoja{padding:64px 48px;display:flex;flex-direction:column;justify-content:center;min-height:56vh}
+  .hoja.copia{background:linear-gradient(100deg,rgba(10,13,24,.98),rgba(10,13,24,.82));border:1px solid var(--border);border-right:none;border-radius:10px 0 0 10px;box-shadow:-30px 40px 90px rgba(0,0,0,.6)}
+  .hoja.verso{background:linear-gradient(260deg,rgba(8,10,19,.98),rgba(8,10,19,.86));border:1px solid var(--border);border-radius:0 10px 10px 0;padding:64px 44px}
+  .kicker{font-family:var(--mono);font-size:10.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--faint);margin-bottom:20px}
+  h2{font-family:var(--serif);font-weight:400;font-size:clamp(26px,3.4vw,40px);line-height:1.25;color:var(--fg);margin-bottom:16px}
+  h2 .azu{color:var(--azul-claro)}
+  .hoja p{font-size:15.5px;line-height:1.75}
+  .hoja .acciones{margin-top:26px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+  .cta{display:inline-flex;background:var(--azul);color:#05060b;font-size:14px;font-weight:600;padding:11px 24px;border-radius:4px;text-decoration:none}
+  .cta:hover{background:#7c9fd8}
+  .quiet{font-size:13.5px;color:var(--faint);text-decoration:none;border-bottom:1px solid var(--border);padding-bottom:2px}
+  .quiet:hover{color:var(--body)}
+  .verso .detalle{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--faint);display:grid;gap:12px;text-transform:uppercase}
+  .verso .detalle b{color:var(--fg);font-weight:500}
+  .verso .numero{font-family:var(--serif);font-size:64px;line-height:1;color:rgba(159,192,238,.25);margin-bottom:18px}
+  /* Costuras del libro a la vista: la página abierta tiene pliegue central */
+  .plano::before{content:"";position:absolute;top:4%;bottom:4%;left:50%;width:1px;background:linear-gradient(180deg,transparent,rgba(159,192,238,.28),transparent);z-index:3}
+  /* Gubernatura: progreso en folios + control por rueda/teclado */
+  .folios{position:fixed;left:0;right:0;bottom:26px;z-index:4;display:flex;gap:10px;justify-content:center;align-items:center;font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:var(--ghost);text-transform:uppercase}
+  .folios i{width:26px;height:2px;background:var(--border);border-radius:2px;transition:background .3s}
+  .folios i.viva{background:var(--azul);box-shadow:0 0 10px var(--azul)}
+  .ayuda{position:fixed;top:24px;left:0;right:0;text-align:center;z-index:4;font-family:var(--mono);font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--ghost)}
+  .marca{position:fixed;top:24px;left:36px;z-index:4;display:flex;align-items:center;gap:12px;color:var(--fg);text-decoration:none;font-family:var(--serif);font-size:16px}
+  .sello{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;background:var(--azul);color:#05060b;font-size:15px}
+  .crecer{position:fixed;top:24px;right:36px;z-index:4;font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint)}
+  .crecer a{color:var(--azul-claro);text-decoration:none}
+  .nota{position:fixed;left:36px;bottom:56px;z-index:5;max-width:340px;font-family:var(--mono);font-size:10px;line-height:1.7;letter-spacing:.06em;color:var(--ghost);border-left:2px solid var(--azul);padding-left:12px;mix-blend-mode:screen}
+  .nota b{color:var(--azul-claro);font-weight:500}
+</style>
+</head>
+<body>
+<canvas id="escena" aria-hidden="true"></canvas>
+
+<a class="marca" href="/"><span class="sello" aria-hidden="true">熒</span>Ignit</a>
+<p class="ayuda">girá con la rueda · ← → · la cámara orbita la doble página</p>
+<a class="crecer" href="/login">Entrar</a>
+
+<main class="pistas">
+  <section class="plano">
+    <div class="hoja copia">
+      <p class="kicker">doble página 01 · la apertura</p>
+      <h2>Una biblioteca con <span class="azu">una sola regla</span>: lo que entra, se comparte</h2>
+      <p>Cada libro subido se escanea, se prepara y —cuando una persona lo aprueba— se publica para todos en su categoría curada. No hay estantes privados.</p>
+      <div class="acciones"><a class="cta" href="/registro">Empezar a leer</a></div>
+    </div>
+    <div class="hoja verso">
+      <p class="numero">01</p>
+      <div class="detalle">
+        <span>formato <b>PWA sin stores</b></span>
+        <span>catálogo <b>comunitario</b></span>
+        <span>categorías <b>curadas en db</b></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="plano">
+    <div class="hoja copia">
+      <p class="kicker">doble página 02 · el itinerario</p>
+      <h2>Standby → en curso → tested → <span class="azu">catálogo</span></h2>
+      <p>El escaneo de seguridad y la extracción de texto corren solas; las decisiones que valen las toma gente. Un libro entra como PDF y sale publicado: comunitario y tuyo, de todos.</p>
+      <div class="acciones"><a class="quiet" href="#/">Ver la ficha del pipeline</a></div>
+    </div>
+    <div class="hoja verso">
+      <p class="numero">02</p>
+      <div class="detalle">
+        <span>automático <b>escaneo + extracción</b></span>
+        <span>humano <b>aprobación en tested</b></span>
+        <span>resultado <b>publicado para todos</b></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="plano">
+    <div class="hoja copia">
+      <p class="kicker">doble página 03 · la vigilia</p>
+      <h2>Y mientras leés, el mundo <span class="azu">se aparta</span></h2>
+      <p>Foco atenuado, luz templada y progreso sincronizado. Con la app instalada, los libros descargados se leen sin conexión: la lámpara no se apaga cuando la red sí.</p>
+      <div class="acciones"><a class="cta" href="/registro">Instalar y leer</a></div>
+    </div>
+    <div class="hoja verso">
+      <p class="numero">03</p>
+      <div class="detalle">
+        <span>lectura <b>online y offline</b></span>
+        <span>memoria <b>SW + IndexedDB</b></span>
+        <span>progreso <b>sincronizado</b></span>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="folios" aria-hidden="true"><i class="viva"></i><i></i><i></i></div>
+
+<aside class="nota">
+  <b>Producción —</b> three.js: una doble página (PlaneGeometry con shader de papel y pliegue) sobre fondo de fog; GSAP horizontalLoop/ScrollTrigger pina cada sección y la cámara orbita 22° por doble página. Rueda y flechas alimentan el mismo timeline. Este canvas simula el giro y la inclinación.
+</aside>
+
+<script>
+(function(){
+  var c=document.getElementById('escena'),ctx=c.getContext('2d');
+  function size(){c.width=innerWidth;c.height=innerHeight}size();
+  addEventListener('resize',size,{passive:true});
+  if(!matchMedia('(prefers-reduced-motion: reduce)').matches){
+    // Polvo flotante alrededor del atril
+    var motas=[];for(var k=0;k<90;k++)motas.push({x:Math.random(),y:Math.random(),r:0.6+Math.random()*1.8,f:Math.random()*6.28,v:0.02+Math.random()*0.05});
+    var t=0;(function pulso(){t+=0.01;ctx.clearRect(0,0,c.width,c.height);
+      for(var i=0;i<motas.length;i++){var m=motas[i];m.y-=m.v*0.002;if(m.y<0)m.y=1;
+        var al=0.05+0.12*(0.5+0.5*Math.sin(t*1.3+m.f));
+        ctx.beginPath();ctx.arc(m.x*c.width,m.y*c.height,m.r,0,6.283);
+        ctx.fillStyle='rgba(159,192,238,'+al.toFixed(3)+')';ctx.fill();}
+      requestAnimationFrame(pulso);})();
+  }
+  // Giro de doble páginas: rueda, teclado y swipe mueven el mismo estado
+  var planos=document.querySelectorAll('.plano'),folios=document.querySelectorAll('.folios i'),idx=0,bloq=false;
+  function muestra(n){
+    idx=(n+planos.length)%planos.length;
+    planos.forEach(function(p,i){p.classList.toggle('viva',i===idx);});
+    folios.forEach(function(f,i){f.classList.toggle('viva',i<=idx)});
+  }
+  function paso(d){if(bloq)return;bloq=true;var cur=planos[idx];muestra(idx+d);setTimeout(function(){bloq=false},420)}
+  addEventListener('wheel',function(e){paso(e.deltaY>0?1:-1)},{passive:true});
+  addEventListener('keydown',function(e){if(e.key==='ArrowRight'||e.key==='PageDown')paso(1);if(e.key==='ArrowLeft'||e.key==='PageUp')paso(-1)});
+  var x0=null;addEventListener('touchstart',function(e){x0=e.touches[0].clientX},{passive:true});
+  addEventListener('touchend',function(e){if(x0===null)return;var dx=e.changedTouches[0].clientX-x0;if(Math.abs(dx)>40)paso(dx<0?1:-1);x0=null},{passive:true});
+  muestra(0);
+})();
+</script>
+</body>
+</html>

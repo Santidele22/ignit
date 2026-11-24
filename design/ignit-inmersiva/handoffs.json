@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "chosen": "04-lampara-brutalista.html",
+  "handoffs": {
+    "04-lampara-brutalista.html": {
+      "status": "implemented",
+      "queued": false,
+      "sentAt": "2026-11-23T21:39:00.239Z",
+      "startedAt": "2026-11-23T21:43:04.402Z",
+      "implementedAt": "2026-11-23T22:20:21.615Z",
+      "note": "Implemented 6-section Lámpara brutalista landing page on / (commits 7e99fda..ea57de7), scoped CSP frame-ancestors/frame-src for /lecturas/:id, verified S1–S8 with independent gentle-ai-verify PASS (vitest, astro check, astro build).",
+      "previewUrl": "http://localhost:4321/"
+    }
+  }
+}

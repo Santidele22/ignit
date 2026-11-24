@@ -1,0 +1,1815 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ignit — Biblioteca inmersiva offline</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --negro:#04050a;
+    --panel:#060810;
+    --panel-2:#080c17;
+    --fg:#e6edf7;
+    --body:#b9c6dd;
+    --faint:#8fa4c8;
+    --ghost:#7e91b8;
+    --border:#232941;
+    --border-strong:#344064;
+    --azul:#5f86c9;
+    --azul-claro:#9fc0ee;
+    --sans:system-ui,-apple-system,'Segoe UI',sans-serif;
+    --serif:Georgia,'Times New Roman','Hiragino Mincho ProN',serif;
+    --mono:ui-monospace,'SF Mono',monospace;
+  }
+  html{scroll-behavior:smooth}
+  @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+    *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
+  }
+  .skip-link{
+    position:fixed;left:16px;top:-80px;z-index:100;
+    background:var(--azul-claro);color:#04050a;
+    font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+    padding:10px 16px;text-decoration:none;border:2px solid #04050a;
+  }
+  .skip-link:focus{top:12px}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  body{
+    background:var(--negro);
+    color:var(--body);
+    font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  a,button,input{cursor:pointer}
+  :focus-visible{outline:2px solid var(--azul-claro);outline-offset:3px}
+  ::selection{background:var(--azul);color:#04050a}
+
+  /* Fondo polvo + lámpara reactiva */
+  #escena{position:fixed;inset:0;z-index:0;display:block;pointer-events:none}
+  #lampara{
+    position:fixed;z-index:2;pointer-events:none;
+    width:560px;height:560px;left:50%;top:30%;
+    transform:translate(-50%,-50%);
+    background:radial-gradient(circle,rgba(159,192,238,.15) 0%,rgba(95,134,201,.06) 36%,transparent 68%);
+    mix-blend-mode:screen;
+  }
+
+  /* Hilo de progreso global */
+  .hiloglobal{position:fixed;top:0;left:0;right:0;height:2px;z-index:20;background:rgba(35,41,65,.45);pointer-events:none}
+  .hiloglobal i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--azul),var(--azul-claro))}
+
+  /* Header fijo con vidrio oscuro */
+  header.marcas{
+    position:fixed;top:2px;left:0;right:0;z-index:15;
+    display:flex;justify-content:space-between;align-items:center;gap:20px;
+    padding:14px clamp(20px,4vw,44px);
+    background:rgba(4,5,10,.78);
+    backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);
+    border-bottom:1px solid rgba(35,41,65,.7);
+    font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint);
+  }
+  header.marcas a{color:inherit;text-decoration:none;transition:color .18s}
+  header.marcas a:hover{color:var(--azul-claro)}
+  .marca-brand{display:inline-flex;align-items:center;gap:12px;color:var(--fg)!important;font-weight:600}
+  .sello{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:30px;height:30px;background:var(--azul);color:#04050a;
+    font-family:var(--serif);font-size:15px;letter-spacing:0;font-weight:700;
+  }
+  .nav-links{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+  .nav-install{
+    border:1px solid var(--azul);color:var(--azul-claro)!important;
+    padding:7px 13px;font-size:10px;letter-spacing:.18em;
+    background:rgba(95,134,201,.08);transition:background .18s,color .18s;
+  }
+  .nav-install:hover{background:var(--azul);color:#04050a!important}
+
+  /* Mecha lateral con estaciones */
+  .mecha{
+    position:fixed;right:22px;top:50%;transform:translateY(-50%);z-index:12;
+    width:2px;height:190px;background:var(--border);
+  }
+  .mecha i{
+    position:absolute;left:-2px;width:6px;border-radius:3px;height:16%;
+    background:var(--azul-claro);box-shadow:0 0 14px var(--azul-claro);
+    top:0;transition:top .35s ease;
+  }
+  @media (max-width:960px){.mecha{display:none}}
+
+  /* Secciones */
+  .capa{
+    position:relative;z-index:3;
+    padding:clamp(84px,11vh,132px) clamp(20px,6vw,96px);
+    max-width:1360px;margin:0 auto;
+  }
+  .capa .anim{
+    opacity:.38;transform:translateY(10px);
+    transition:opacity .55s ease,transform .55s ease;
+  }
+  .capa.alumbrada .anim{opacity:1;transform:none}
+
+  .num{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.28em;
+    color:var(--ghost);text-transform:uppercase;margin-bottom:20px;
+    display:flex;align-items:center;gap:12px;
+  }
+  .num::after{content:"";height:1px;width:54px;background:var(--border)}
+  h2{
+    font-family:var(--sans);font-weight:800;letter-spacing:-.025em;
+    font-size:clamp(30px,3.8vw,48px);line-height:1.08;color:var(--fg);margin-bottom:16px;
+  }
+  h2 .azu{color:var(--azul-claro)}
+  h2 .serif{font-family:var(--serif);font-weight:400;font-style:italic;letter-spacing:0}
+  .lead{font-size:16px;line-height:1.75;color:var(--body);max-width:56ch}
+
+  /* Botones brutalistas-editoriales */
+  .acciones{margin-top:28px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+  .cta{
+    display:inline-flex;align-items:center;gap:9px;
+    background:var(--azul);color:#04050a;border:1px solid var(--azul-claro);
+    font-family:var(--mono);font-size:11.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+    padding:13px 22px;text-decoration:none;
+    box-shadow:4px 4px 0 var(--border);
+    transition:transform .16s ease,box-shadow .16s ease,background .16s ease;
+  }
+  .cta:hover{background:var(--azul-claro);transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--border-strong)}
+  .cta-sec{
+    display:inline-flex;align-items:center;gap:9px;
+    background:rgba(8,12,23,.85);color:var(--fg);border:1px solid var(--border-strong);
+    font-family:var(--mono);font-size:11.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+    padding:13px 20px;text-decoration:none;
+    box-shadow:4px 4px 0 rgba(35,41,65,.55);
+    transition:border-color .16s,color .16s,transform .16s;
+  }
+  .cta-sec:hover{border-color:var(--azul-claro);color:var(--azul-claro);transform:translate(-2px,-2px)}
+  .quiet{
+    font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--faint);text-decoration:none;border-bottom:1px solid var(--border);padding-bottom:3px;
+  }
+  .quiet:hover{color:var(--azul-claro);border-color:var(--azul)}
+
+  /* ================= I · HERO BRUTALISTA + ESTANTE ================= */
+  .s1{padding-top:clamp(96px,12vh,136px);padding-bottom:clamp(56px,7vh,88px)}
+  .hero-frame{
+    position:relative;border:1px solid var(--border-strong);
+    background:rgba(6,8,16,.84);
+    box-shadow:0 36px 100px rgba(0,0,0,.62);
+  }
+  /* marcas de registro brutalistas */
+  .hero-frame::before,.hero-frame::after{
+    content:"";position:absolute;width:11px;height:11px;border:1.5px solid var(--azul-claro);pointer-events:none;z-index:4;
+  }
+  .hero-frame::before{top:-6px;left:-6px}
+  .hero-frame::after{bottom:-6px;right:-6px}
+
+  .hero-topbar{
+    display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;
+    padding:12px 22px;border-bottom:1px solid var(--border);
+    font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint);
+    background:rgba(4,5,10,.6);
+  }
+  .hero-live{display:inline-flex;align-items:center;gap:8px;color:var(--azul-claro)}
+  .hero-live::before{
+    content:"";width:7px;height:7px;border-radius:50%;background:var(--azul-claro);
+    box-shadow:0 0 10px var(--azul-claro);
+  }
+
+  .hero-grid{
+    display:grid;grid-template-columns:minmax(0,1.18fr) minmax(0,0.92fr);
+  }
+  @media (max-width:960px){.hero-grid{grid-template-columns:1fr}}
+
+  .hero-left{
+    padding:clamp(28px,4.2vw,54px);
+    display:flex;flex-direction:column;justify-content:space-between;
+  }
+  .hero-title{
+    font-family:var(--sans);font-weight:800;text-transform:uppercase;
+    font-size:clamp(38px,5.1vw,72px);line-height:.98;letter-spacing:-.035em;
+    color:var(--fg);margin-bottom:22px;
+  }
+  .hero-title .bloque{
+    display:inline-block;margin-top:8px;
+    padding:4px 14px 8px;
+    background:var(--azul);color:#04050a;
+    font-family:var(--serif);font-style:italic;font-weight:400;text-transform:none;letter-spacing:-.01em;
+  }
+  .hero-left .lead{font-size:16px;max-width:44ch}
+
+  .hero-right{
+    position:relative;border-left:1px solid var(--border);
+    display:flex;flex-direction:column;background:#05070e;overflow:hidden;
+    min-height:460px;
+  }
+  @media (max-width:960px){.hero-right{border-left:none;border-top:1px solid var(--border);min-height:380px}}
+  .hero-shelf-wrap{position:relative;flex:1;display:flex;min-height:0}
+  .hero-right svg{display:block;width:100%;height:100%}
+  .lomo-real{cursor:pointer;transition:transform .26s cubic-bezier(.22,.9,.32,1),filter .26s ease}
+  .lomo-real:hover,.lomo-real[data-featured="true"]{filter:drop-shadow(0 0 12px rgba(159,192,238,.28))}
+  .lomo-real .canto-real{transition:opacity .22s ease}
+  .shelf-hud{
+    position:absolute;left:16px;right:16px;bottom:14px;z-index:4;
+    display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;
+    padding:10px 14px;border:1px solid var(--border-strong);
+    background:rgba(4,5,10,.88);backdrop-filter:blur(10px);
+    pointer-events:none;transition:border-color .2s ease;
+  }
+  .shelf-hud-left{display:flex;flex-direction:column;gap:3px;min-width:0}
+  .shelf-hud-kicker{font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--azul-claro)}
+  .shelf-hud-title{font-family:var(--serif);font-size:14px;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .shelf-hud-meta{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);white-space:nowrap}
+  .hero-scene-bar{
+    display:flex;justify-content:space-between;align-items:center;gap:12px;
+    padding:10px 18px;border-top:1px solid var(--border);
+    font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ghost);
+    background:rgba(4,5,10,.85);
+  }
+  .hero-scene-bar b{color:var(--azul-claro);font-weight:500}
+  .mota-fg{animation:floatMote 11s ease-in-out infinite alternate}
+  @keyframes floatMote{from{transform:translate(0,0)}to{transform:translate(10px,-14px)}}
+  @media (prefers-reduced-motion:reduce){.mota-fg{animation:none}}
+
+  .hero-specs{
+    display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+    border-top:1px solid var(--border);
+  }
+  @media (max-width:860px){.hero-specs{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  .hero-specs div{
+    padding:14px 18px;border-right:1px solid var(--border);
+    display:flex;flex-direction:column;gap:5px;
+    font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ghost);
+  }
+  .hero-specs div:last-child{border-right:none}
+  @media (max-width:860px){
+    .hero-specs div:nth-child(2){border-right:none}
+    .hero-specs div:nth-child(1),.hero-specs div:nth-child(2){border-bottom:1px solid var(--border)}
+  }
+  .hero-specs b{color:var(--fg);font-size:11.5px;font-weight:600;letter-spacing:.08em}
+
+  .respira{animation:breathe 7s ease-in-out infinite}
+  @keyframes breathe{0%,100%{opacity:.72}50%{opacity:1}}
+  .barre{animation:barre 16s ease-in-out infinite alternate}
+  @keyframes barre{from{transform:translateX(0)}to{transform:translateX(820px)}}
+  @media (prefers-reduced-motion:reduce){.respira,.barre{animation:none}}
+
+  /* ================= II · CATÁLOGO + DESCARGA SELECTIVA ================= */
+  .cat-head{
+    display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap;
+    margin-bottom:24px;
+  }
+  .device-meter{
+    border:1px solid var(--border-strong);background:var(--panel);
+    padding:12px 16px;min-width:260px;
+    font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+  }
+  .device-meter-row{display:flex;justify-content:space-between;gap:14px;color:var(--faint);margin-bottom:8px}
+  .device-meter-row b{color:var(--azul-claro)}
+  .meter-bar{height:5px;background:#101728;border:1px solid var(--border);overflow:hidden}
+  .meter-bar i{display:block;height:100%;width:24%;background:linear-gradient(90deg,var(--azul),var(--azul-claro));transition:width .25s ease}
+
+  .cat-controls{
+    display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;
+    margin-bottom:24px;padding:12px 14px;
+    border:1px solid var(--border);background:rgba(6,8,16,.75);
+  }
+  .filtros{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{
+    font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--faint);background:none;border:1px solid var(--border);
+    padding:10px 15px;min-height:42px;transition:all .16s;
+  }
+  .chip:hover{border-color:var(--azul);color:var(--fg)}
+  .chip[data-activa="true"]{background:var(--azul);border-color:var(--azul-claro);color:#04050a;font-weight:700}
+
+  .cat-search{
+    background:#04050a;border:1px solid var(--border-strong);color:var(--fg);
+    font-family:var(--mono);font-size:11.5px;padding:8px 12px;min-width:220px;
+  }
+  .cat-search::placeholder{color:var(--ghost)}
+  .cat-search:focus{border-color:var(--azul-claro);outline:none}
+
+  .rejilla{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+  @media (max-width:1080px){.rejilla{grid-template-columns:repeat(3,minmax(0,1fr))}}
+  @media (max-width:740px){.rejilla{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media (max-width:480px){.rejilla{grid-template-columns:1fr}}
+
+  .tomo{
+    position:relative;display:flex;flex-direction:column;
+    background:var(--panel);border:1px solid var(--border);
+    transition:border-color .18s,transform .18s;
+  }
+  .tomo:hover{border-color:var(--azul);transform:translateY(-3px)}
+  .tomo[data-offline="true"]{border-color:var(--azul)}
+
+  .tomo-tapa{
+    position:relative;aspect-ratio:4/5;padding:14px 14px 16px 18px;
+    display:flex;flex-direction:column;justify-content:space-between;
+    text-decoration:none;overflow:hidden;background:#070b15;
+  }
+  .tomo-art{
+    position:absolute;inset:0;width:100%;height:100%;display:block;
+    transition:transform .45s cubic-bezier(.22,.9,.32,1),filter .35s ease;
+    pointer-events:none;
+  }
+  .tomo:hover .tomo-art{transform:scale(1.035);filter:brightness(1.14)}
+  /* Viñeta editorial para que el título siempre tenga contraste alto + bisagra de lomo */
+  .tomo-tapa::after{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:
+      linear-gradient(90deg,rgba(2,3,7,.65) 0,rgba(159,192,238,.12) 9px,rgba(2,3,7,.5) 11px,transparent 16px),
+      linear-gradient(180deg,rgba(4,5,10,.45) 0%,transparent 34%,rgba(4,5,10,.55) 66%,rgba(4,5,10,.96) 100%);
+  }
+  .tomo-tapa::before{
+    content:"";position:absolute;left:0;top:0;bottom:0;width:4px;z-index:3;
+    background:linear-gradient(180deg,var(--azul-claro),var(--azul));opacity:.42;
+  }
+  .tomo[data-offline="true"] .tomo-tapa::before{opacity:1}
+
+  .tomo-top,.tomo-copy{position:relative;z-index:2}
+  .tomo-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .tomo-idx{font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:var(--body);background:rgba(4,5,10,.78);padding:3px 7px;border:1px solid rgba(35,41,65,.85)}
+  .tomo-badge{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+    padding:4px 8px;border:1px solid var(--border-strong);color:var(--faint);background:rgba(4,5,10,.86);
+  }
+  .tomo[data-offline="true"] .tomo-badge{
+    background:var(--azul-claro);border-color:var(--azul-claro);color:#04050a;font-weight:700;
+  }
+  .tomo-editorial{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--azul-claro);margin-bottom:5px;opacity:.92;
+  }
+  .tomo-titulo{
+    font-family:var(--serif);font-size:16.5px;line-height:1.25;color:var(--fg);
+    text-shadow:0 2px 12px rgba(4,5,10,.9);
+  }
+  .tomo-autor{
+    font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--body);margin-top:6px;opacity:.92;
+  }
+
+  .tomo-foot{
+    display:flex;justify-content:space-between;align-items:center;gap:8px;
+    padding:10px 12px;border-top:1px solid var(--border);background:#05070e;
+  }
+  .tomo-meta{
+    display:flex;flex-direction:column;gap:2px;
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+  }
+  .tomo-meta .cat{color:var(--azul-claro)}
+  .tomo-meta .peso{color:var(--ghost)}
+
+  .btn-dl{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+    padding:9px 12px;min-height:40px;border:1px solid var(--border-strong);background:transparent;color:var(--body);
+    transition:all .16s;white-space:nowrap;
+  }
+  .btn-dl:hover{border-color:var(--azul-claro);color:var(--azul-claro)}
+  .tomo[data-offline="true"] .btn-dl{
+    background:rgba(95,134,201,.16);border-color:var(--azul);color:var(--azul-claro);
+  }
+
+  /* ================= III · PIPELINE 4 PASOS + RÍO INTERACTIVO ================= */
+  .pipe-grid{
+    display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);
+    gap:clamp(24px,4vw,52px);align-items:center;
+  }
+  @media (max-width:960px){.pipe-grid{grid-template-columns:1fr}}
+
+  .pasos{
+    margin-top:24px;border:1px solid var(--border);background:var(--panel);
+  }
+  .paso{
+    display:grid;grid-template-columns:56px 1fr;gap:14px;align-items:start;
+    padding:15px 18px;border-bottom:1px solid var(--border);
+    transition:background .18s,border-color .18s;cursor:pointer;
+  }
+  .paso:last-child{border-bottom:none}
+  .paso:hover,.paso[data-activo="true"]{background:rgba(95,134,201,.10)}
+  .paso-num{
+    font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.18em;
+    color:var(--ghost);padding-top:2px;
+  }
+  .paso[data-activo="true"] .paso-num{color:var(--azul-claro)}
+  .paso-tag{
+    display:inline-flex;align-items:center;gap:8px;
+    font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--fg);margin-bottom:4px;
+  }
+  .paso-tag small{
+    font-weight:500;font-size:9.5px;color:var(--azul-claro);
+    border:1px solid var(--border-strong);padding:2px 6px;
+  }
+  .paso p{font-size:13.5px;line-height:1.58;color:var(--faint)}
+  .paso[data-activo="true"] p{color:var(--body)}
+
+  .panel-marco{
+    border:1px solid var(--border-strong);background:linear-gradient(175deg,#080b14,#05070d);
+    box-shadow:0 36px 90px rgba(0,0,0,.55);overflow:hidden;
+  }
+  .panel-marco svg{display:block;width:100%;height:auto}
+  .panel-caption{
+    padding:11px 16px;border-top:1px solid var(--border);
+    font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ghost);
+    display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  }
+  .panel-caption b{color:var(--azul-claro);font-weight:500}
+  .estacion{transition:opacity .22s ease,transform .22s ease}
+  .estacion[data-lit="true"] .ring{stroke:#e6edf7;stroke-width:2.2}
+
+  /* ================= IV · VIGILIA REAL (EMBED DE LA APP) ================= */
+  .vigilia-wrap{max-width:1120px;margin:0 auto}
+  .vigilia-head{
+    display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap;
+    margin-bottom:26px;
+  }
+  .embed-shell{
+    position:relative;border:1px solid var(--border-strong);background:#05070e;
+    box-shadow:0 36px 96px rgba(0,0,0,.65);
+  }
+  .embed-shell::before,.embed-shell::after{
+    content:"";position:absolute;width:10px;height:10px;border:1.5px solid var(--azul-claro);pointer-events:none;z-index:4;
+  }
+  .embed-shell::before{top:-5px;left:-5px}
+  .embed-shell::after{bottom:-5px;right:-5px}
+  .embed-bar{
+    display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;
+    padding:11px 16px;border-bottom:1px solid var(--border);background:#04050a;
+    font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);
+  }
+  .embed-bar-left{display:inline-flex;align-items:center;gap:10px}
+  .embed-live{
+    display:inline-flex;align-items:center;gap:7px;color:var(--azul-claro);font-weight:700;
+  }
+  .embed-live::before{
+    content:"";width:7px;height:7px;border-radius:50%;background:var(--azul-claro);
+    box-shadow:0 0 10px var(--azul-claro);
+  }
+  .embed-bar-right{display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .embed-url{
+    background:#060913;border:1px solid var(--border-strong);color:var(--fg);
+    font-family:var(--mono);font-size:10.5px;padding:6px 10px;min-width:240px;
+  }
+  .embed-url::placeholder{color:var(--ghost)}
+  .embed-btn{
+    font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+    padding:7px 12px;border:1px solid var(--border-strong);background:rgba(95,134,201,.10);color:var(--fg);
+    text-decoration:none;transition:all .16s;
+  }
+  .embed-btn:hover{border-color:var(--azul-claro);color:var(--azul-claro);background:rgba(95,134,201,.2)}
+  .embed-viewport{
+    position:relative;height:min(74vh,680px);min-height:480px;
+    background:
+      radial-gradient(ellipse 65% 45% at 50% 18%,rgba(95,134,201,.12),transparent 70%),
+      linear-gradient(90deg,rgba(35,41,65,.14) 1px,transparent 1px) 0 0 / 32px 32px,
+      linear-gradient(0deg,rgba(35,41,65,.14) 1px,transparent 1px) 0 0 / 32px 32px,
+      #05070e;
+    display:flex;align-items:center;justify-content:center;overflow:hidden;
+  }
+  .embed-viewport iframe{
+    position:absolute;inset:0;width:100%;height:100%;border:0;display:none;background:#04050a;
+  }
+  .embed-viewport[data-loaded="true"] iframe{display:block}
+  .embed-viewport[data-loaded="true"] .embed-placeholder{display:none}
+  .embed-placeholder{
+    max-width:560px;padding:32px;text-align:center;
+    border:1px solid var(--border-strong);background:rgba(4,5,10,.88);
+    box-shadow:0 24px 60px rgba(0,0,0,.55);
+  }
+  .embed-placeholder .tag{
+    font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--azul-claro);margin-bottom:12px;display:block;
+  }
+  .embed-placeholder h3{
+    font-family:var(--serif);font-weight:400;font-size:26px;color:var(--fg);margin-bottom:12px;
+  }
+  .embed-placeholder p{font-size:14px;line-height:1.7;color:var(--body);margin-bottom:18px}
+  .embed-chips{
+    display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:18px;
+  }
+  .embed-chips span{
+    font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;
+    padding:5px 9px;border:1px solid var(--border);color:var(--faint);background:#060913;
+  }
+  .embed-foot{
+    display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;
+    padding:10px 16px;border-top:1px solid var(--border);background:#04050a;
+    font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ghost);
+  }
+  .embed-foot b{color:var(--azul-claro);font-weight:500}
+
+  /* ================= V · EL VIAJE: DESKTOP ↔ SMARTPHONE PWA (INTERACTIVO) ================= */
+  .viaje-head{
+    display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap;
+    margin-bottom:28px;
+  }
+  .net-controls{
+    display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap;
+    border:1px solid var(--border-strong);background:var(--panel);padding:8px 10px;
+  }
+  .net-btn{
+    display:inline-flex;align-items:center;gap:8px;
+    font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+    padding:8px 13px;border:1px solid var(--border-strong);background:transparent;color:var(--body);
+    transition:all .18s;
+  }
+  .net-btn:hover{border-color:var(--azul-claro);color:var(--fg)}
+  .net-btn[data-active="true"]{background:var(--azul);border-color:var(--azul-claro);color:#04050a}
+  .net-dot{width:7px;height:7px;border-radius:50%;background:var(--azul-claro);box-shadow:0 0 8px var(--azul-claro)}
+  .net-btn[data-offline-btn="true"][data-active="true"] .net-dot{background:#04050a;box-shadow:none}
+
+  .viaje-stage{
+    position:relative;border:1px solid var(--border-strong);
+    background:linear-gradient(180deg,rgba(8,12,23,.86),rgba(4,5,10,.92));
+    box-shadow:0 36px 96px rgba(0,0,0,.6);
+  }
+  .viaje-stage::before,.viaje-stage::after{
+    content:"";position:absolute;width:10px;height:10px;border:1.5px solid var(--azul-claro);pointer-events:none;z-index:4;
+  }
+  .viaje-stage::before{top:-5px;left:-5px}
+  .viaje-stage::after{bottom:-5px;right:-5px}
+
+  .viaje-canvas{
+    display:grid;
+    grid-template-columns:minmax(0,1.45fr) 110px 268px;
+    gap:0;align-items:center;
+    padding:clamp(24px,4vw,44px);
+    background:
+      linear-gradient(90deg,rgba(35,41,65,.18) 1px,transparent 1px) 0 0 / 32px 32px,
+      linear-gradient(0deg,rgba(35,41,65,.18) 1px,transparent 1px) 0 0 / 32px 32px;
+  }
+  @media (max-width:960px){
+    .viaje-canvas{grid-template-columns:1fr;justify-items:center;gap:24px}
+  }
+
+  /* Ventana Desktop real */
+  .frame-desktop{
+    width:100%;border:1px solid var(--border-strong);background:#05070e;
+    box-shadow:0 28px 64px rgba(0,0,0,.55);
+  }
+  .desk-bar{
+    display:flex;justify-content:space-between;align-items:center;gap:12px;
+    padding:10px 14px;border-bottom:1px solid var(--border);background:#04050a;
+    font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ghost);
+  }
+  .desk-dots{display:flex;gap:6px}
+  .desk-dots i{width:8px;height:8px;border:1px solid var(--border-strong);display:block}
+  .desk-status{color:var(--azul-claro);transition:color .2s}
+  .desk-subbar{
+    display:flex;justify-content:space-between;align-items:center;gap:10px;
+    padding:10px 22px;border-bottom:1px solid rgba(35,41,65,.6);
+    font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint);
+  }
+  .desk-body{padding:26px 28px 22px;min-height:230px;display:flex;flex-direction:column;justify-content:space-between}
+  .desk-body .cap{font-family:var(--mono);font-size:9px;letter-spacing:.26em;text-transform:uppercase;color:var(--ghost);margin-bottom:14px}
+  .desk-body .linea,.phone-body .linea{font-family:var(--serif);font-size:15px;line-height:1.9;color:var(--faint)}
+  .en-focus{color:var(--fg);background:rgba(95,134,201,.22);padding:1px 5px;border-bottom:1px solid var(--azul-claro)}
+  .desk-note{
+    margin-top:14px;padding:9px 12px;border-left:2px solid var(--azul);
+    background:rgba(95,134,201,.08);
+    font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--body);
+  }
+  .pie-pag{
+    margin-top:18px;padding-top:12px;border-top:1px solid var(--border);
+    display:flex;justify-content:space-between;align-items:center;gap:12px;
+    font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;color:var(--ghost);
+  }
+  .pie-pag b{color:var(--fg)}
+  .mini{width:96px;height:4px;background:var(--border);overflow:hidden}
+  .mini i{display:block;height:100%;width:46%;background:linear-gradient(90deg,var(--azul),var(--azul-claro));transition:width .35s ease}
+
+  /* Cable / Hilo de sincronización horizontal real */
+  .sync-bridge{
+    position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    width:100%;padding:0 4px;
+  }
+  .sync-line{
+    position:relative;width:100%;height:2px;
+    background:linear-gradient(90deg,var(--azul),var(--azul-claro),var(--azul));
+    transition:all .25s ease;
+  }
+  .sync-pulse{
+    position:absolute;top:-3px;left:0;width:8px;height:8px;border-radius:50%;
+    background:#e6edf7;box-shadow:0 0 12px var(--azul-claro);
+    animation:syncTravel 2.4s ease-in-out infinite;
+  }
+  @keyframes syncTravel{
+    0%{left:0;opacity:0}
+    15%{opacity:1}
+    85%{opacity:1}
+    100%{left:calc(100% - 8px);opacity:0}
+  }
+  .sync-tag{
+    margin-top:12px;padding:4px 8px;border:1px solid var(--border-strong);background:#04050a;
+    font-family:var(--mono);font-size:8.5px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--azul-claro);text-align:center;white-space:nowrap;
+  }
+  .viaje-stage[data-offline="true"] .sync-line{
+    background:none;border-top:2px dashed var(--border-strong);height:0;
+  }
+  .viaje-stage[data-offline="true"] .sync-pulse{display:none}
+  .viaje-stage[data-offline="true"] .sync-tag{color:var(--ghost);border-color:var(--border)}
+  @media (max-width:960px){
+    .sync-bridge{width:180px}
+  }
+
+  /* Teléfono vertical REAL (9:16) */
+  .frame-phone{
+    width:268px;border:2px solid var(--border-strong);border-radius:30px;
+    background:#04050a;padding:10px;
+    box-shadow:0 32px 80px rgba(0,0,0,.7),0 0 0 1px rgba(159,192,238,.08);
+    position:relative;
+  }
+  .phone-notch{
+    width:72px;height:14px;border-radius:999px;background:#090d18;
+    border:1px solid var(--border);margin:0 auto 8px;
+  }
+  .phone-screen{
+    border:1px solid var(--border);border-radius:20px;background:#060913;
+    overflow:hidden;display:flex;flex-direction:column;min-height:412px;
+  }
+  .phone-status{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:9px 13px;border-bottom:1px solid var(--border);background:#04050a;
+    font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--ghost);
+  }
+  .phone-pill{
+    padding:2px 7px;font-weight:700;letter-spacing:.14em;
+    background:rgba(95,134,201,.2);border:1px solid var(--azul);color:var(--azul-claro);
+    transition:all .2s;
+  }
+  .viaje-stage[data-offline="true"] .phone-pill{
+    background:var(--azul-claro);border-color:var(--azul-claro);color:#04050a;
+  }
+  .phone-appbar{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:9px 13px;border-bottom:1px solid rgba(35,41,65,.6);
+    font-family:var(--mono);font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);
+  }
+  .phone-appbar b{color:var(--fg)}
+  .phone-body{
+    padding:18px 15px 14px;flex:1;display:flex;flex-direction:column;justify-content:space-between;
+  }
+  .phone-body .linea{font-size:13.5px;line-height:1.78}
+  .phone-queue{
+    margin-top:12px;padding:7px 9px;border:1px solid var(--border);background:#04050a;
+    font-family:var(--mono);font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);
+    display:flex;justify-content:space-between;align-items:center;gap:6px;
+  }
+  .phone-queue b{color:var(--azul-claro)}
+  .phone-controls{
+    display:grid;grid-template-columns:1fr 1fr;gap:8px;
+    padding:10px 13px;border-top:1px solid var(--border);background:#04050a;
+  }
+  .phone-act{
+    font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+    padding:10px 8px;min-height:42px;border:1px solid var(--border-strong);background:rgba(95,134,201,.08);color:var(--fg);
+    transition:all .16s;
+  }
+  .phone-act:hover{border-color:var(--azul-claro);color:var(--azul-claro);background:rgba(95,134,201,.18)}
+  .phone-home{width:76px;height:3.5px;background:var(--border-strong);margin:10px auto 2px;border-radius:2px}
+
+  .viaje-specs{
+    display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+    border-top:1px solid var(--border);background:#04050a;
+  }
+  @media (max-width:760px){.viaje-specs{grid-template-columns:1fr}}
+  .viaje-specs div{
+    padding:14px 20px;border-right:1px solid var(--border);
+    display:flex;flex-direction:column;gap:4px;
+    font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ghost);
+  }
+  .viaje-specs div:last-child{border-right:none}
+  @media (max-width:760px){.viaje-specs div{border-right:none;border-bottom:1px solid var(--border)}.viaje-specs div:last-child{border-bottom:none}}
+  .viaje-specs b{color:var(--fg);font-size:11px;font-weight:600;letter-spacing:.08em}
+
+  /* ================= VI · CIERRE ================= */
+  .cierre-box{
+    border:1px solid var(--border-strong);background:rgba(6,8,16,.85);
+    padding:clamp(40px,6vw,76px) clamp(24px,5vw,64px);
+    text-align:center;position:relative;
+  }
+  .cierre-box::before,.cierre-box::after{
+    content:"";position:absolute;width:10px;height:10px;border:1.5px solid var(--azul-claro);
+  }
+  .cierre-box::before{top:-5px;left:-5px}
+  .cierre-box::after{bottom:-5px;right:-5px}
+  .cierre-box .lead{margin:0 auto}
+  .cierre-box .acciones{justify-content:center}
+
+  footer{
+    position:relative;z-index:3;border-top:1px solid var(--border);
+    padding:24px clamp(20px,6vw,96px);
+    display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ghost);
+  }
+  footer a{color:inherit;text-decoration:none}
+  footer a:hover{color:var(--azul-claro)}
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main-content">Saltar al contenido</a>
+<canvas id="escena" aria-hidden="true"></canvas>
+<div id="lampara" aria-hidden="true"></div>
+<div class="hiloglobal" aria-hidden="true"><i id="hilo"></i></div>
+
+<header class="marcas" aria-label="Principal">
+  <a class="marca-brand" href="#s1"><span class="sello" aria-hidden="true">熒</span>Ignit</a>
+  <nav class="nav-links" aria-label="Navegación principal">
+    <a href="#s2">Catálogo</a>
+    <a href="#s3">Publicar</a>
+    <a href="#s4">Vigilia</a>
+    <a href="#s5">Offline</a>
+    <a href="/login">Entrar</a>
+    <a class="nav-install" href="#s6">Instalar app</a>
+  </nav>
+</header>
+
+<div class="mecha" aria-hidden="true"><i id="mecha-aguja"></i></div>
+
+<main id="main-content">
+<!-- I · HERO BRUTALISTA + ESTANTE RETROILUMINADO -->
+<section class="capa s1 alumbrada" data-capa id="s1">
+  <div class="anim">
+    <div class="hero-frame">
+      <div class="hero-topbar">
+        <span>IGNIT · BIBLIOTECA COMUNITARIA · PWA OFFLINE</span>
+        <span class="hero-live">9 libros curados · listos para Vigilia</span>
+      </div>
+      <div class="hero-grid">
+        <div class="hero-left">
+          <div>
+            <h1 class="hero-title">
+              El lugar tranquilo<br>
+              <span class="bloque">para leer.</span>
+            </h1>
+            <p class="lead">
+              Un catálogo abierto donde cada libro fue analizado por seguridad, scrapeado y aprobado por una persona. Instalás la app una vez, descargás solo lo que querés leer y seguís sin conexión en cualquier pantalla.
+            </p>
+          </div>
+          <div class="acciones">
+            <a class="cta" href="#s2">Explorar catálogo</a>
+            <a class="cta-sec" href="#s6">Instalar app (PWA)</a>
+            <a class="quiet" href="#s3">Subir un libro</a>
+          </div>
+        </div>
+        <div class="hero-right">
+          <div class="hero-shelf-wrap">
+            <svg id="shelfSvg" viewBox="0 0 600 540" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Estantería interactiva de Ignit con tres repisas por categoría y libros reales del catálogo iluminados por una lámpara cenital">
+              <defs>
+                <linearGradient id="g-eco-pared" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#0b1122"/><stop offset="55%" stop-color="#060912"/><stop offset="100%" stop-color="#04050a"/>
+                </linearGradient>
+                <linearGradient id="g-cono-luz" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#9fc0ee" stop-opacity=".22"/>
+                  <stop offset="45%" stop-color="#5f86c9" stop-opacity=".08"/>
+                  <stop offset="100%" stop-color="#5f86c9" stop-opacity="0"/>
+                </linearGradient>
+                <linearGradient id="g-eco-fondo" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stop-color="#5f86c9" stop-opacity="0"/>
+                  <stop offset="35%" stop-color="#5f86c9" stop-opacity=".24"/>
+                  <stop offset="65%" stop-color="#5f86c9" stop-opacity=".24"/>
+                  <stop offset="100%" stop-color="#5f86c9" stop-opacity="0"/>
+                </linearGradient>
+                <linearGradient id="g-eco-silueta" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#11192e"/><stop offset="100%" stop-color="#070b14"/>
+                </linearGradient>
+                <linearGradient id="g-eco-real" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#1b2a4a"/><stop offset="100%" stop-color="#0c1324"/>
+                </linearGradient>
+                <linearGradient id="g-eco-featured" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#29406e"/><stop offset="100%" stop-color="#111c33"/>
+                </linearGradient>
+                <linearGradient id="g-sombra-repisa" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#020307" stop-opacity=".85"/>
+                  <stop offset="100%" stop-color="#020307" stop-opacity="0"/>
+                </linearGradient>
+                <radialGradient id="g-eco-foco" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stop-color="#9fc0ee" stop-opacity=".40"/>
+                  <stop offset="52%" stop-color="#5f86c9" stop-opacity=".14"/>
+                  <stop offset="100%" stop-color="#5f86c9" stop-opacity="0"/>
+                </radialGradient>
+                <linearGradient id="g-eco-barre" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stop-color="#9fc0ee" stop-opacity="0"/>
+                  <stop offset="50%" stop-color="#9fc0ee" stop-opacity=".13"/>
+                  <stop offset="100%" stop-color="#9fc0ee" stop-opacity="0"/>
+                </linearGradient>
+                <filter id="g-eco-suave" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3.5"/></filter>
+              </defs>
+
+              <!-- Pared y fondo atmosférico -->
+              <rect width="600" height="540" fill="url(#g-eco-pared)"/>
+              <rect x="0" y="20" width="600" height="460" fill="url(#g-eco-fondo)" class="respira"/>
+
+              <!-- Lámpara cenital superior + cono de luz -->
+              <polygon points="180,0 420,0 590,480 10,480" fill="url(#g-cono-luz)" class="respira"/>
+              <rect x="210" y="0" width="180" height="3" fill="#9fc0ee" opacity=".8"/>
+              <rect x="180" y="3" width="240" height="12" fill="url(#g-cono-luz)" filter="url(#g-eco-suave)"/>
+
+              <!-- Barrido autónomo suave -->
+              <g class="barre" aria-hidden="true"><rect x="-180" y="0" width="170" height="500" fill="url(#g-eco-barre)"/></g>
+
+              <!-- Rendijas difuminadas + lomos generados -->
+              <g id="eco-rendijas" filter="url(#g-eco-suave)"></g>
+              <g id="estante-spines"></g>
+
+              <!-- Charco de luz reactivo al puntero / autónomo -->
+              <ellipse id="eco-foco" cx="260" cy="140" rx="120" ry="135" fill="url(#g-eco-foco)" opacity=".55" style="mix-blend-mode:screen;pointer-events:none"/>
+
+              <!-- Tres repisas de borde a borde + sombras proyectadas + etiquetas -->
+              <g aria-hidden="true">
+                <!-- Repisa 1 -->
+                <rect x="0" y="168" width="600" height="10" fill="#0d1424" stroke="#232941" stroke-width="1"/>
+                <rect x="0" y="178" width="600" height="22" fill="url(#g-sombra-repisa)"/>
+                <text x="20" y="176" font-family="ui-monospace,monospace" font-size="7.5" letter-spacing="2" fill="#8296b8">01 / FICCIÓN</text>
+                <text x="580" y="176" font-family="ui-monospace,monospace" font-size="7.5" letter-spacing="1.5" fill="#67779a" text-anchor="end">ESTANTE A</text>
+
+                <!-- Repisa 2 -->
+                <rect x="0" y="316" width="600" height="10" fill="#0d1424" stroke="#232941" stroke-width="1"/>
+                <rect x="0" y="326" width="600" height="22" fill="url(#g-sombra-repisa)"/>
+                <text x="20" y="324" font-family="ui-monospace,monospace" font-size="7.5" letter-spacing="2" fill="#8296b8">02 / TÉCNICO</text>
+                <text x="580" y="324" font-family="ui-monospace,monospace" font-size="7.5" letter-spacing="1.5" fill="#67779a" text-anchor="end">ESTANTE B</text>
+
+                <!-- Repisa 3 -->
+                <rect x="0" y="458" width="600" height="10" fill="#0d1424" stroke="#232941" stroke-width="1"/>
+                <rect x="0" y="468" width="600" height="24" fill="url(#g-sombra-repisa)"/>
+                <text x="20" y="466" font-family="ui-monospace,monospace" font-size="7.5" letter-spacing="2" fill="#8296b8">03 / ENSAYO &amp; FILOSOFÍA</text>
+                <text x="580" y="466" font-family="ui-monospace,monospace" font-size="7.5" letter-spacing="1.5" fill="#67779a" text-anchor="end">ESTANTE C</text>
+              </g>
+
+              <!-- Motas de polvo en primer plano -->
+              <g fill="#cfe1fa" style="pointer-events:none">
+                <circle class="mota-fg" cx="130" cy="92" r="1.5" opacity=".38"/>
+                <circle class="mota-fg" cx="390" cy="118" r="1.2" opacity=".32" style="animation-delay:-3s"/>
+                <circle class="mota-fg" cx="250" cy="240" r="1.7" opacity=".34" style="animation-delay:-6s"/>
+                <circle class="mota-fg" cx="480" cy="266" r="1.3" opacity=".3" style="animation-delay:-2s"/>
+                <circle class="mota-fg" cx="185" cy="390" r="1.4" opacity=".28" style="animation-delay:-4s"/>
+                <circle class="mota-fg" cx="440" cy="402" r="1.6" opacity=".35" style="animation-delay:-8s"/>
+              </g>
+            </svg>
+
+            <!-- Micro-HUD brutalista conectado al lomo activo -->
+            <div class="shelf-hud" id="shelfHud" aria-live="polite">
+              <div class="shelf-hud-left">
+                <span class="shelf-hud-kicker" id="hudKicker">01 · FICCIÓN · PROTAGONISTA</span>
+                <span class="shelf-hud-title" id="hudTitle">El desierto de los tártaros — Dino Buzzati</span>
+              </div>
+              <span class="shelf-hud-meta" id="hudMeta">566 KB OFFLINE · CLICK ↓</span>
+            </div>
+          </div>
+          <div class="hero-scene-bar">
+            <span>pasá el mouse por un lomo</span>
+            <b>donde pasa la luz, se lee</b>
+          </div>
+        </div>
+      </div>
+      <div class="hero-specs" role="list" aria-label="Características de Ignit">
+        <div role="listitem"><span>curación</span><b>Revisión humana real</b></div>
+        <div role="listitem"><span>descarga</span><b>Selectiva · ~300 KB/libro</b></div>
+        <div role="listitem"><span>acceso</span><b>Leer sin cuenta</b></div>
+        <div role="listitem"><span>continuidad</span><b>Offline + sync PC ↔ Celu</b></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- II · EL CATÁLOGO + DESCARGA SELECTIVA OFFLINE -->
+<section class="capa" data-capa id="s2">
+  <div class="anim">
+    <p class="num">II · el catálogo</p>
+    <div class="cat-head">
+      <div>
+        <h2>Elegí qué descargar, <span class="azu">no instales todo.</span></h2>
+        <p class="lead">Cada libro publicado ya está limpio para Vigilia. Podés leer online sin cuenta o descargar solo los que llevás encima — livianos, en tu dispositivo.</p>
+      </div>
+      <div class="device-meter" aria-live="polite">
+        <div class="device-meter-row">
+          <span>En este dispositivo</span>
+          <b id="dlCount">2 libros · 746 KB</b>
+        </div>
+        <div class="meter-bar"><i id="dlBar"></i></div>
+      </div>
+    </div>
+
+    <div class="cat-controls">
+      <div class="filtros" role="group" aria-label="Filtrar por categoría">
+        <button class="chip" data-filtro="*" data-activa="true" aria-pressed="true" type="button">Todos</button>
+        <button class="chip" data-filtro="ficcion" aria-pressed="false" type="button">Ficción</button>
+        <button class="chip" data-filtro="tecnico" aria-pressed="false" type="button">Técnico</button>
+        <button class="chip" data-filtro="ensayo" aria-pressed="false" type="button">Ensayo</button>
+        <button class="chip" data-filtro="filosofia" aria-pressed="false" type="button">Filosofía</button>
+      </div>
+      <input class="cat-search" id="catSearch" type="search" placeholder="Buscar título o autor…" aria-label="Buscar en el catálogo">
+    </div>
+    <div class="sr-only" id="catLive" aria-live="polite"></div>
+
+    <div class="rejilla" id="rejilla">
+      <!-- 01 · El desierto de los tártaros (Fortaleza Bastiani + horizonte) -->
+      <article class="tomo" data-cat="ficcion" data-kb="566" data-offline="true" data-search="el desierto de los tartaros dino buzzati">
+        <a class="tomo-tapa" href="#s4">
+          <svg class="tomo-art" viewBox="0 0 240 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+            <defs>
+              <linearGradient id="cov1-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b1224"/><stop offset="65%" stop-color="#172748"/><stop offset="100%" stop-color="#060912"/></linearGradient>
+              <radialGradient id="cov1-sun" cx="68%" cy="28%" r="34%"><stop offset="0%" stop-color="#9fc0ee" stop-opacity=".42"/><stop offset="55%" stop-color="#5f86c9" stop-opacity=".12"/><stop offset="100%" stop-color="#5f86c9" stop-opacity="0"/></radialGradient>
+            </defs>
+            <rect width="240" height="300" fill="url(#cov1-sky)"/>
+            <rect width="240" height="220" fill="url(#cov1-sun)"/>
+            <circle cx="164" cy="84" r="14" fill="#9fc0ee" opacity=".28"/>
+            <circle cx="164" cy="84" r="7" fill="#e6edf7" opacity=".55"/>
+            <path d="M0 176 Q65 164 128 175 T240 168 L240 300 L0 300 Z" fill="#0b1222"/>
+            <path d="M46 174 L46 112 L58 112 L58 122 L70 122 L70 100 L86 100 L86 122 L98 122 L98 134 L126 134 L126 174 Z" fill="#13203d" stroke="#5f86c9" stroke-width="1"/>
+            <rect x="75" y="108" width="6" height="12" fill="#9fc0ee" opacity=".75"/>
+            <path d="M0 198 Q90 186 170 202 T240 196 L240 300 L0 300 Z" fill="#070b15" stroke="#232941" stroke-width=".8"/>
+          </svg>
+          <div class="tomo-top"><span class="tomo-idx">01</span><span class="tomo-badge">offline ✓</span></div>
+          <div class="tomo-copy">
+            <div class="tomo-editorial">colección · vigilia</div>
+            <div class="tomo-titulo">El desierto de los tártaros</div>
+            <div class="tomo-autor">Dino Buzzati</div>
+          </div>
+        </a>
+        <div class="tomo-foot">
+          <div class="tomo-meta"><span class="cat">Ficción</span><span class="peso">214 p · 566 KB</span></div>
+          <button class="btn-dl" type="button">Quitar</button>
+        </div>
+      </article>
+
+      <!-- 02 · El elogio de la sombra (Shoji + haz rasante + cuenco) -->
+      <article class="tomo" data-cat="ensayo" data-kb="180" data-offline="true" data-search="el elogio de la sombra junichiro tanizaki">
+        <a class="tomo-tapa" href="#s4">
+          <svg class="tomo-art" viewBox="0 0 240 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+            <defs>
+              <linearGradient id="cov2-beam" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#9fc0ee" stop-opacity=".35"/><stop offset="65%" stop-color="#5f86c9" stop-opacity=".08"/><stop offset="100%" stop-color="#04050a" stop-opacity="0"/></linearGradient>
+            </defs>
+            <rect width="240" height="300" fill="#060911"/>
+            <g stroke="#232941" stroke-width="1" opacity=".8">
+              <rect x="28" y="34" width="184" height="156" fill="#090f1d"/>
+              <line x1="89" y1="34" x2="89" y2="190"/><line x1="151" y1="34" x2="151" y2="190"/>
+              <line x1="28" y1="86" x2="212" y2="86"/><line x1="28" y1="138" x2="212" y2="138"/>
+            </g>
+            <polygon points="89,34 151,34 218,220 42,220" fill="url(#cov2-beam)"/>
+            <path d="M88 168 Q120 198 152 168 Z" fill="#16233f" stroke="#9fc0ee" stroke-width="1"/>
+            <ellipse cx="120" cy="168" rx="32" ry="6" fill="#0b1223" stroke="#9fc0ee" stroke-width="1"/>
+            <path d="M104 167 Q120 172 138 167" fill="none" stroke="#e6edf7" stroke-width="1.2" opacity=".7"/>
+          </svg>
+          <div class="tomo-top"><span class="tomo-idx">02</span><span class="tomo-badge">offline ✓</span></div>
+          <div class="tomo-copy">
+            <div class="tomo-editorial">ensayo · penumbra</div>
+            <div class="tomo-titulo">El elogio de la sombra</div>
+            <div class="tomo-autor">Junichiro Tanizaki</div>
+          </div>
+        </a>
+        <div class="tomo-foot">
+          <div class="tomo-meta"><span class="cat">Ensayo</span><span class="peso">92 p · 180 KB</span></div>
+          <button class="btn-dl" type="button">Quitar</button>
+        </div>
+      </article>
+
+      <!-- 03 · La muerte de Iván Ilich (Llama tenue en marco de sala) -->
+      <article class="tomo" data-cat="ficcion" data-kb="218" data-offline="false" data-search="la muerte de ivan ilich lev tolstoi">
+        <a class="tomo-tapa" href="#s4">
+          <svg class="tomo-art" viewBox="0 0 240 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+            <defs>
+              <radialGradient id="cov3-glow" cx="50%" cy="42%" r="36%"><stop offset="0%" stop-color="#e6edf7" stop-opacity=".42"/><stop offset="45%" stop-color="#5f86c9" stop-opacity=".18"/><stop offset="100%" stop-color="#05070e" stop-opacity="0"/></radialGradient>
+            </defs>
+            <rect width="240" height="300" fill="#070a14"/>
+            <rect x="26" y="28" width="188" height="196" fill="none" stroke="#232941" stroke-width="1"/>
+            <rect x="42" y="44" width="156" height="164" fill="none" stroke="#344064" stroke-width="1"/>
+            <circle cx="120" cy="126" r="78" fill="url(#cov3-glow)"/>
+            <rect x="114" y="138" width="12" height="54" fill="#1a2644" stroke="#5f86c9" stroke-width="1"/>
+            <path d="M120 104 C127 116 126 130 120 134 C114 130 113 116 120 104 Z" fill="#9fc0ee"/>
+            <path d="M120 114 C123 121 123 129 120 132 C117 129 117 121 120 114 Z" fill="#e6edf7"/>
+          </svg>
+          <div class="tomo-top"><span class="tomo-idx">03</span><span class="tomo-badge">nube</span></div>
+          <div class="tomo-copy">
+            <div class="tomo-editorial">clásicos · rusia</div>
+            <div class="tomo-titulo">La muerte de Iván Ilich</div>
+            <div class="tomo-autor">Lev Tolstói</div>
+          </div>
+        </a>
+        <div class="tomo-foot">
+          <div class="tomo-meta"><span class="cat">Ficción</span><span class="peso">118 p · 218 KB</span></div>
+          <button class="btn-dl" type="button">↓ Descargar</button>
+        </div>
+      </article>
+
+      <!-- 04 · Las intermitencias de la muerte (Línea rota + pausa tipográfica) -->
+      <article class="tomo" data-cat="ficcion" data-kb="415" data-offline="false" data-search="las intermitencias de la muerte jose saramago">
+        <a class="tomo-tapa" href="#s4">
+          <svg class="tomo-art" viewBox="0 0 240 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+            <rect width="240" height="300" fill="#080c18"/>
+            <circle cx="120" cy="126" r="64" fill="none" stroke="#232941" stroke-width="1" stroke-dasharray="4 6"/>
+            <circle cx="120" cy="126" r="42" fill="none" stroke="#5f86c9" stroke-width="1.2" opacity=".7"/>
+            <line x1="120" y1="24" x2="120" y2="108" stroke="#9fc0ee" stroke-width="2"/>
+            <line x1="120" y1="146" x2="120" y2="210" stroke="#5f86c9" stroke-width="2" stroke-dasharray="3 5"/>
+            <circle cx="120" cy="126" r="5" fill="#e6edf7"/>
+            <line x1="48" y1="126" x2="96" y2="126" stroke="#344064" stroke-width="1"/>
+            <line x1="144" y1="126" x2="192" y2="126" stroke="#344064" stroke-width="1"/>
+          </svg>
+          <div class="tomo-top"><span class="tomo-idx">04</span><span class="tomo-badge">nube</span></div>
+          <div class="tomo-copy">
+            <div class="tomo-editorial">narrativa · iberia</div>
+            <div class="tomo-titulo">Las intermitencias de la muerte</div>
+            <div class="tomo-autor">José Saramago</div>
+          </div>
+        </a>
+        <div class="tomo-foot">
+          <div class="tomo-meta"><span class="cat">Ficción</span><span class="peso">248 p · 415 KB</span></div>
+          <button class="btn-dl" type="button">↓ Descargar</button>
+        </div>
+      </article>
+
+      <!-- 05 · La programación como construcción de teorías (Grafo vivo de nodos) -->
+      <article class="tomo" data-cat="tecnico" data-kb="84" data-offline="false" data-search="la programacion como construccion de teorias peter naur">
+        <a class="tomo-tapa" href="#s4">
+          <svg class="tomo-art" viewBox="0 0 240 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+            <rect width="240" height="300" fill="#060a14"/>
+            <g stroke="#1b243b" stroke-width=".8">
+              <line x1="0" y1="70" x2="240" y2="70"/><line x1="0" y1="120" x2="240" y2="120"/><line x1="0" y1="170" x2="240" y2="170"/>
+              <line x1="60" y1="0" x2="60" y2="230"/><line x1="120" y1="0" x2="120" y2="230"/><line x1="180" y1="0" x2="180" y2="230"/>
+            </g>
+            <g stroke="#5f86c9" stroke-width="1.3" opacity=".85">
+              <line x1="64" y1="88" x2="126" y2="66"/><line x1="126" y1="66" x2="176" y2="112"/>
+              <line x1="64" y1="88" x2="96" y2="148"/><line x1="96" y1="148" x2="176" y2="112"/>
+              <line x1="96" y1="148" x2="152" y2="178"/><line x1="126" y1="66" x2="96" y2="148"/>
+            </g>
+            <circle cx="64" cy="88" r="5" fill="#9fc0ee"/><circle cx="126" cy="66" r="6" fill="#e6edf7"/>
+            <circle cx="176" cy="112" r="5" fill="#9fc0ee"/><circle cx="96" cy="148" r="7" fill="#5f86c9" stroke="#e6edf7" stroke-width="1.4"/>
+            <circle cx="152" cy="178" r="4.5" fill="#8296b8"/>
+          </svg>
+          <div class="tomo-top"><span class="tomo-idx">05</span><span class="tomo-badge">nube</span></div>
+          <div class="tomo-copy">
+            <div class="tomo-editorial">paper · ingeniería</div>
+            <div class="tomo-titulo">La programación como construcción de teorías</div>
+            <div class="tomo-autor">Peter Naur</div>
+          </div>
+        </a>
+        <div class="tomo-foot">
+          <div class="tomo-meta"><span class="cat">Técnico</span><span class="peso">32 p · 84 KB</span></div>
+          <button class="btn-dl" type="button">↓ Descargar</button>
+        </div>
+      </article>
+
+      <!-- 06 · Sistemas operativos modernos (Anillos de kernel y arquitectura) -->
+      <article class="tomo" data-cat="tecnico" data-kb="1480" data-offline="false" data-search="sistemas operativos modernos andrew tanenbaum">
+        <a class="tomo-tapa" href="#s4">
+          <svg class="tomo-art" viewBox="0 0 240 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+            <rect width="240" height="300" fill="#070c18"/>
+            <circle cx="120" cy="122" r="78" fill="none" stroke="#232941" stroke-width="1.2"/>
+            <circle cx="120" cy="122" r="58" fill="#0b1326" stroke="#3c5488" stroke-width="1.2"/>
+            <circle cx="120" cy="122" r="38" fill="#111d38" stroke="#5f86c9" stroke-width="1.4"/>
+            <circle cx="120" cy="122" r="18" fill="#5f86c9" opacity=".28" stroke="#9fc0ee" stroke-width="1.4"/>
+            <circle cx="120" cy="122" r="5" fill="#e6edf7"/>
+            <line x1="120" y1="36" x2="120" y2="208" stroke="#232941" stroke-width="1"/>
+            <line x1="34" y1="122" x2="206" y2="122" stroke="#232941" stroke-width="1"/>
+            <text x="120" y="75" font-family="ui-monospace,monospace" font-size="6.5" letter-spacing="1.5" fill="#8296b8" text-anchor="middle">RING 0 · KERNEL</text>
+          </svg>
+          <div class="tomo-top"><span class="tomo-idx">06</span><span class="tomo-badge">nube</span></div>
+          <div class="tomo-copy">
+            <div class="tomo-editorial">tratado · sistemas</div>
+            <div class="tomo-titulo">Sistemas operativos modernos (3ª ed.)</div>
+            <div class="tomo-autor">Andrew S. Tanenbaum</div>
+          </div>
+        </a>
+        <div class="tomo-foot">
+          <div class="tomo-meta"><span class="cat">Técnico</span><span class="peso">1076 p · 1.4 MB</span></div>
+          <button class="btn-dl" type="button">↓ Descargar</button>
+        </div>
+      </article>
+
+      <!-- 07 · Cántico por Leibowitz (Arco monástico + manuscrito estelar) -->
+      <article class="tomo" data-cat="ficcion" data-kb="1050" data-offline="false" data-search="cantico por leibowitz walter miller">
+        <a class="tomo-tapa" href="#s4">
+          <svg class="tomo-art" viewBox="0 0 240 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+            <rect width="240" height="300" fill="#070a14"/>
+            <path d="M54 206 L54 114 A66 66 0 0 1 186 114 L186 206 Z" fill="#0d152a" stroke="#3c5488" stroke-width="1.2"/>
+            <path d="M72 206 L72 118 A48 48 0 0 1 168 118 L168 206" fill="none" stroke="#5f86c9" stroke-width="1" opacity=".6"/>
+            <circle cx="120" cy="98" r="3" fill="#e6edf7"/><circle cx="96" cy="84" r="1.5" fill="#9fc0ee"/><circle cx="148" cy="86" r="1.5" fill="#9fc0ee"/>
+            <rect x="96" y="122" width="48" height="60" fill="#152342" stroke="#9fc0ee" stroke-width="1.1"/>
+            <line x1="104" y1="136" x2="136" y2="136" stroke="#9fc0ee" stroke-width="1.2"/>
+            <line x1="104" y1="146" x2="132" y2="146" stroke="#5f86c9" stroke-width="1"/>
+            <line x1="104" y1="156" x2="136" y2="156" stroke="#5f86c9" stroke-width="1"/>
+          </svg>
+          <div class="tomo-top"><span class="tomo-idx">07</span><span class="tomo-badge">nube</span></div>
+          <div class="tomo-copy">
+            <div class="tomo-editorial">ciencia ficción · abadía</div>
+            <div class="tomo-titulo">Cántico por Leibowitz</div>
+            <div class="tomo-autor">Walter M. Miller Jr.</div>
+          </div>
+        </a>
+        <div class="tomo-foot">
+          <div class="tomo-meta"><span class="cat">Ficción</span><span class="peso">368 p · 1.0 MB</span></div>
+          <button class="btn-dl" type="button">↓ Descargar</button>
+        </div>
+      </article>
+
+      <!-- 08 · Hombres y engranajes (Engranajes rotos + silueta) -->
+      <article class="tomo" data-cat="filosofia" data-kb="171" data-offline="false" data-search="hombres y engranajes ernesto sabato">
+        <a class="tomo-tapa" href="#s4">
+          <svg class="tomo-art" viewBox="0 0 240 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+            <rect width="240" height="300" fill="#060913"/>
+            <g transform="translate(132,118)" fill="none" stroke="#3c5488">
+              <circle r="48" stroke-width="1.2" stroke-dasharray="10 6"/>
+              <circle r="34" stroke="#5f86c9" stroke-width="1.2"/>
+              <circle r="14" stroke="#9fc0ee" stroke-width="1"/>
+            </g>
+            <g transform="translate(76,154)" fill="none" stroke="#232941">
+              <circle r="28" stroke-width="1.2" stroke-dasharray="7 5"/>
+              <circle r="14" stroke="#5f86c9" stroke-width="1"/>
+            </g>
+            <line x1="36" y1="186" x2="204" y2="74" stroke="#9fc0ee" stroke-width="1" opacity=".55"/>
+            <circle cx="132" cy="118" r="4" fill="#e6edf7"/>
+          </svg>
+          <div class="tomo-top"><span class="tomo-idx">08</span><span class="tomo-badge">nube</span></div>
+          <div class="tomo-copy">
+            <div class="tomo-editorial">filosofía · técnica</div>
+            <div class="tomo-titulo">Hombres y engranajes</div>
+            <div class="tomo-autor">Ernesto Sabato</div>
+          </div>
+        </a>
+        <div class="tomo-foot">
+          <div class="tomo-meta"><span class="cat">Filosofía</span><span class="peso">126 p · 171 KB</span></div>
+          <button class="btn-dl" type="button">↓ Descargar</button>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- III · SUBIR UN LIBRO (PIPELINE REAL DE 4 PASOS) -->
+<section class="capa" data-capa id="s3">
+  <div class="anim">
+    <p class="num">III · publicar en el catálogo</p>
+    <div class="pipe-grid">
+      <div>
+        <h2>¿Querés subir un libro?<br><span class="azu">Cuatro filtros hasta el estante.</span></h2>
+        <p class="lead">Todo aporte queda público para la comunidad, pero nada entra sin pasar por seguridad, extracción y validación de formato.</p>
+
+        <div class="pasos" id="pasos">
+          <div class="paso" data-step="1" data-activo="true" role="button" tabindex="0" aria-pressed="true">
+            <span class="paso-num">01</span>
+            <div>
+              <div class="paso-tag">Standby <small>seguridad + gate humano</small></div>
+              <p>El PDF entra en cuarentena. Se analiza estructura, scripts ocultos y duplicados por hash antes de aprobarlo.</p>
+            </div>
+          </div>
+          <div class="paso" data-step="2" role="button" tabindex="0" aria-pressed="false">
+            <span class="paso-num">02</span>
+            <div>
+              <div class="paso-tag">En curso <small>scrapeo automático</small></div>
+              <p>Aprobado el archivo, el extractor procesa páginas, párrafos y capítulos para generar el documento liviano de Vigilia.</p>
+            </div>
+          </div>
+          <div class="paso" data-step="3" role="button" tabindex="0" aria-pressed="false">
+            <span class="paso-num">03</span>
+            <div>
+              <div class="paso-tag">Tested <small>QA de formato + categoría</small></div>
+              <p>Se previsualiza dentro de Vigilia para verificar que el formato salga limpio y confirmar su categoría definitiva.</p>
+            </div>
+          </div>
+          <div class="paso" data-step="4" role="button" tabindex="0" aria-pressed="false">
+            <span class="paso-num">04</span>
+            <div>
+              <div class="paso-tag">Catálogo <small>publicado para todos</small></div>
+              <p>El libro aparece en su categoría, listo para leer online o descargar offline desde cualquier dispositivo.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="acciones">
+          <a class="cta" href="/biblioteca">Subir un libro</a>
+          <a class="quiet" href="/registro">Crear cuenta para aportar</a>
+        </div>
+      </div>
+
+      <figure class="panel-marco">
+        <svg viewBox="0 0 640 460" role="img" aria-label="Río de tinta luminosa atravesando las cuatro estaciones del pipeline desde standby hasta el libro publicado en el catálogo">
+          <defs>
+            <linearGradient id="g-pipe-rio" x1="0%" y1="15%" x2="100%" y2="85%">
+              <stop offset="0%" stop-color="#16203a" stop-opacity=".28"/>
+              <stop offset="30%" stop-color="#2a3a5e" stop-opacity=".55"/>
+              <stop offset="65%" stop-color="#5f86c9" stop-opacity=".85"/>
+              <stop offset="100%" stop-color="#9fc0ee" stop-opacity="1"/>
+            </linearGradient>
+            <linearGradient id="g-pipe-corriente" x1="0%" y1="15%" x2="100%" y2="85%">
+              <stop offset="0%" stop-color="#3c4f7d" stop-opacity=".2"/>
+              <stop offset="38%" stop-color="#5f86c9" stop-opacity=".65"/>
+              <stop offset="72%" stop-color="#9fc0ee" stop-opacity=".95"/>
+              <stop offset="100%" stop-color="#e6edf7" stop-opacity="1"/>
+            </linearGradient>
+            <radialGradient id="g-pipe-desembocadura" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#9fc0ee" stop-opacity=".35"/>
+              <stop offset="100%" stop-color="#9fc0ee" stop-opacity="0"/>
+            </radialGradient>
+            <linearGradient id="g-pipe-manuscrito" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#1b2842"/><stop offset="100%" stop-color="#111827"/>
+            </linearGradient>
+          </defs>
+          <rect width="640" height="460" fill="#06080f"/>
+          <path d="M40 86 C140 86 160 162 240 172 C330 184 320 250 400 258 C480 266 470 326 556 334"
+                fill="none" stroke="url(#g-pipe-rio)" stroke-width="26" stroke-linecap="round" opacity=".32"/>
+          <path d="M40 86 C140 86 160 162 240 172 C330 184 320 250 400 258 C480 266 470 326 556 334"
+                fill="none" stroke="url(#g-pipe-corriente)" stroke-width="6.5" stroke-linecap="round"/>
+          <ellipse cx="548" cy="332" rx="118" ry="84" fill="url(#g-pipe-desembocadura)" class="respira"/>
+
+          <!-- Estación 1: Standby -->
+          <g class="estacion" data-est="1" data-lit="true" transform="translate(132,96)">
+            <circle class="ring" r="17" fill="#0b1120" stroke="#5f86c9" stroke-width="1.4"/>
+            <circle r="4.5" fill="#9fc0ee"/>
+            <text y="-26" font-family="ui-monospace,monospace" font-size="10" letter-spacing="2" fill="#9fc0ee" text-anchor="middle">01 · STANDBY</text>
+            <text y="34" font-family="Georgia,serif" font-size="11" font-style="italic" fill="#8296b8" text-anchor="middle">cuarentena y seguridad</text>
+          </g>
+
+          <!-- Estación 2: En curso -->
+          <g class="estacion" data-est="2" transform="translate(268,176)">
+            <circle class="ring" r="17" fill="#0b1120" stroke="#5f86c9" stroke-width="1.4"/>
+            <circle r="11" fill="none" stroke="#8296b8" stroke-width="1" stroke-dasharray="3 3"/>
+            <circle r="4" fill="#9fc0ee"/>
+            <text y="-26" font-family="ui-monospace,monospace" font-size="10" letter-spacing="2" fill="#8296b8" text-anchor="middle">02 · EN CURSO</text>
+            <text y="34" font-family="Georgia,serif" font-size="11" font-style="italic" fill="#8296b8" text-anchor="middle">scrapeo del PDF</text>
+          </g>
+
+          <!-- Estación 3: Tested -->
+          <g class="estacion" data-est="3" transform="translate(402,256)">
+            <circle class="ring" r="19" fill="#101728" stroke="#5f86c9" stroke-width="1.5"/>
+            <circle r="13" fill="none" stroke="#9fc0ee" stroke-width="1" stroke-dasharray="3 3" opacity=".85"/>
+            <circle r="4.5" fill="#9fc0ee"/>
+            <text y="-28" font-family="ui-monospace,monospace" font-size="10" letter-spacing="2" fill="#9fc0ee" text-anchor="middle">03 · TESTED</text>
+            <text y="36" font-family="Georgia,serif" font-size="11" font-style="italic" fill="#8296b8" text-anchor="middle">formato en Vigilia</text>
+          </g>
+
+          <!-- Estación 4: Catálogo -->
+          <g class="estacion" data-est="4" transform="translate(534,332)">
+            <g transform="translate(0,-10)">
+              <path class="ring" d="M-36 10 C-18 -2 0 -2 0 10 C0 -2 18 -2 36 10 L34 32 C18 20 0 20 0 32 C0 20 -18 20 -34 32 Z" fill="url(#g-pipe-manuscrito)" stroke="#9fc0ee" stroke-width="1.4"/>
+              <line x1="0" y1="9" x2="0" y2="32" stroke="#5f86c9" stroke-width="1.2"/>
+              <g stroke="#9fc0ee" stroke-width="1.2" stroke-linecap="round" opacity=".85">
+                <line x1="-25" y1="12" x2="-8" y2="8"/><line x1="-25" y1="18" x2="-6" y2="14"/><line x1="-25" y1="24" x2="-10" y2="20"/>
+                <line x1="8" y1="8" x2="25" y2="12"/><line x1="6" y1="14" x2="25" y2="18"/><line x1="10" y1="20" x2="25" y2="24"/>
+              </g>
+            </g>
+            <text y="-26" font-family="ui-monospace,monospace" font-size="10" letter-spacing="2" fill="#e6edf7" text-anchor="middle">04 · CATÁLOGO</text>
+            <text y="42" font-family="Georgia,serif" font-size="11" font-style="italic" fill="#9fc0ee" text-anchor="middle">publicado por categoría</text>
+          </g>
+        </svg>
+        <figcaption class="panel-caption">
+          <span>pasá el mouse por cada paso</span>
+          <b id="pipeActiveLabel">01 · standby — cuarentena</b>
+        </figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- IV · VIGILIA REAL (APP EMBEBIDA, NO DEMO MAQUETADA) -->
+<section class="capa" data-capa id="s4">
+  <div class="anim vigilia-wrap">
+    <p class="num">IV · el modo vigilia</p>
+    <div class="vigilia-head">
+      <div>
+        <h2>Probalo <span class="azu">en la app real.</span></h2>
+        <p class="lead">Sin capturas ni maquetas: acá corre el lector real de Vigilia con atmósfera, subrayados, léxico, índice, temporizador y foco.</p>
+      </div>
+      <a class="cta-sec" href="/lecturas/4" target="_blank" rel="noopener">Abrir pantalla completa ↗</a>
+    </div>
+
+    <div class="embed-shell">
+      <div class="embed-bar">
+        <div class="embed-bar-left">
+          <span class="embed-live">lector real embebido</span>
+          <span>· componente vigilia (Astro / Solid)</span>
+        </div>
+        <div class="embed-bar-right">
+          <input class="embed-url" id="embedUrlInput" type="url" value="http://localhost:4321/lecturas/4" placeholder="URL local o prod de Vigilia…" aria-label="URL del lector real para previsualizar">
+          <button class="embed-btn" id="embedLoadBtn" type="button">Cargar en vivo</button>
+        </div>
+      </div>
+
+      <div class="embed-viewport" id="embedViewport" data-loaded="false">
+        <iframe id="embedIframe" title="Lector Vigilia real embebido" loading="lazy"></iframe>
+        <div class="embed-placeholder">
+          <span class="tag">handoff de implementación · sin demo falsa</span>
+          <h3>Acá se monta el lector real de Vigilia</h3>
+          <p>En producción, esta ventana monta directamente el componente real (<code>ReaderAtmosphere</code>, <code>ReaderTopbar</code>, <code>ReaderStage</code>, <code>ReaderMargins</code>, <code>ReaderDecks</code> y <code>ReaderVigiliaOverlays</code>) en modo embebido sobre un libro curado del catálogo, guardando cambios de prueba en <code>sessionStorage</code>.</p>
+          <div class="embed-chips">
+            <span>atmósfera + grano real</span>
+            <span>subrayados y léxico</span>
+            <span>capítulos y atajos</span>
+            <span>temporizador</span>
+            <span>modo inmersión</span>
+          </div>
+          <p style="font-family:var(--mono);font-size:10.5px;color:var(--ghost);margin-bottom:0">Si tenés el dev server o prod abierto, tocá «Cargar en vivo» arriba para previsualizar la app real dentro de este marco.</p>
+        </div>
+      </div>
+
+      <div class="embed-foot">
+        <span>producción: componente real en modo <b>embedded=true</b></span>
+        <b>misma experiencia que /lecturas/:id</b>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- V · EL VIAJE: PC ↔ CELU PWA (INTERACTIVO) -->
+<section class="capa" data-capa id="s5">
+  <div class="anim">
+    <p class="num">V · en cualquier pantalla</p>
+    <div class="viaje-head">
+      <div>
+        <h2>La página <span id="vTitlePage">98</span> <span class="azu">viaja con vos.</span></h2>
+        <p class="lead">Probá cortar la conexión: seguís pasando páginas en el celular sin señal, y cuando vuelve la red el escritorio se pone al día solo.</p>
+      </div>
+      <div class="net-controls" role="group" aria-label="Simular conexión">
+        <button class="net-btn" id="btnOnline" data-active="true" type="button"><span class="net-dot"></span>En línea</button>
+        <button class="net-btn" id="btnOffline" data-offline-btn="true" data-active="false" type="button"><span class="net-dot"></span>Modo avión (bondi)</button>
+      </div>
+    </div>
+
+    <div class="viaje-stage" id="viajeStage" data-offline="false">
+      <div class="viaje-canvas">
+        <!-- Desktop -->
+        <div class="frame-desktop">
+          <div class="desk-bar">
+            <span class="desk-dots"><i></i><i></i><i></i></span>
+            <span>ignit.app/lecturas/4</span>
+            <span class="desk-status" id="deskStatus">● sincronizado</span>
+          </div>
+          <div class="desk-subbar">
+            <span>El desierto de los tártaros</span>
+            <span>capítulo xi</span>
+          </div>
+          <div class="desk-body">
+            <div>
+              <p class="cap">escritorio · sesión web</p>
+              <p class="linea" id="deskText">…miró hacia el norte, donde la llanura se borraba en la niebla. <span class="en-focus">Nadie encendió otra lámpara:</span> la única luz era la del escritorio, y sobre ella las páginas esperaban quietas el paso de las horas…</p>
+              <div class="desk-note" id="deskNote">Estado: al día con tu teléfono · último sync recién</div>
+            </div>
+            <div class="pie-pag">
+              <span>PÁG <b id="deskPage">98</b> / 214 · <span id="deskPct">46%</span></span>
+              <span class="mini" aria-hidden="true"><i id="deskBar"></i></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hilo de sincronización horizontal -->
+        <div class="sync-bridge" aria-hidden="true">
+          <div class="sync-line"><span class="sync-pulse"></span></div>
+          <span class="sync-tag" id="syncTag">sync activo</span>
+        </div>
+
+        <!-- Smartphone PWA vertical real -->
+        <div class="frame-phone">
+          <div class="phone-notch" aria-hidden="true"></div>
+          <div class="phone-screen">
+            <div class="phone-status">
+              <span>19:42 · bondi</span>
+              <span class="phone-pill" id="phonePill">en línea</span>
+            </div>
+            <div class="phone-appbar">
+              <b>熒 IGNIT · PWA</b>
+              <span>566 KB local</span>
+            </div>
+            <div class="phone-body">
+              <div>
+                <p class="linea" id="phoneText"><span class="en-focus">Nadie encendió otra lámpara:</span> la única luz era la del escritorio, y sobre ella las páginas esperaban quietas…</p>
+                <div class="phone-queue">
+                  <span>IndexedDB</span>
+                  <b id="phoneQueue">al día ✓</b>
+                </div>
+              </div>
+              <div class="pie-pag">
+                <span>PÁG <b id="phonePage">98</b> / 214</span>
+                <span id="phonePct">46%</span>
+              </div>
+            </div>
+            <div class="phone-controls">
+              <button class="phone-act" id="phonePrev" type="button">‹ Pág ant</button>
+              <button class="phone-act" id="phoneNext" type="button">Leer +1 ›</button>
+            </div>
+          </div>
+          <div class="phone-home" aria-hidden="true"></div>
+        </div>
+      </div>
+
+      <div class="viaje-specs">
+        <div><span>en tu dispositivo</span><b>IndexedDB · ~300 KB por libro</b></div>
+        <div><span>sin conexión</span><b>Lectura, subrayados y notas 100% locales</b></div>
+        <div><span>al reconectar</span><b>Cola automática: la PC salta adonde quedaste</b></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- VI · CIERRE -->
+<section class="capa" data-capa id="s6">
+  <div class="anim">
+    <div class="cierre-box">
+      <p class="num" style="justify-content:center;margin-bottom:18px">VI · empezar</p>
+      <span class="sello" style="width:44px;height:44px;font-size:20px;margin-bottom:16px" aria-hidden="true">熒</span>
+      <h2>Instalá una vez.<br><span class="azu">Descargá solo lo que leés.</span></h2>
+      <p class="lead">App liviana sin tiendas ni ruido. Catálogo curado por categoría, lectura offline y progreso sincronizado entre tus dispositivos.</p>
+      <div class="acciones">
+        <a class="cta" href="#s2">Explorar catálogo</a>
+        <a class="cta-sec" href="/registro">Crear cuenta</a>
+        <a class="quiet" href="/biblioteca">Subir un libro</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <span>Ignit — biblioteca comunitaria · modo vigilia</span>
+  <span><a href="#s2">catálogo</a> · <a href="#s3">publicar</a> · <a href="#s4">vigilia</a> · <a href="/login">entrar</a></span>
+</footer>
+
+<script>
+(function(){
+  /* Lámpara reactiva + hilo global + mecha */
+  var lamp=document.getElementById('lampara'),x=innerWidth*0.65,y=innerHeight*0.32,tx=x,ty=y;
+  var foco1=document.getElementById('eco-foco');
+  var caps=Array.prototype.slice.call(document.querySelectorAll('[data-capa]'));
+  var mecha=document.getElementById('mecha-aguja'),hilo=document.getElementById('hilo');
+  addEventListener('pointermove',function(e){tx=e.clientX;ty=e.clientY},{passive:true});
+  var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(!reduce){
+    (function seguir(){x+=(tx-x)*0.12;y+=(ty-y)*0.12;lamp.style.left=x+'px';lamp.style.top=y+'px';requestAnimationFrame(seguir)})();
+  }else{
+    lamp.style.opacity='0';
+    if(foco1)foco1.setAttribute('opacity','.35');
+  }
+  function revisar(){
+    var max=document.documentElement.scrollHeight-innerHeight;
+    var p=max>0?Math.min(1,Math.max(0,scrollY/max)):0;
+    hilo.style.width=(p*100).toFixed(1)+'%';
+    var lad=innerHeight*0.92;
+    caps.forEach(function(s,i){
+      var r=s.getBoundingClientRect();
+      var dentro=r.top<lad&&r.bottom>80;
+      if(dentro)s.classList.add('alumbrada');
+      if(r.top<innerHeight*0.55&&r.bottom>innerHeight*0.25){
+        mecha.style.top=(i*(84/Math.max(1,caps.length-1)))+'%';
+      }
+    });
+  }
+  addEventListener('scroll',revisar,{passive:true});revisar();
+
+  /* Estante orgánico + libros reales interactivos + micro-HUD */
+  var g=document.getElementById('estante-spines'),gR=document.getElementById('eco-rendijas'),cantos=[];
+  var hudKicker=document.getElementById('hudKicker'),hudTitle=document.getElementById('hudTitle'),hudMeta=document.getElementById('hudMeta');
+  var DEFAULT_HUD={kicker:'01 · FICCIÓN · PROTAGONISTA',title:'El desierto de los tártaros — Dino Buzzati',meta:'566 KB OFFLINE · CLICK ↓'};
+  function setHud(info){
+    hudKicker.textContent=info.kicker;
+    hudTitle.textContent=info.title;
+    hudMeta.textContent=info.meta;
+  }
+  if(g&&gR){
+    var NS='http://www.w3.org/2000/svg';
+    function el(dest,nombre,attr){var e=document.createElementNS(NS,nombre);for(var k in attr)e.setAttribute(k,attr[k]);dest.appendChild(e);return e}
+    var SHELVES=[
+      {
+        base:168,
+        items:[
+          {w:20,h:96},{w:16,h:84},{w:26,h:108,book:{idx:'03',cat:'ficcion',catLabel:'FICCIÓN',title:'La muerte de Iván Ilich',author:'Lev Tolstói',meta:'218 KB OFFLINE · CLICK ↓'}},
+          {w:18,h:92},{w:22,h:102},{w:30,h:118,featured:true,book:{idx:'01',cat:'ficcion',catLabel:'FICCIÓN · PROTAGONISTA',title:'El desierto de los tártaros',author:'Dino Buzzati',meta:'566 KB OFFLINE · CLICK ↓'}},
+          {w:17,h:90},{w:24,h:106,book:{idx:'04',cat:'ficcion',catLabel:'FICCIÓN',title:'Las intermitencias de la muerte',author:'José Saramago',meta:'415 KB OFFLINE · CLICK ↓'}},
+          {w:19,h:86},{gap:36},
+          {w:25,h:112,tilt:-11,book:{idx:'07',cat:'ficcion',catLabel:'FICCIÓN',title:'Cántico por Leibowitz',author:'Walter M. Miller Jr.',meta:'1.0 MB OFFLINE · CLICK ↓'}},
+          {w:18,h:98},{w:22,h:90},{w:20,h:104},{w:16,h:88},{w:24,h:96},{w:19,h:102},{w:21,h:92},{w:18,h:86}
+        ]
+      },
+      {
+        base:316,
+        items:[
+          {w:22,h:104},{w:18,h:94},{w:15,h:92,book:{idx:'05',cat:'tecnico',catLabel:'TÉCNICO',title:'La programación como construcción de teorías',author:'Peter Naur',meta:'84 KB OFFLINE · CLICK ↓'}},
+          {w:24,h:108},{w:36,h:122,book:{idx:'06',cat:'tecnico',catLabel:'TÉCNICO',title:'Sistemas operativos modernos (3ª ed.)',author:'Andrew S. Tanenbaum',meta:'1.4 MB OFFLINE · CLICK ↓'}},
+          {w:20,h:96},{w:17,h:88},{w:22,h:102},{w:19,h:92},{gap:22},
+          {stack:[{w:116,h:18},{w:102,h:16}]},
+          {gap:20},{w:20,h:98},{w:25,h:110},{w:18,h:90},{w:22,h:100}
+        ]
+      },
+      {
+        base:458,
+        items:[
+          {w:19,h:94},{w:23,h:106,book:{idx:'02',cat:'ensayo',catLabel:'ENSAYO',title:'El elogio de la sombra',author:'Junichiro Tanizaki',meta:'180 KB OFFLINE · CLICK ↓'}},
+          {w:17,h:88},{w:21,h:98},{w:16,h:86},{gap:34},
+          {w:22,h:104,tilt:9},{w:20,h:96},
+          {w:25,h:110,book:{idx:'08',cat:'filosofia',catLabel:'FILOSOFÍA',title:'Hombres y engranajes',author:'Ernesto Sabato',meta:'171 KB OFFLINE · CLICK ↓'}},
+          {w:18,h:92},{w:21,h:100},{w:19,h:88},{w:24,h:102},{w:17,h:94},{w:22,h:98},{w:20,h:90},{w:24,h:106},{w:18,h:88}
+        ]
+      }
+    ];
+
+    SHELVES.forEach(function(sh){
+      var px=22;
+      sh.items.forEach(function(it){
+        if(it.gap){
+          el(gR,'rect',{x:(px+2).toFixed(1),y:(sh.base-108).toFixed(1),width:(it.gap-4).toFixed(1),height:'108',fill:'#9fc0ee',opacity:'0.08'});
+          px+=it.gap;
+          return;
+        }
+        if(it.stack){
+          var sy=sh.base;
+          it.stack.forEach(function(st,idx){
+            sy-=st.h;
+            var sx=px+(idx*6);
+            el(g,'rect',{x:sx.toFixed(1),y:sy.toFixed(1),width:st.w,height:st.h,rx:'1.5',fill:'url(#g-eco-silueta)',stroke:'#232941','stroke-width':'1'});
+            var cTop=el(g,'rect',{x:(sx+3).toFixed(1),y:(sy+1).toFixed(1),width:(st.w-6),height:'2',fill:'#9fc0ee',opacity:'0.32'});
+            cantos.push({cx:sx+st.w/2,cy:sy,base:0.32,el:cTop});
+          });
+          px+=124;
+          return;
+        }
+        var bx=px,by=sh.base-it.h-(it.featured?10:0);
+        var wrap=el(g,'g',{});
+        if(it.tilt){
+          wrap.setAttribute('transform','rotate('+it.tilt+' '+(bx+it.w/2).toFixed(1)+' '+sh.base+')');
+        }
+        if(it.book){
+          wrap.setAttribute('class','lomo-real');
+          if(it.featured)wrap.setAttribute('data-featured','true');
+          wrap.setAttribute('tabindex','0');
+          wrap.setAttribute('role','button');
+          wrap.setAttribute('aria-label',it.book.title+' — '+it.book.author);
+        }
+        var fillUrl=it.featured?'url(#g-eco-featured)':(it.book?'url(#g-eco-real)':'url(#g-eco-silueta)');
+        var strokeCol=it.featured?'#9fc0ee':(it.book?'#3c5488':'#1e2740');
+        el(wrap,'rect',{x:bx.toFixed(1),y:by.toFixed(1),width:it.w.toFixed(1),height:it.h.toFixed(1),rx:'1.5',fill:fillUrl,stroke:strokeCol,'stroke-width':it.featured?'1.3':'1'});
+
+        /* Bandas / nervios editoriales en el lomo */
+        if(it.w>=18){
+          el(wrap,'line',{x1:(bx+3.5).toFixed(1),y1:(by+10).toFixed(1),x2:(bx+it.w-3.5).toFixed(1),y2:(by+10).toFixed(1),stroke:it.book?'#5f86c9':'#324268','stroke-width':'1',opacity:it.book?'0.75':'0.45'});
+          el(wrap,'line',{x1:(bx+3.5).toFixed(1),y1:(by+it.h-12).toFixed(1),x2:(bx+it.w-3.5).toFixed(1),y2:(by+it.h-12).toFixed(1),stroke:it.book?'#5f86c9':'#283452','stroke-width':'1',opacity:'0.5'});
+        }
+        if(it.book){
+          el(wrap,'text',{
+            x:(bx+it.w/2).toFixed(1),y:(by+23).toFixed(1),
+            'font-family':'ui-monospace,monospace','font-size':'7','letter-spacing':'1',
+            fill:it.featured?'#e6edf7':'#9fc0ee','text-anchor':'middle',opacity:it.featured?'0.95':'0.78'
+          }).textContent=it.book.idx;
+        }
+        var baseOpa=it.featured?0.92:(it.book?0.52:0.20);
+        var canto=el(wrap,'rect',{
+          class:it.book?'canto-real':'',
+          x:(bx+it.w-2.4).toFixed(1),y:(by+3).toFixed(1),width:'2.4',height:(it.h-6).toFixed(1),rx:'1',
+          fill:'#9fc0ee',opacity:baseOpa.toFixed(2)
+        });
+        cantos.push({cx:bx+it.w-1.2,cy:by+it.h/2,base:baseOpa,el:canto});
+
+        if(it.book){
+          (function(bookObj,node,isFeat,tiltDeg){
+            function hoverOn(){
+              if(!isFeat&&!tiltDeg)node.style.transform='translateY(-9px)';
+              setHud({kicker:bookObj.idx+' · '+bookObj.catLabel,title:bookObj.title+' — '+bookObj.author,meta:bookObj.meta});
+            }
+            function hoverOff(){
+              if(!isFeat&&!tiltDeg)node.style.transform='';
+              setHud(DEFAULT_HUD);
+            }
+            function goBook(){
+              var targetChip=document.querySelector('.chip[data-filtro="'+bookObj.cat+'"]');
+              if(targetChip)targetChip.click();
+              document.getElementById('s2').scrollIntoView({behavior:'smooth'});
+            }
+            node.addEventListener('mouseenter',hoverOn);
+            node.addEventListener('focus',hoverOn);
+            node.addEventListener('mouseleave',hoverOff);
+            node.addEventListener('blur',hoverOff);
+            node.addEventListener('click',goBook);
+            node.addEventListener('keydown',function(ev){
+              if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();goBook();}
+            });
+          })(it.book,wrap,it.featured,it.tilt);
+        }
+
+        px+=it.w+(it.tilt?7:3);
+      });
+    });
+  }
+
+  /* Polvo + foco en el estante (reactivo al puntero + respiración autónoma) */
+  var c=document.getElementById('escena'),ctx=c.getContext('2d');
+  function size(){c.width=innerWidth;c.height=innerHeight}size();addEventListener('resize',size,{passive:true});
+  var motas=[];for(var k=0;k<120;k++)motas.push({x:Math.random(),y:Math.random(),r:0.5+Math.random()*1.7,f:Math.random()*6.28,vx:0,vy:0});
+  function campo(){
+    var now=Date.now()*0.001;
+    ctx.clearRect(0,0,c.width,c.height);
+    for(var i=0;i<motas.length;i++){
+      var m=motas[i],px=m.x*c.width,py=m.y*c.height;
+      var dx=x-px,dy=y-py,d=Math.hypot(dx,dy);
+      if(d<250&&d>1){m.vx+=dx/d*0.01*(1-d/250);m.vy+=dy/d*0.01*(1-d/250)}
+      m.vx*=0.94;m.vy*=0.94;m.x+=m.vx*0.002+0.00005;m.y+=m.vy*0.002;
+      if(m.x>1)m.x-=1;if(m.x<0)m.x+=1;if(m.y>1)m.y-=1;if(m.y<0)m.y+=1;
+      var al=0.04+0.04*Math.sin(now+m.f)+(d<250?(1-d/250)*0.30:0);
+      ctx.beginPath();ctx.arc(m.x*c.width,m.y*c.height,m.r,0,6.283);
+      ctx.fillStyle='rgba(159,192,238,'+Math.min(0.45,al).toFixed(3)+')';ctx.fill();
+    }
+    if(foco1&&!reduce){
+      var r=foco1.ownerSVGElement.getBoundingClientRect();
+      if(r.width>0){
+        var dentro=x>r.left-30&&x<r.right+30&&y>r.top-20&&y<r.bottom+20;
+        var vx=dentro?((x-r.left)/r.width*600):(300+Math.sin(now*0.42)*170);
+        var vy=dentro?((y-r.top)/r.height*540):(210+Math.cos(now*0.31)*95);
+        foco1.setAttribute('cx',Math.max(40,Math.min(560,vx)).toFixed(1));
+        foco1.setAttribute('cy',Math.max(60,Math.min(460,vy)).toFixed(1));
+        foco1.setAttribute('opacity',dentro?'0.88':'0.52');
+        for(var j=0;j<cantos.length;j++){
+          var ct=cantos[j];
+          var d2=(vx-ct.cx)*(vx-ct.cx)+((vy-ct.cy)*(vy-ct.cy)*0.45);
+          var pul=Math.exp(-d2/(dentro?11000:16000));
+          ct.el.setAttribute('opacity',Math.min(0.98,ct.base+pul*(dentro?0.55:0.32)).toFixed(3));
+        }
+      }
+    }
+    requestAnimationFrame(campo);
+  }
+  if(!reduce)campo();
+
+  /* Catálogo: filtro categoría + búsqueda + descarga offline simulada */
+  var chips=document.querySelectorAll('.chip[data-filtro]');
+  var tomos=Array.prototype.slice.call(document.querySelectorAll('.tomo'));
+  var search=document.getElementById('catSearch');
+  var catLive=document.getElementById('catLive');
+  var filtroActivo='*';
+  function filtrar(announce){
+    var q=(search.value||'').trim().toLowerCase();
+    var visibles=0;
+    tomos.forEach(function(t){
+      var okCat=filtroActivo==='*'||t.getAttribute('data-cat')===filtroActivo;
+      var okQ=!q||(t.getAttribute('data-search')||'').indexOf(q)!==-1;
+      var show=okCat&&okQ;
+      t.style.display=show?'':'none';
+      if(show)visibles++;
+    });
+    if(announce&&catLive){catLive.textContent='Mostrando '+visibles+' libros en el catálogo';}
+  }
+  chips.forEach(function(ch){
+    ch.addEventListener('click',function(){
+      filtroActivo=ch.getAttribute('data-filtro');
+      chips.forEach(function(o){
+        var act=o===ch;
+        o.setAttribute('data-activa',act?'true':'false');
+        o.setAttribute('aria-pressed',act?'true':'false');
+      });
+      filtrar(true);
+    });
+  });
+  search.addEventListener('input',function(){filtrar(true)});
+
+  var dlCount=document.getElementById('dlCount'),dlBar=document.getElementById('dlBar');
+  function actualizarDevice(){
+    var count=0,kb=0;
+    tomos.forEach(function(t){
+      var off=t.getAttribute('data-offline')==='true';
+      var btn=t.querySelector('.btn-dl');
+      if(btn)btn.setAttribute('aria-pressed',off?'true':'false');
+      if(off){count++;kb+=Number(t.getAttribute('data-kb')||0)}
+    });
+    var sizeStr=kb>=1024?(kb/1024).toFixed(1)+' MB':kb+' KB';
+    dlCount.textContent=count+(count===1?' libro · ':' libros · ')+sizeStr;
+    dlBar.style.width=Math.min(100,Math.max(4,Math.round(kb/4200*100)))+'%';
+  }
+  tomos.forEach(function(t){
+    var btn=t.querySelector('.btn-dl'),badge=t.querySelector('.tomo-badge');
+    btn.addEventListener('click',function(){
+      var off=t.getAttribute('data-offline')==='true';
+      t.setAttribute('data-offline',off?'false':'true');
+      btn.textContent=off?'↓ Descargar':'Quitar';
+      badge.textContent=off?'nube':'offline ✓';
+      actualizarDevice();
+      if(catLive){
+        var title=t.querySelector('.tomo-titulo')?.textContent||'Libro';
+        catLive.textContent=title+(off?' quitado del dispositivo':' descargado para lectura offline');
+      }
+    });
+  });
+  actualizarDevice();
+
+  /* Pipeline interactivo */
+  var pasos=document.querySelectorAll('.paso[data-step]');
+  var estaciones=document.querySelectorAll('.estacion[data-est]');
+  var pipeLabel=document.getElementById('pipeActiveLabel');
+  var labels={
+    '1':'01 · standby — cuarentena y seguridad',
+    '2':'02 · en curso — scrapeo automático',
+    '3':'03 · tested — preview en Vigilia',
+    '4':'04 · catálogo — publicado por categoría'
+  };
+  function activarPaso(n){
+    pasos.forEach(function(p){
+      var act=p.getAttribute('data-step')===n;
+      p.setAttribute('data-activo',act?'true':'false');
+      p.setAttribute('aria-pressed',act?'true':'false');
+    });
+    estaciones.forEach(function(e){e.setAttribute('data-lit',e.getAttribute('data-est')===n?'true':'false')});
+    pipeLabel.textContent=labels[n]||'';
+  }
+  pasos.forEach(function(p){
+    var n=p.getAttribute('data-step');
+    p.addEventListener('mouseenter',function(){activarPaso(n)});
+    p.addEventListener('click',function(){activarPaso(n)});
+    p.addEventListener('keydown',function(ev){
+      if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();activarPaso(n);}
+    });
+  });
+
+  /* IV · Cargador opcional de la app real en el marco de embed */
+  var embedInput=document.getElementById('embedUrlInput');
+  var embedBtn=document.getElementById('embedLoadBtn');
+  var embedViewport=document.getElementById('embedViewport');
+  var embedIframe=document.getElementById('embedIframe');
+  if(embedBtn&&embedInput&&embedViewport&&embedIframe){
+    embedBtn.addEventListener('click',function(){
+      var url=(embedInput.value||'').trim();
+      if(!url)return;
+      embedIframe.src=url;
+      embedViewport.setAttribute('data-loaded','true');
+    });
+  }
+
+  /* V · Simulador de continuidad Desktop ↔ Celu PWA */
+  var vStage=document.getElementById('viajeStage');
+  var btnOn=document.getElementById('btnOnline'),btnOff=document.getElementById('btnOffline');
+  var deskPageEl=document.getElementById('deskPage'),deskPctEl=document.getElementById('deskPct'),deskBarEl=document.getElementById('deskBar');
+  var deskStatusEl=document.getElementById('deskStatus'),deskNoteEl=document.getElementById('deskNote'),deskTextEl=document.getElementById('deskText');
+  var phonePageEl=document.getElementById('phonePage'),phonePctEl=document.getElementById('phonePct'),phonePillEl=document.getElementById('phonePill');
+  var phoneQueueEl=document.getElementById('phoneQueue'),phoneTextEl=document.getElementById('phoneText');
+  var syncTagEl=document.getElementById('syncTag'),vTitlePage=document.getElementById('vTitlePage');
+
+  var SNIPPETS=[
+    {desk:'…miró hacia el norte, donde la llanura se borraba en la niebla. <span class="en-focus">Nadie encendió otra lámpara:</span> la única luz era la del escritorio, y sobre ella las páginas esperaban quietas…',
+     phone:'<span class="en-focus">Nadie encendió otra lámpara:</span> la única luz era la del escritorio, y sobre ella las páginas esperaban quietas…'},
+    {desk:'…el viento golpeaba los postigos de madera seca. <span class="en-focus">Sólo el reflejo del vidrio se movía,</span> ligero, cuando la mano se acercaba a girar una hoja hacia el silencio del cuarto…',
+     phone:'<span class="en-focus">Sólo el reflejo del vidrio se movía,</span> ligero, cuando la mano se acercaba a girar una hoja hacia el silencio…'},
+    {desk:'…desde la muralla el camino se abría en dos hacia el desierto. <span class="en-focus">La calma nunca estaba afuera,</span> sino en la atención serena con que se sostenía la luz hasta el amanecer…',
+     phone:'<span class="en-focus">La calma nunca estaba afuera,</span> sino en la atención serena con que se sostenía la luz…'}
+  ];
+  var vOffline=false,vPhonePage=98,vDeskPage=98,vPending=0,vTotal=214;
+
+  function renderViaje(){
+    vStage.setAttribute('data-offline',vOffline?'true':'false');
+    btnOn.setAttribute('data-active',vOffline?'false':'true');
+    btnOff.setAttribute('data-active',vOffline?'true':'false');
+
+    var pPct=Math.round(vPhonePage/vTotal*100);
+    var dPct=Math.round(vDeskPage/vTotal*100);
+    var pSnip=SNIPPETS[(vPhonePage-98+SNIPPETS.length*10)%SNIPPETS.length];
+    var dSnip=SNIPPETS[(vDeskPage-98+SNIPPETS.length*10)%SNIPPETS.length];
+
+    phonePageEl.textContent=vPhonePage;
+    phonePctEl.textContent=pPct+'%';
+    phoneTextEl.innerHTML=pSnip.phone;
+    vTitlePage.textContent=vPhonePage;
+
+    deskPageEl.textContent=vDeskPage;
+    deskPctEl.textContent=dPct+'%';
+    deskBarEl.style.width=dPct+'%';
+    deskTextEl.innerHTML=dSnip.desk;
+
+    if(vOffline){
+      phonePillEl.textContent='offline';
+      syncTagEl.textContent='sin red · en cola';
+      phoneQueueEl.textContent=vPending>0?(vPending+' cambio'+(vPending>1?'s':'')+' local'+(vPending>1?'es':'')):'listo offline ✓';
+      deskStatusEl.textContent=vPending>0?'○ esperando señal':'○ desconectado';
+      deskNoteEl.textContent=vPending>0
+        ?'Teléfono avanzó a pág. '+vPhonePage+' sin señal · sincronizará al reconectar'
+        :'Modo avión activo · podés seguir leyendo en el teléfono';
+    }else{
+      phonePillEl.textContent='en línea';
+      syncTagEl.textContent='sync activo';
+      phoneQueueEl.textContent='al día ✓';
+      deskStatusEl.textContent='● sincronizado';
+      deskNoteEl.textContent='Estado: al día en pág. '+vDeskPage+' · sincronizado entre dispositivos';
+    }
+  }
+
+  btnOff.addEventListener('click',function(){vOffline=true;renderViaje()});
+  btnOn.addEventListener('click',function(){
+    vOffline=false;
+    vDeskPage=vPhonePage;
+    vPending=0;
+    renderViaje();
+  });
+  document.getElementById('phoneNext').addEventListener('click',function(){
+    if(vPhonePage<vTotal){
+      vPhonePage++;
+      if(vOffline){vPending++}else{vDeskPage=vPhonePage}
+      renderViaje();
+    }
+  });
+  document.getElementById('phonePrev').addEventListener('click',function(){
+    if(vPhonePage>96){
+      vPhonePage--;
+      if(vOffline){vPending++}else{vDeskPage=vPhonePage}
+      renderViaje();
+    }
+  });
+  renderViaje();
+})();
+</script>
+</body>
+</html>

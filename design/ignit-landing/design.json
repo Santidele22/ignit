@@ -1,0 +1,9 @@
+{
+  "title": "Landing de Ignit",
+  "brief": "Landing pública de Ignit: biblioteca comunitaria instalable (PWA con lectura offline de libros descargados), pipeline con escaneo automático + aprobación humana (standby → en curso → tested → catálogo) y categorías curadas. Todo libro subido se publica: no hay libros privados. Fondo negro casi puro (#05060b, no #000) con paleta monocromática de azules. Segunda vuelta: estructuras no genéricas, cada artboard con una arquitectura propia.",
+  "artboards": [
+    { "file": "04-primera-pagina.html", "title": "La primera página", "tradeoff": "La landing como pliego de libro: cabecera corrida, columna de medida de lectura, capitular, notas al margen y colofón; máxima calma editorial, poca densidad de producto", "width": 1440, "height": 1200 },
+    { "file": "05-el-lomo.html", "title": "El lomo", "tradeoff": "Un lomo central fijo con cinta-marca: cubierta y contratapa, y cuadernos que cuelgan a ambos lados; estructura inusual que exige scroll para contar todo", "width": 1440, "height": 1400 },
+    { "file": "06-la-estanteria.html", "title": "La estantería", "tradeoff": "Sin hero: etiqueta de repisa, lomos verticales de pie como ideas-clickeables y ficha de catálogo; sorprendente y memoriosa, pero menos convencional para convertir", "width": 1440, "height": 1200 }
+  ]
+}

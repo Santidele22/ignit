@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "chosen": "01-sala-escritorio.html",
+  "handoffs": {
+    "01-sala-escritorio.html": {
+      "status": "implemented",
+      "queued": false,
+      "sentAt": "2026-11-23T23:10:01.040Z",
+      "startedAt": "2026-11-23T23:15:46.910Z",
+      "implementedAt": "2026-11-23T23:46:52.800Z",
+      "note": "Sala de lectura (/biblioteca) implementada con IndexedDB real, fallback offline en Vigilia, modal subir+editar/borrar y soporte dual de paletas.",
+      "previewUrl": "http://localhost:4321/biblioteca"
+    }
+  }
+}

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Ignit — Inmersión 01 · El descenso</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --negro:#05060b; --fg:#e6edf7; --body:#b9c6dd; --faint:#8296b8; --ghost:#67779a;
+    --border:#232941; --azul:#5f86c9; --azul-claro:#9fc0ee;
+    --sans:system-ui,-apple-system,'Segoe UI',sans-serif;
+    --serif:Georgia,'Times New Roman','Hiragino Mincho ProN',serif;
+    --mono:ui-monospace,'SF Mono',monospace;
+  }
+  html{scroll-behavior:smooth}
+  body{background:var(--negro);color:var(--body);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  :focus-visible{outline:2px solid var(--azul-claro);outline-offset:3px}
+  ::selection{background:var(--azul);color:#05060b}
+  /* Canvas de fondo: simula la cámara Three.js descendiendo por un corredor de lomos */
+  #escena{position:fixed;inset:0;z-index:0;display:block}
+  /* Velo de exposición: el descenso oscurece el mundo (en producción: exposure del renderer) */
+  #velo{position:fixed;inset:0;z-index:1;pointer-events:none;background:#020308;opacity:.12;transition:opacity .15s linear}
+  .capa{position:relative;z-index:2}
+  header{position:fixed;top:0;left:0;right:0;z-index:5;display:flex;justify-content:space-between;align-items:center;padding:22px 36px;font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint);mix-blend-mode:screen}
+  header a{color:inherit;text-decoration:none}
+  header a:hover{color:var(--azul-claro)}
+  .sello{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;background:var(--azul);color:#05060b;font-family:var(--serif);font-size:15px;letter-spacing:0;margin-right:12px;vertical-align:middle}
+  /* Tres actos a pantalla completa: luz → umbral → lámpara, la cámara cae entre ellos */
+  .acto{min-height:100vh;display:flex;align-items:center;position:relative;padding:0 clamp(28px,8vw,120px)}
+  .acto .bloque{max-width:560px}
+  .acto .kicker{font-family:var(--mono);font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--faint);margin-bottom:22px}
+  .acto h2{font-family:var(--serif);font-weight:400;font-size:clamp(34px,4.6vw,54px);line-height:1.22;color:var(--fg);margin-bottom:20px}
+  .acto h2 .azu{color:var(--azul-claro)}
+  .acto p{font-size:16px;line-height:1.75}
+  .acto .acciones{margin-top:32px;display:flex;gap:16px;align-items:center}
+  .cta{display:inline-flex;background:var(--azul);color:#05060b;font-size:14px;font-weight:600;padding:12px 26px;border-radius:4px;text-decoration:none}
+  .cta:hover{background:#7c9fd8}
+  .quiet{font-size:13.5px;color:var(--faint);text-decoration:none;border-bottom:1px solid var(--border);padding-bottom:2px}
+  .quiet:hover{color:var(--body)}
+  .acto.der{justify-content:flex-end;text-align:right}
+  .acto.der .bloque .acciones{justify-content:flex-end}
+  /* Profundímetro lateral: marca el descenso de exposición */
+  .profundimetro{position:fixed;right:26px;top:50%;transform:translateY(-50%);z-index:4;width:2px;height:180px;background:var(--border)}
+  .profundimetro i{position:absolute;left:-2px;top:0;width:6px;border-radius:3px;height:34%;background:var(--azul);box-shadow:0 0 14px var(--azul)}
+  .profundimetro span{position:absolute;top:-30px;right:-8px;font-family:var(--mono);font-size:9px;letter-spacing:.2em;color:var(--ghost);writing-mode:vertical-rl}
+  /* Nota de producción */
+  .nota{position:fixed;left:26px;bottom:22px;z-index:5;max-width:330px;font-family:var(--mono);font-size:10px;line-height:1.7;letter-spacing:.06em;color:var(--ghost);border-left:2px solid var(--azul);padding-left:12px;mix-blend-mode:screen}
+  .nota b{color:var(--azul-claro);font-weight:500}
+  footer{position:relative;z-index:2;border-top:1px solid var(--border);padding:24px 36px;display:flex;justify-content:space-between;font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ghost)}
+</style>
+</head>
+<body data-exposure="0">
+<canvas id="escena" aria-hidden="true"></canvas>
+<div id="velo" aria-hidden="true"></div>
+
+<header class="capa" aria-label="Principal">
+  <a href="/"><span class="sello" aria-hidden="true">熒</span>Ignit</a>
+  <nav style="display:flex;gap:24px"><a href="/catalogo">Catálogo</a><a href="/login">Entrar</a></nav>
+</header>
+
+<div class="profundimetro capa" aria-hidden="true"><span>exposición</span><i id="aguja"></i></div>
+
+<section class="acto capa" id="acto-1">
+  <div class="bloque">
+    <p class="kicker">acto i · superficie</p>
+    <h2>El catálogo es la última <span class="azu">luz</span> que verás</h2>
+    <p>Aquí todo está iluminado: los títulos revisados por personas, ordenados en categorías curadas, esperando ser leídos. Elegí uno. Después empieza a oscurecer.</p>
+    <div class="acciones"><a class="cta" href="/catalogo">Ver el catálogo</a><a class="quiet" href="/registro">Crear cuenta</a></div>
+  </div>
+</section>
+
+<section class="acto der capa" id="acto-2">
+  <div class="bloque">
+    <p class="kicker">acto ii · umbral</p>
+    <h2>Cuatro puertas antes de que un libro <span class="azu">sea de todos</span></h2>
+    <p>Standby: escaneo y extracción automáticas. En curso: preparación. Tested: aprobación humana. Catálogo: publicado, en su categoría. Sin atajos, sin estantes privados.</p>
+    <div class="acciones"><a class="quiet" href="#acto-3">Cruzar el umbral ↓</a></div>
+  </div>
+</section>
+
+<section class="acto capa" id="acto-3">
+  <div class="bloque">
+    <p class="kicker">acto iii · la lámpara</p>
+    <h2>Y de pronto, <span class="azu">solo la página</span></h2>
+    <p>Modo Vigilia: el foco atenúa lo que no leés, y en la PWA los libros descargados viven en el dispositivo — la lectura sigue aun sin conexión. El descenso termina acá: en una lámpara encendida.</p>
+    <div class="acciones"><a class="cta" href="/registro">Empezar a leer</a></div>
+  </div>
+</section>
+
+<footer class="capa">
+  <span>Ignit — lee despacio</span>
+  <span>PWA instalable · escaneo automático + criterio humano</span>
+</footer>
+
+<aside class="nota capa">
+  <b>Producción —</b> three.js: corredor de lomos instanciados + fog #05060b; la cámara hace dolly-down con ScrollTrigger (scrub) de GSAP, y el exposure del renderer cae de 1.0 a 0.28 entre actos. Este canvas simula el mismo recorrido a 60 fps.
+</aside>
+
+<script>
+(function(){
+  var c=document.getElementById('escena'),ctx=c.getContext('2d'),velo=document.getElementById('velo'),aguja=document.getElementById('aguja');
+  function size(){c.width=innerWidth;c.height=innerHeight}
+  size();addEventListener('resize',size,{passive:true});
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches)return; // escena estática: velo por defecto
+  // Polvo con parallax de profundidad: tres capas de motas (reemplazo del Points de three.js)
+  var capas=[[74,1.0,1.15],[48,1.6,0.7],[30,2.4,0.45]].map(function(L,i){var a=[];for(var k=0;k<L[0];k++)a.push({x:Math.random(),y:Math.random(),z:L[1],r:L[2],f:Math.random()*6.28});return a});
+  var t=0;
+  function frame(){
+    t+=0.008;
+    var doc=document.documentElement,max=doc.scrollHeight-innerHeight;
+    var p=max>0?Math.min(1,Math.max(0,scrollY/max)):0; // progreso de cámara
+    velo.style.opacity=(0.12+p*0.55).toFixed(3);
+    aguja.style.top=(p*66)+'%';
+    ctx.clearRect(0,0,c.width,c.height);
+    for(var i=0;i<capas.length;i++){var L=capas[i];
+      for(var k=0;k<L.length;k++){var m=L[k];
+        // la cámara desciende: el polvo sube y se abre en perspectiva según el scroll
+        var y=(m.y - p*0.25*(1+m.z))%1;if(y<0)y+=1;
+        var x=(m.x + Math.sin(t+m.f)*0.012*m.z + p*0.04*(m.z-1.6))%1;if(x<0)x+=1;
+        var px=x*c.width,py=y*c.height,sc=p*0.6+0.4;
+        var al=(0.05+0.16*m.z)*sc*(0.6+0.4*Math.sin(t*1.7+m.f));
+        ctx.beginPath();ctx.arc(px,py,m.r*sc*(0.7+0.3*Math.sin(t+m.f)),0,6.283);
+        ctx.fillStyle='rgba(159,192,238,'+al.toFixed(3)+')';ctx.fill();
+      }
+    }
+    // haz de luz superior que se apaga con el descenso
+    var g=ctx.createRadialGradient(c.width/2,-c.height*0.25,10,c.width/2,-c.height*0.25,c.height*(0.9-p*0.55));
+    g.addColorStop(0,'rgba(95,134,201,'+(0.10*(1-p*0.85)).toFixed(3)+')');g.addColorStop(1,'rgba(95,134,201,0)');
+    ctx.fillStyle=g;ctx.fillRect(0,0,c.width,c.height);
+    requestAnimationFrame(frame);
+  }
+  addEventListener('scroll',function(){},{passive:true});
+  frame();
+})();
+</script>
+</body>
+</html>

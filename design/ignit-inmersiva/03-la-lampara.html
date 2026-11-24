@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Ignit — El lugar tranquilo para leer</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --negro:#04050a; --fg:#e6edf7; --body:#b9c6dd; --faint:#8296b8; --ghost:#67779a;
+    --border:#232941; --azul:#5f86c9; --azul-claro:#9fc0ee;
+    --sans:system-ui,-apple-system,'Segoe UI',sans-serif;
+    --serif:Georgia,'Times New Roman','Hiragino Mincho ProN',serif;
+    --mono:ui-monospace,'SF Mono',monospace;
+  }
+  html{scroll-behavior:auto}
+  body{background:var(--negro);color:var(--body);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden;cursor:none}
+  a,button,input{cursor:none}
+  :focus-visible{outline:2px solid var(--azul-claro);outline-offset:3px}
+  ::selection{background:var(--azul);color:#04050a}
+  #escena{position:fixed;inset:0;z-index:0;display:block}
+  #lampara{position:fixed;z-index:3;pointer-events:none;width:560px;height:560px;left:0;top:0;transform:translate(-50%,-50%);
+    background:radial-gradient(circle,rgba(159,192,238,.16) 0%,rgba(95,134,201,.07) 34%,transparent 68%);mix-blend-mode:screen}
+  /* hilo de progreso global: el mismo gesto del hilo del lector */
+  .hiloglobal{position:fixed;top:0;left:0;right:0;height:2px;z-index:8;background:rgba(35,41,65,.4);pointer-events:none}
+  .hiloglobal i{display:block;height:100%;width:0;background:linear-gradient(90deg,#5f86c9,#9fc0ee)}
+  header.marcas{position:fixed;top:2px;left:0;right:0;z-index:6;display:flex;justify-content:space-between;padding:22px 36px;font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint);mix-blend-mode:screen}
+  header.marcas a{color:inherit;text-decoration:none}
+  header.marcas a:hover{color:var(--azul-claro)}
+  .sello{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;background:var(--azul);color:#04050a;font-family:var(--serif);font-size:15px;letter-spacing:0;margin-right:12px;vertical-align:middle}
+  .mecha{position:fixed;right:28px;top:50%;transform:translateY(-50%);z-index:6;width:2px;height:200px;background:var(--border)}
+  .mecha i{position:absolute;left:-2px;width:6px;border-radius:3px;height:12%;background:var(--azul-claro);box-shadow:0 0 16px var(--azul-claro);top:0;transition:top .4s}
+  .capa{position:relative;z-index:2;min-height:100vh;display:grid;grid-template-columns:minmax(0,10fr) minmax(0,11fr);gap:clamp(28px,4vw,64px);align-items:center;padding:14vh clamp(28px,7vw,110px)}
+  .capa.solo{grid-template-columns:1fr;justify-items:center}
+  .capa .texto,.capa .panel{opacity:.14;transition:opacity .55s ease,transform .55s ease;transform:translateY(10px)}
+  .capa .panel{transform:translateY(14px) scale(.985);filter:saturate(.6) opacity(.92)}
+  .capa.alumbrada .texto,.capa.alumbrada .panel{opacity:1;transform:none;filter:none}
+  .capa.invertida .texto{order:2}
+  .capa.invertida .panel{order:1}
+  @media (max-width:920px){.capa{grid-template-columns:1fr;min-height:auto;padding:16vh clamp(24px,6vw,60px)}.capa.invertida .texto{order:1}.capa.invertida .panel{order:2}}
+  .num{font-family:var(--mono);font-size:10px;letter-spacing:.3em;color:var(--ghost);text-transform:uppercase;margin-bottom:26px;display:flex;align-items:center;gap:12px}
+  .num::after{content:"";height:1px;width:52px;background:var(--border)}
+  .kicker{font-family:var(--mono);font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--faint);margin-bottom:18px}
+  h2{font-family:var(--serif);font-weight:400;font-size:clamp(30px,4vw,48px);line-height:1.22;color:var(--fg);margin-bottom:18px}
+  h2 .azu{color:var(--azul-claro)}
+  .capa p{font-size:16px;line-height:1.8}
+  .acciones{margin-top:30px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+  .cta{display:inline-flex;background:var(--azul);color:#04050a;font-size:14px;font-weight:600;padding:12px 26px;border-radius:4px;text-decoration:none;transition:background .2s}
+  .cta:hover{background:#7c9fd8}
+  .quiet{font-size:13.5px;color:var(--faint);text-decoration:none;border-bottom:1px solid var(--border);padding-bottom:2px}
+  .quiet:hover{color:var(--body)}
+  /* s1 · hero */
+  .s1 .texto{width:100%}
+  .hero-marco{width:100%;border:1px solid var(--border);position:relative;padding:clamp(32px,5.5vw,72px);background:rgba(6,8,15,.55)}
+  .hero-marco::before,.hero-marco::after{content:"";position:absolute;width:7px;height:7px;border:1px solid rgba(159,192,238,.5)}
+  .hero-marco::before{top:-4px;left:-4px}
+  .hero-marco::after{bottom:-4px;right:-4px}
+  .hero-fila{display:flex;justify-content:space-between;gap:18px;align-items:baseline;border-bottom:1px solid var(--border);padding-bottom:18px;margin-bottom:clamp(30px,4vw,56px);flex-wrap:wrap}
+  .hero-fila .tag{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--faint)}
+  .hero-fila .ver{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--ghost)}
+  .s1 h2{font-family:var(--serif);font-weight:400;font-size:clamp(40px,5.6vw,80px);line-height:1.14;letter-spacing:.01em;margin:0 0 18px}
+  .s1 h2 em{font-style:italic;color:var(--azul-claro)}
+  .hero-sub{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:clamp(24px,3.5vw,52px);margin-top:clamp(24px,3vw,44px);align-items:end}
+  @media (max-width:760px){.hero-sub{grid-template-columns:1fr}}
+  .hero-sub p{font-size:16.5px;line-height:1.8;max-width:34em}
+  .hero-datos{display:grid;border:1px solid var(--border)}
+  .hero-datos div{display:flex;justify-content:space-between;gap:14px;padding:10px 14px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ghost)}
+  .hero-datos div:last-child{border-bottom:none}
+  .hero-datos b{color:var(--azul-claro);font-weight:500;text-align:right}
+  .hero-pie{margin-top:clamp(30px,4vw,48px);font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ghost)}
+  /* paneles de escena */
+  .panel .marco{border:1px solid var(--border);border-radius:10px;overflow:hidden;background:linear-gradient(175deg,#080b14,#05070d);box-shadow:0 40px 90px rgba(0,0,0,.55)}
+  .panel svg{display:block;width:100%;height:auto}
+  .panel figcaption{margin-top:12px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ghost);display:flex;justify-content:space-between}
+  .panel figcaption b{color:var(--azul-claro);font-weight:500}
+  .respira{animation:breathe 7s ease-in-out infinite}
+  @keyframes breathe{0%,100%{opacity:.75}50%{opacity:1}}
+  .barre{animation:barre 16s ease-in-out infinite alternate}
+  @keyframes barre{from{transform:translateX(0)}to{transform:translateX(830px)}}
+  @media (prefers-reduced-motion:reduce){.respira,.barre{animation:none}}
+  /* s3 · catálogo */
+  .catalogo{width:100%;max-width:1080px}
+  .filtros{display:flex;gap:10px;margin:0 0 26px;flex-wrap:wrap}
+  .chip{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);background:none;border:1px solid var(--border);border-radius:999px;padding:8px 18px;transition:all .2s}
+  .chip:hover{border-color:var(--azul);color:var(--body)}
+  .chip[data-activa="true"]{background:var(--azul);border-color:var(--azul);color:#04050a}
+  .rejilla{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:18px}
+  .tomo{position:relative;display:block;background:#060810;border:1px solid var(--border);border-radius:8px;overflow:hidden;text-decoration:none;transition:border-color .2s,transform .2s}
+  .tomo:hover{border-color:var(--azul);transform:translateY(-3px)}
+  .tomo .tapa{aspect-ratio:2/3;display:flex;align-items:flex-end;padding:16px 14px;font-family:var(--serif);font-size:15px;line-height:1.35;color:var(--fg)}
+  .tomo:nth-child(4n+1) .tapa{background:linear-gradient(150deg,#16203a,#0d1220)}
+  .tomo:nth-child(4n+2) .tapa{background:linear-gradient(150deg,#12203b,#0b111e)}
+  .tomo:nth-child(4n+3) .tapa{background:linear-gradient(150deg,#1a2545,#0d1226)}
+  .tomo:nth-child(4n+4) .tapa{background:linear-gradient(150deg,#0f1930,#0a0e19)}
+  .tomo .meta{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-top:1px solid var(--border)}
+  .tomo .cat{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--azul-claro)}
+  .tomo .pags{font-family:var(--mono);font-size:9.5px;color:var(--ghost)}
+  .tomo .retoma{position:absolute;top:10px;left:10px;font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:#04050a;background:var(--azul-claro);border-radius:999px;padding:4px 9px}
+  .catalogo .aviso{margin-top:24px;font-size:13.5px;color:var(--ghost);max-width:56em}
+  .catalogo .aviso b{color:var(--body);font-weight:500}
+  /* s5 · demo del lector */
+  .demo-lectura{--w-foreground:#ece5d5;--w-body:#d6ccb4;--w-faint:#8f826b;--w-ghost:#786c57;width:100%;background:#0d0a07;border:1px solid rgba(53,45,34,.85);border-radius:10px;overflow:hidden;color:var(--w-body);position:relative}
+  .demo-lectura .d-top{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;padding:12px 16px;background:rgba(13,10,7,.92);border-bottom:1px solid rgba(53,45,34,.85)}
+  .demo-lectura .d-crumb{color:var(--w-faint);font-size:11.5px;text-decoration:none}
+  .demo-lectura .d-crumb:hover{color:var(--w-foreground)}
+  .demo-lectura .d-ident{text-align:center;min-width:0}
+  .demo-lectura .d-ident .t{font:600 14px/1.25 var(--serif);letter-spacing:.05em;color:var(--w-foreground);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .demo-lectura .d-ident .a{margin-top:5px;font:400 9px/1 var(--mono);letter-spacing:.26em;text-transform:uppercase;color:var(--w-faint)}
+  .demo-lectura .d-prog{display:flex;align-items:center;gap:12px;white-space:nowrap}
+  .demo-lectura .d-pg{font:400 10px/1 var(--mono);letter-spacing:.16em;color:var(--w-ghost)}
+  .demo-lectura .d-pg b{color:var(--w-foreground);font-weight:500}
+  .demo-lectura .d-wire{width:104px;height:5px;border-radius:999px;background:#26201d;border:1px solid #3f3628;overflow:hidden}
+  .demo-lectura .d-wire i{display:block;height:100%;background:linear-gradient(90deg,#a02f2b,#c73e3a);transition:width .25s}
+  .demo-lectura .d-pct{font:500 10px/1 var(--mono);letter-spacing:.1em;color:var(--w-body);min-width:32px;text-align:right}
+  .demo-lectura .d-pagina{padding:64px clamp(24px,6vw,84px) 72px;font-family:var(--serif);font-size:clamp(14px,1.6vw,17px);line-height:2;color:var(--w-body);position:relative;min-height:300px}
+  .demo-lectura .d-linea{display:block;margin:0 0 6px;color:var(--w-body);transition:opacity .3s ease,filter .3s ease}
+  .demo-lectura .d-foco{color:var(--w-foreground);border-radius:2px}
+  .demo-lectura .d-cap{position:absolute;top:22px;left:0;right:0;text-align:center;font:400 9px/1 var(--mono);letter-spacing:.3em;color:var(--w-ghost);text-transform:uppercase}
+  .demo-lectura .d-bottom{padding:10px 16px 14px;background:rgba(13,10,7,.92);border-top:1px solid rgba(53,45,34,.85)}
+  .demo-lectura .d-hint{font-size:10.5px;color:var(--w-faint);margin:0 0 10px}
+  .demo-lectura .d-row{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center}
+  .demo-lectura .d-btn{display:inline-flex;align-items:center;gap:7px;background:none;border:1px solid rgba(63,54,40,.8);color:var(--w-faint);font-size:11px;padding:7px 12px;border-radius:4px;font-family:inherit;transition:color .15s,border-color .15s}
+  .demo-lectura .d-btn:hover{color:var(--w-foreground);border-color:var(--w-faint)}
+  .demo-lectura .d-grupo{display:flex;gap:8px;align-items:center}
+  .demo-lectura .d-step{width:30px;padding:7px 0;text-align:center}
+  .demo-lectura .d-foco-bar{display:inline-flex;align-items:center;gap:8px;font-size:10.5px;color:var(--w-faint)}
+  .demo-lectura input[type=range]{width:92px;accent-color:#c73e3a}
+  .demo-lectura .d-toast{position:absolute;left:50%;bottom:76px;transform:translateX(-50%);background:rgba(13,10,7,.96);border:1px solid rgba(63,54,40,.9);color:var(--w-foreground);font-size:11.5px;padding:9px 16px;border-radius:4px;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+  .demo-lectura .d-toast[data-on="true"]{opacity:1}
+  .demo-lectura .d-badge{position:absolute;top:14px;right:14px;font:400 9px/1 var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--w-faint);border:1px solid rgba(63,54,40,.7);border-radius:999px;padding:5px 10px;background:rgba(13,10,7,.9)}
+  .demo-lectura svg{fill:none;stroke:currentColor;stroke-width:1.4}
+  /* s6 · el viaje */
+  .viaje{width:100%;max-width:1040px}
+  .pantallas{display:grid;grid-template-columns:1fr auto 1fr;gap:clamp(16px,3vw,40px);align-items:center;margin-top:32px}
+  @media (max-width:700px){.pantallas{grid-template-columns:1fr;justify-items:center}.pantallas .puente{transform:rotate(90deg)}}
+  .pantalla{border:1px solid var(--border);border-radius:10px;padding:20px 22px;background:#070a12}
+  .pantalla .quien{font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ghost);margin-bottom:14px;display:flex;justify-content:space-between}
+  .pantalla .linea{font-family:var(--serif);font-size:14px;color:var(--faint);line-height:1.8}
+  .pantalla .linea .en-focus{color:var(--fg);position:relative}
+  .pantalla .linea .en-focus::after{content:"";position:absolute;inset:-2px -6px;background:linear-gradient(transparent 20%,rgba(95,134,201,.16) 20% 80%,transparent 80%)}
+  .pantalla .pie-pag{margin-top:16px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;color:var(--w-ghost,#67779a)}
+  .pantalla .pie-pag b{color:var(--fg);font-weight:500}
+  .pantalla .mini{width:88px;height:4px;border-radius:99px;background:var(--border);overflow:hidden}
+  .pantalla .mini i{display:block;height:100%;width:62%;background:linear-gradient(90deg,var(--azul),var(--azul-claro))}
+  .puente{display:flex;flex-direction:column;align-items:center;gap:10px}
+  .puente .hilo{width:70px;height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent)}
+  .puente .nodo{width:9px;height:9px;border-radius:50%;background:var(--azul-claro);box-shadow:0 0 14px var(--azul-claro)}
+  .puente span{font-family:var(--mono);font-size:8.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--ghost);writing-mode:vertical-rl}
+  .viaje .clausula{margin-top:26px;font-size:14px;color:var(--faint)}
+  /* s7 · cierre */
+  .cierre{min-height:64vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:16vh clamp(28px,7vw,110px)}
+  .cierre h2{font-size:clamp(30px,4vw,52px)}
+  .cierre p{color:var(--faint);font-size:15.5px;max-width:34em}
+  footer{position:relative;z-index:2;border-top:1px solid var(--border);padding:26px 36px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ghost)}
+  footer a{color:inherit;text-decoration:none}
+  footer a:hover{color:var(--faint)}
+</style>
+</head>
+<body>
+<canvas id="escena" aria-hidden="true"></canvas>
+<div id="lampara" aria-hidden="true"></div>
+<div class="hiloglobal" aria-hidden="true"><i id="hilo"></i></div>
+
+<header class="marcas" aria-label="Principal">
+  <a href="/"><span class="sello" aria-hidden="true">熒</span>Ignit</a>
+  <nav style="display:flex;gap:24px"><a href="#s3">Catálogo</a><a href="#s4">Publicar</a><a href="/login">Entrar</a></nav>
+</header>
+
+<div class="mecha" aria-hidden="true"><i id="mecha-aguja"></i></div>
+
+<!-- I · APERTURA -->
+<section class="capa solo s1" data-capa id="s1">
+  <div class="texto">
+    <div class="hero-marco">
+      <div class="hero-fila">
+        <span class="tag">una biblioteca en penumbra · para todas las pantallas</span>
+        <span class="ver">primera puerta abierta</span>
+      </div>
+      <h2>El lugar tranquilo<br><em>para leer.</em></h2>
+      <div class="hero-sub">
+        <div>
+          <p>Una sala callada, en penumbra. Solo la página. La misma lectura en la pc del escritorio y en el celu: la calma no cambia de tamaño. Acá se puede estar horas.</p>
+          <div class="acciones"><a class="cta" href="#s3">Leer sin cuenta</a><a class="quiet" href="#s4">¿Cómo se publica un libro?</a></div>
+        </div>
+        <div class="hero-datos" role="list" aria-label="Ficha del lugar">
+          <div role="listitem">todo lo publicado <b>una persona lo aprobó</b></div>
+          <div role="listitem">leer <b>no necesita cuenta</b></div>
+          <div role="listitem">la página <b>acompaña a cualquier pantalla</b></div>
+          <div role="listitem">sin conexión <b>la lectura sigue</b></div>
+        </div>
+      </div>
+      <p class="hero-pie">↳ la lámpara sigue al puntero. El lugar no pide nada.</p>
+    </div>
+  </div>
+</section>
+
+<!-- II · LA REGLA DEL LUGAR -->
+<section class="capa invertida" data-capa id="s2">
+  <div class="texto">
+    <p class="num">II · la regla del lugar</p>
+    <h2>Donde la lámpara pasa, <span class="azu">se lee.</span></h2>
+    <p>La calma no es un adorno: es la regla del lugar. Nada reclama atención. Nada se mueve de más. El haz se acerca a un lomo y el lomo se enciende — así entra el catálogo, y así se lee por dentro.</p>
+  </div>
+  <figure class="panel">
+    <div class="marco">
+      <svg viewBox="0 0 640 460" role="img" aria-label="Biblioteca retroiluminada: una luz de fondo respira tras los lomos en silueta y el haz de la lámpara, que sigue al puntero, enciende los cantos de los libros a su paso">
+        <defs>
+          <radialGradient id="g-lamp1" cx="38%" cy="30%" r="62%">
+            <stop offset="0%" stop-color="#9fc0ee" stop-opacity=".30"/><stop offset="45%" stop-color="#5f86c9" stop-opacity=".10"/><stop offset="100%" stop-color="#5f86c9" stop-opacity="0"/>
+          </radialGradient>
+          <linearGradient id="g-eco-fondo" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#5f86c9" stop-opacity="0"/><stop offset="38%" stop-color="#5f86c9" stop-opacity=".30"/><stop offset="62%" stop-color="#5f86c9" stop-opacity=".30"/><stop offset="100%" stop-color="#5f86c9" stop-opacity="0"/>
+          </linearGradient>
+          <linearGradient id="g-eco-silueta" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#0e1424"/><stop offset="100%" stop-color="#070a12"/>
+          </linearGradient>
+          <linearGradient id="g-eco-pared" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#0a0f1d"/><stop offset="55%" stop-color="#070b14"/><stop offset="100%" stop-color="#04050a"/>
+          </linearGradient>
+          <radialGradient id="g-eco-foco" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#9fc0ee" stop-opacity=".34"/><stop offset="55%" stop-color="#5f86c9" stop-opacity=".10"/><stop offset="100%" stop-color="#5f86c9" stop-opacity="0"/>
+          </radialGradient>
+          <linearGradient id="g-eco-barre" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#9fc0ee" stop-opacity="0"/><stop offset="50%" stop-color="#9fc0ee" stop-opacity=".14"/><stop offset="100%" stop-color="#9fc0ee" stop-opacity="0"/>
+          </linearGradient>
+          <filter id="g-eco-suave" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3"/></filter>
+        </defs>
+        <rect width="640" height="460" fill="#06080f"/>
+        <rect width="640" height="460" fill="url(#g-eco-pared)"/>
+        <rect width="640" height="460" fill="url(#g-lamp1)" class="respira"/>
+        <rect x="36" y="60" width="568" height="360" fill="url(#g-eco-fondo)" class="respira"/>
+        <rect x="120" y="60" width="400" height="360" fill="url(#g-eco-fondo)" class="respira" style="animation-delay:-3.5s" opacity=".7"/>
+        <g class="barre" aria-hidden="true"><rect x="-190" y="60" width="180" height="360" fill="url(#g-eco-barre)"/></g>
+        <g id="eco-rendijas" filter="url(#g-eco-suave)"></g>
+        <g id="estante-spines"></g>
+        <ellipse id="eco-foco" cx="244" cy="216" rx="96" ry="120" fill="url(#g-eco-foco)" opacity="0" style="mix-blend-mode:screen"/>
+        <g>
+          <rect x="36" y="148" width="568" height="8" fill="#0e1524" stroke="#232941" stroke-width="1"/>
+          <rect x="36" y="156" width="568" height="2" fill="#04060b"/>
+          <rect x="36" y="298" width="568" height="8" fill="#0e1524" stroke="#232941" stroke-width="1"/>
+          <rect x="36" y="306" width="568" height="2" fill="#04060b"/>
+          <rect x="36" y="414" width="568" height="8" fill="#0e1524" stroke="#232941" stroke-width="1"/>
+          <rect x="36" y="422" width="568" height="2" fill="#04060b"/>
+        </g>
+        <g fill="#cfe1fa">
+          <circle cx="150" cy="120" r="1.4" opacity=".28"/><circle cx="420" cy="96" r="1.1" opacity=".22"/>
+          <circle cx="330" cy="250" r="1.6" opacity=".3"/><circle cx="510" cy="200" r="1.2" opacity=".24"/>
+          <circle cx="230" cy="330" r="1.3" opacity=".2"/><circle cx="560" cy="340" r="1.5" opacity=".26"/>
+        </g>
+      </svg>
+    </div>
+    <figcaption><span>escena · el catálogo en penumbra</span><b>la lámpara sigue al puntero</b></figcaption>
+  </figure>
+</section>
+
+<!-- III · EL CATÁLOGO -->
+<section class="capa solo" data-capa id="s3">
+  <div class="texto catalogo">
+    <p class="num">III · el catálogo</p>
+    <h2 style="font-size:clamp(26px,3vw,38px)">En su categoría, <span class="azu">listo para empezar</span></h2>
+    <div class="filtros" role="group" aria-label="Filtro del catálogo">
+      <button class="chip" data-filtro="*" data-activa="true">Todos</button>
+      <button class="chip" data-filtro="ficcion">Ficción</button>
+      <button class="chip" data-filtro="tecnico">Técnico</button>
+      <button class="chip" data-filtro="ensayo">Ensayo</button>
+      <button class="chip" data-filtro="filosofia">Filosofía</button>
+      <button class="chip" data-filtro="historia">Historia</button>
+    </div>
+    <div class="rejilla" id="rejilla">
+      <a class="tomo" data-cat="ficcion" href="/lecturas/demo"><span class="retoma">en tu pág. 98</span><span class="tapa">El jardín de senderos que se bifurcan</span><span class="meta"><span class="cat">Ficción</span><span class="pags">159 p.</span></span></a>
+      <a class="tomo" data-cat="tecnico" href="/lecturas/demo"><span class="tapa">Introducción a la teoría de la computación</span><span class="meta"><span class="cat">Técnico</span><span class="pags">348 p.</span></span></a>
+      <a class="tomo" data-cat="ensayo" href="/lecturas/demo"><span class="tapa">Cartas a un joven poeta</span><span class="meta"><span class="cat">Ensayo</span><span class="pags">96 p.</span></span></a>
+      <a class="tomo" data-cat="filosofia" href="/lecturas/demo"><span class="tapa">Elogio de la madrugada</span><span class="meta"><span class="cat">Filosofía</span><span class="pags">212 p.</span></span></a>
+      <a class="tomo" data-cat="historia" href="/lecturas/demo"><span class="tapa">Memorias del río de la plata</span><span class="meta"><span class="cat">Historia</span><span class="pags">402 p.</span></span></a>
+      <a class="tomo" data-cat="tecnico" href="/lecturas/demo"><span class="tapa">Patrones de diseño en la práctica</span><span class="meta"><span class="cat">Técnico</span><span class="pags">286 p.</span></span></a>
+      <a class="tomo" data-cat="ficcion" href="/lecturas/demo"><span class="tapa">La noche de la biblioteca</span><span class="meta"><span class="cat">Ficción</span><span class="pags">174 p.</span></span></a>
+      <a class="tomo" data-cat="ensayo" href="/lecturas/demo"><span class="tapa">Costumbres del crepúsculo</span><span class="meta"><span class="cat">Ensayo</span><span class="pags">88 p.</span></span></a>
+    </div>
+    <p class="aviso">Los títulos de arriba son de demostración. En el catálogo real, cada libro cuenta su subida, su revisión y su categoría. <b>Para leer no hace falta cuenta.</b></p>
+  </div>
+</section>
+
+<!-- IV · SUBIR UN LIBRO -->
+<section class="capa" data-capa id="s4">
+  <div class="texto">
+    <p class="num">IV · publicar</p>
+    <h2>Cuatro pasos <span class="azu">hasta el catálogo</span></h2>
+    <p>Se sube el archivo y después el libro espera. 1 — <b>standby</b>: el sistema lo escanea y extrae el texto solo. 2 — <b>en curso</b>: se prepara la lectura. 3 — <b>tested</b>: una persona lo lee y lo aprueba. 4 — <b>catálogo</b>: aparece publicado en su categoría y se lee sin cuenta. Nada entra sin revisión: por eso se lee tranquilo.</p>
+    <div class="acciones"><a class="cta" href="/biblioteca">Subir un libro</a><a class="quiet" href="/registro">Crear cuenta para publicar</a></div>
+  </div>
+  <figure class="panel">
+    <div class="marco">
+      <svg viewBox="0 0 640 460" role="img" aria-label="Un río de tinta luminosa serpenteando a través de la penumbra hacia un libro abierto que reposa bajo la luz del catálogo">
+        <defs>
+          <linearGradient id="g-pipe-rio" x1="0%" y1="20%" x2="100%" y2="80%">
+            <stop offset="0%" stop-color="#16203a" stop-opacity=".25"/><stop offset="28%" stop-color="#2a3a5e" stop-opacity=".55"/><stop offset="60%" stop-color="#5f86c9" stop-opacity=".85"/><stop offset="100%" stop-color="#9fc0ee" stop-opacity="1"/>
+          </linearGradient>
+          <linearGradient id="g-pipe-corriente" x1="0%" y1="20%" x2="100%" y2="80%">
+            <stop offset="0%" stop-color="#3c4f7d" stop-opacity=".15"/><stop offset="35%" stop-color="#5f86c9" stop-opacity=".6"/><stop offset="70%" stop-color="#9fc0ee" stop-opacity=".9"/><stop offset="100%" stop-color="#e6edf7" stop-opacity="1"/>
+          </linearGradient>
+          <radialGradient id="g-pipe-desembocadura" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#9fc0ee" stop-opacity=".35"/><stop offset="100%" stop-color="#9fc0ee" stop-opacity="0"/>
+          </radialGradient>
+          <linearGradient id="g-pipe-manuscrito" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#1b2842"/><stop offset="100%" stop-color="#111827"/>
+          </linearGradient>
+        </defs>
+        <rect width="640" height="460" fill="#06080f"/>
+        <path d="M40 84 C140 84 160 160 240 170 C330 182 320 250 400 258 C480 266 470 320 560 330"
+              fill="none" stroke="url(#g-pipe-rio)" stroke-width="26" stroke-linecap="round" opacity=".32"/>
+        <path d="M40 84 C140 84 160 160 240 170 C330 182 320 250 400 258 C480 266 470 320 560 330"
+              fill="none" stroke="url(#g-pipe-corriente)" stroke-width="7" stroke-linecap="round"/>
+        <path d="M40 84 C140 84 160 160 240 170 C330 182 320 250 400 258" fill="none" stroke="#06080f" stroke-width="3" stroke-linecap="round" stroke-dasharray="1 14" opacity=".55"/>
+        <ellipse cx="552" cy="332" rx="120" ry="86" fill="url(#g-pipe-desembocadura)" class="respira"/>
+        <g font-family="ui-monospace,monospace" font-size="10" fill="#67779a" text-anchor="middle">
+          <g transform="translate(150,84)"><circle r="4" fill="#8296b8" class="respira" opacity=".7"/><text y="22">1</text></g>
+          <text x="300" y="196">2</text>
+          <text x="405" y="161">3</text>
+          <text x="565" y="298">4</text>
+        </g>
+        <g transform="translate(300,190)">
+          <line x1="-12" y1="-7" x2="12" y2="7" stroke="#4d6397" stroke-width="1.2" opacity=".7"/>
+          <text y="34" font-family="Georgia, serif" font-size="11" font-style="italic" fill="#8296b8" text-anchor="middle">decantación</text>
+        </g>
+        <g transform="translate(405,195)">
+          <circle r="18" fill="#101728" stroke="#5f86c9" stroke-width="1.4"/>
+          <circle r="13" fill="none" stroke="#9fc0ee" stroke-width="1" stroke-dasharray="3 3" opacity=".85"/>
+          <circle r="4.5" fill="#9fc0ee" opacity=".95"/>
+          <text y="-28" font-family="Georgia, serif" font-size="11" font-style="italic" fill="#9fc0ee" text-anchor="middle">revisión humana</text>
+          <path d="M -9 26 L 0 35 L 9 26" fill="none" stroke="#5f86c9" stroke-width="1" opacity=".5"/>
+        </g>
+        <g transform="translate(525,295)">
+          <g transform="translate(-18,-12)">
+            <path d="M-36 10 C-18 -2 0 -2 0 10 C0 -2 18 -2 36 10 L34 32 C18 20 0 20 0 32 C0 20 -18 20 -34 32 Z" fill="url(#g-pipe-manuscrito)" stroke="#9fc0ee" stroke-width="1.4"/>
+            <line x1="0" y1="9" x2="0" y2="32" stroke="#5f86c9" stroke-width="1.2"/>
+            <g stroke="#9fc0ee" stroke-width="1.2" stroke-linecap="round" opacity=".85">
+              <line x1="-26" y1="12" x2="-8" y2="8"/><line x1="-26" y1="18" x2="-6" y2="14"/><line x1="-26" y1="24" x2="-10" y2="20"/>
+              <line x1="8" y1="8" x2="26" y2="12"/><line x1="6" y1="14" x2="26" y2="18"/><line x1="10" y1="20" x2="26" y2="24"/>
+            </g>
+          </g>
+          <text x="0" y="52" font-family="Georgia, serif" font-size="11" font-style="italic" fill="#9fc0ee" text-anchor="middle">desembocadura</text>
+        </g>
+        <g fill="#cfe1fa"><circle cx="120" cy="118" r="1.3" opacity=".3"/><circle cx="250" cy="132" r="1.1" opacity=".25"/><circle cx="350" cy="240" r="1.5" opacity=".3"/><circle cx="480" cy="290" r="1.2" opacity=".28"/></g>
+      </svg>
+    </div>
+    <figcaption><span>el camino de un libro</span><b>standby · en curso · tested · catálogo</b></figcaption>
+  </figure>
+</section>
+
+<!-- V · VIGILIA, ACÁ -->
+<section class="capa solo" data-capa id="s5">
+  <div class="texto" style="max-width:640px;margin-bottom:36px">
+    <p class="num">V · el modo vigilia</p>
+    <h2 style="font-size:clamp(26px,3.2vw,40px)">Vigilia, <span class="azu">acá.</span></h2>
+    <p>El lector, con su tipografía, sus atajos y su hilo de progreso. El foco se ajusta. La página pasa. El resto es lectura.</p>
+  </div>
+  <div class="panel" style="width:min(880px,100%)">
+    <div class="demo-lectura" role="group" aria-label="Demo interactiva del modo vigilia">
+      <div class="d-top">
+        <a class="d-crumb" href="#s3">← explorar</a>
+        <div class="d-ident">
+          <p class="t">El jardín de senderos que se bifurcan</p>
+          <p class="a">publicado en el catálogo · ficción</p>
+        </div>
+        <div class="d-prog">
+          <span class="d-pg">PÁG <b id="dPage">98</b> · <span id="dTotal">159</span></span>
+          <span class="d-wire" aria-hidden="true"><i id="dWire"></i></span>
+          <span class="d-pct" id="dPct">62%</span>
+        </div>
+      </div>
+      <span class="d-badge">descargado · offline</span>
+      <div class="d-pagina" id="dPagina">
+        <p class="d-cap">capítulo vii</p>
+        <span class="d-linea">El viento traía un olor a cedro mojado y la casa</span>
+        <span class="d-linea">entera parecía contener la respiración. Nadie</span>
+        <span class="d-linea d-foco">encendió otra lámpara: la única luz era la del</span>
+        <span class="d-linea d-foco">escritorio, y sobre ella, las páginas esperaban</span>
+        <span class="d-linea">aún la palabra que las atravesaría para siempre.</span>
+        <span class="d-linea">Lejos, un perro ladró dos veces y se calló.</span>
+      </div>
+      <div class="d-toast" id="dToast" role="status">guardado en este dispositivo · cuando haya red, se sincroniza</div>
+      <div class="d-bottom">
+        <p class="d-hint">seleccioná para subrayar · j / k línea · [ / ] o h / l capítulo · c capítulos · t vigilia · f inmersión · v foco</p>
+        <div class="d-row">
+          <div class="d-grupo">
+            <button class="d-btn" id="dSave" type="button">
+              <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3 2h8l2 2v10H3z"/><path d="M5 2v4h6V2M5 14v-5h6v5"/></svg>
+              Guardar progreso
+            </button>
+            <button class="d-btn" type="button">Inmersión</button>
+          </div>
+          <div class="d-grupo">
+            <button class="d-btn d-step" id="dPrev" type="button" aria-label="Página anterior">‹</button>
+            <button class="d-btn d-step" id="dNext" type="button" aria-label="Página siguiente">›</button>
+            <label class="d-foco-bar">foco <input type="range" id="dFoco" min="20" max="100" value="72" aria-label="Ancho del foco de lectura"></label>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- VI · EL VIAJE -->
+<section class="capa solo" data-capa id="s6">
+  <div class="texto viaje">
+    <p class="num">VI · el viaje</p>
+    <h2 style="font-size:clamp(26px,3.4vw,42px)">La página 98 <span class="azu">te espera en cada pantalla.</span></h2>
+    <p>Se corta la conexión y la lectura sigue: el libro ya vive en el dispositivo. Al volver la red, el progreso viaja solo. En la pc, en el celu — el lugar cambia, la calma no.</p>
+    <div class="pantallas">
+      <div class="pantalla">
+        <p class="quien"><span>escritorio</span><span>en línea</span></p>
+        <p class="linea">…encendió otra lámpara: la única luz era la <span class="en-focus">del escritorio</span>, y sobre ella, las páginas…</p>
+        <div class="pie-pag"><span>PÁG <b>98</b> · 62 %</span><span class="mini" aria-hidden="true"><i></i></span></div>
+      </div>
+      <div class="puente" aria-hidden="true">
+        <span class="hilo"></span>
+        <span class="nodo respira"></span>
+        <span>misma página</span>
+        <span class="hilo"></span>
+      </div>
+      <div class="pantalla">
+        <p class="quien"><span>celu · bondi</span><span>sin conexión</span></p>
+        <p class="linea">…encendió otra lámpara: la única luz era la <span class="en-focus">del escritorio</span>, y sobre ella, las páginas…</p>
+        <div class="pie-pag"><span>PÁG <b>98</b> · 62 %</span><span class="mini" aria-hidden="true"><i></i></span></div>
+      </div>
+    </div>
+    <p class="clausula">La descarga vive en el dispositivo. El progreso espera a la red, no al lector.</p>
+  </div>
+</section>
+
+<!-- VII · CIERRE -->
+<section class="capa solo cierre" data-capa id="s7">
+  <div class="texto">
+    <p class="num" style="margin-bottom:12px">VII</p>
+    <span class="sello" style="width:44px;height:44px;font-size:20px;margin-bottom:10px" aria-hidden="true">荧</span>
+    <h2>Una lámpara encendida<br>y una página por delante.</h2>
+    <p>La app se instala una vez. Los libros se descargan. Se vuelve exactamente a donde se dejó.</p>
+    <div class="acciones" style="justify-content:center;margin-top:30px"><a class="cta" href="#s3">Volver al catálogo</a><a class="quiet" href="/login">Entrar</a></div>
+  </div>
+</section>
+
+<footer>
+  <span>Ignit — la misma calma, en cualquier pantalla</span>
+  <span><a href="#s3">catálogo</a> · <a href="#s4">publicar</a> · <a href="/login">entrar</a></span>
+</footer>
+
+<!-- nota interna de producción, oculta: no es contenido de la página -->
+<aside class="nota" hidden>
+  <b>Producción —</b> three.js: estantería retroiluminada instanciada cuya luz sigue al puntero, río de tinta volumétrico; la demo del lector incrusta el lector real (Astro/Solid) con un libro sembrado del catálogo; GSAP: ScrollTrigger scrub para el descenso de exposición y quickTo para la lámpara. El hilo global replica el topthread del lector. Este canvas simula el polvo.
+</aside>
+
+<script>
+(function(){
+  var lamp=document.getElementById('lampara'),x=-999,y=-999,tx=x,ty=y,foco1=document.getElementById('eco-foco');
+  var caps=Array.prototype.slice.call(document.querySelectorAll('[data-capa]'));
+  var mecha=document.getElementById('mecha-aguja'),hilo=document.getElementById('hilo');
+  addEventListener('pointermove',function(e){tx=e.clientX;ty=e.clientY},{passive:true});
+  var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(!reduce){
+    (function seguir(){x+=(tx-x)*0.11;y+=(ty-y)*0.11;lamp.style.left=x+'px';lamp.style.top=y+'px';requestAnimationFrame(seguir)})();
+  }else{
+    tx=x=innerWidth/2;ty=y=innerHeight/3;lamp.style.opacity='0';document.body.style.cursor='auto';
+    document.querySelectorAll('a,button,input').forEach(function(a){a.style.cursor='pointer'});
+    if(foco1)foco1.setAttribute('opacity','.4');
+  }
+  function revisar(){
+    var max=document.documentElement.scrollHeight-innerHeight;
+    var p=max>0?Math.min(1,Math.max(0,scrollY/max)):0;
+    hilo.style.width=(p*100).toFixed(1)+'%';
+    var lad=innerHeight*0.8;
+    caps.forEach(function(s,i){var r=s.getBoundingClientRect();var dentro=r.top<lad&&r.bottom>0;s.classList.toggle('alumbrada',dentro);
+      if(dentro)mecha.style.top=(i*(88/(caps.length-1)))+'%';});
+  }
+  addEventListener('scroll',revisar,{passive:true});revisar();
+  /* II · estante retroiluminado con cantos reactivos al puntero */
+  var g=document.getElementById('estante-spines'),gR=document.getElementById('eco-rendijas'),cantos=[];
+  if(g&&gR){var seed=23;function rnd(){seed=(seed*16807)%2147483647;return seed/2147483647}
+    var NS='http://www.w3.org/2000/svg';
+    function el(dest,nombre,attr){var e=document.createElementNS(NS,nombre);for(var k in attr)e.setAttribute(k,attr[k]);dest.appendChild(e);return e}
+    [148,298,414].forEach(function(base){
+      var cs=[],px=44;
+      while(px<586){var w=13+rnd()*16,hh=74+rnd()*52;cs.push({x:px,w:w,h:hh});px+=w+1.5+rnd()*5}
+      cs.forEach(function(b,i){
+        if(i>0){var a=cs[i-1],hueco=b.x-(a.x+a.w);
+          if(hueco>2.5)el(gR,'rect',{x:(a.x+a.w+1).toFixed(1),y:(base-b.h-10).toFixed(1),width:(hueco-2).toFixed(1),height:(b.h+10).toFixed(1),fill:'#9fc0ee',opacity:(0.07+rnd()*0.09).toFixed(2)})}
+        el(g,'rect',{x:b.x.toFixed(1),y:(base-b.h).toFixed(1),width:b.w.toFixed(1),height:b.h.toFixed(1),rx:'2',fill:'url(#g-eco-silueta)',stroke:'#1c2438','stroke-width':'1'});
+        if(rnd()<0.45){el(g,'line',{x1:(b.x+3.5).toFixed(1),y1:(base-b.h+9).toFixed(1),x2:(b.x+b.w-3.5).toFixed(1),y2:(base-b.h+9).toFixed(1),stroke:'#3c4f7d','stroke-width':'1',opacity:'0.5'});
+          el(g,'line',{x1:(b.x+3.5).toFixed(1),y1:(base-b.h+13).toFixed(1),x2:(b.x+b.w-3.5).toFixed(1),y2:(base-b.h+13).toFixed(1),stroke:'#2a3a5e','stroke-width':'1',opacity:'0.4'})}
+        var opa=0.16+rnd()*0.38;
+        var c=el(g,'rect',{x:(b.x+b.w-2.2).toFixed(1),y:(base-b.h+3).toFixed(1),width:'2.2',height:(b.h-6).toFixed(1),rx:'1',fill:'#9fc0ee',opacity:opa.toFixed(2)});
+        cantos.push({cx:b.x+b.w-1.1,base:opa,el:c});
+      });
+    });
+  }
+  /* polvo + reflejo del estante */
+  var c=document.getElementById('escena'),ctx=c.getContext('2d');
+  function size(){c.width=innerWidth;c.height=innerHeight}size();addEventListener('resize',size,{passive:true});
+  var motas=[];for(var k=0;k<170;k++)motas.push({x:Math.random(),y:Math.random(),r:0.5+Math.random()*1.9,f:Math.random()*6.28,vx:0,vy:0});
+  function campo(){
+    ctx.clearRect(0,0,c.width,c.height);
+    for(var i=0;i<motas.length;i++){var m2=motas[i];
+      var px2=m2.x*c.width,py2=m2.y*c.height;
+      var dx=x-px2,dy=y-py2,d=Math.hypot(dx,dy);
+      if(d<260){m2.vx+=dx/d*0.012*(1-d/260);m2.vy+=dy/d*0.012*(1-d/260)}
+      m2.vx*=0.94;m2.vy*=0.94;m2.x+=m2.vx*0.002+0.00006;m2.y+=m2.vy*0.002;
+      if(m2.x>1)m2.x-=1;if(m2.x<0)m2.x+=1;if(m2.y>1)m2.y-=1;if(m2.y<0)m2.y+=1;
+      var al=0.05+0.05*Math.sin(Date.now()*0.001+m2.f)+(d<260?(1-d/260)*0.35:0);
+      ctx.beginPath();ctx.arc(m2.x*c.width,m2.y*c.height,m2.r,0,6.283);
+      ctx.fillStyle='rgba(159,192,238,'+Math.min(0.5,al).toFixed(3)+')';ctx.fill();}
+    if(foco1&&!reduce){var r=foco1.ownerSVGElement.getBoundingClientRect();
+      if(r.width>0){var vx=(x-r.left)/r.width*640,vy=(y-r.top)/r.height*460;
+        var dentro=x>r.left-40&&x<r.right+40&&y>r.top&&y<r.bottom;
+        foco1.setAttribute('cx',Math.max(30,Math.min(610,vx)).toFixed(1));
+        foco1.setAttribute('cy',Math.max(90,Math.min(430,vy)).toFixed(1));
+        foco1.setAttribute('opacity',dentro?'0.85':'0');
+        for(var j=0;j<cantos.length;j++){var ct=cantos[j];
+          var pul=Math.exp(-((vx-ct.cx)*(vx-ct.cx))/7200);
+          ct.el.setAttribute('opacity',Math.min(0.95,ct.base+pul*0.55).toFixed(3));}}}
+    requestAnimationFrame(campo);
+  }
+  if(!reduce)campo();
+  /* III · filtros */
+  var chips=document.querySelectorAll('.chip[data-filtro]'),tomos=document.querySelectorAll('.tomo');
+  chips.forEach(function(ch){ch.addEventListener('click',function(){
+    chips.forEach(function(o){o.setAttribute('data-activa',o===ch?'true':'false')});
+    var f=ch.getAttribute('data-filtro');
+    tomos.forEach(function(t){t.style.display=(f==='*'||t.getAttribute('data-cat')===f)?'':'none'});});});
+  /* V · demo del lector: tres páginas navegables, foco y guardado */
+  var PAGES=[
+    {cap:'capítulo vii · la lámpara',lines:[
+      ['El viento traía un olor a cedro mojado y la casa',0],
+      ['entera parecía contener la respiración. Nadie',0],
+      ['encendió otra lámpara: la única luz era la del',1],
+      ['escritorio, y sobre ella, las páginas esperaban',1],
+      ['aún la palabra que las atravesaría para siempre.',0],
+      ['Lejos, un perro ladró dos veces y se calló.',0]]},
+    {cap:'capítulo vii · la lámpara',lines:[
+      ['Los papeles quedaron donde estaban, quietos',0],
+      ['como superficies dormidas. Sólo el reflejo',0],
+      ['del vidrio se movía, ligero, cuando la mano',1],
+      ['se acercaba a girar una hoja y girar la vida',1],
+      ['de otro renglón hacia el silencio del cuarto.',0],
+      ['Era tarde, pero nadie miró la hora.',0]]},
+    {cap:'capítulo viii · el sendero',lines:[
+      ['El sendero se abría en dos frente a la piedra:',0],
+      ['uno bajaba hacia el agua, el otro se perdía',0],
+      ['en la espesura. En ambos se leía el mismo',1],
+      ['cartel gastado, y el caminante entendió al fin',1],
+      ['que la elección nunca fue del sendero, sino',0],
+      ['de los ojos con que se lo recorría.',0]]}
+  ];
+  var START=98,TOTAL=159,pagIdx=0,foco=72;
+  var dPage=document.getElementById('dPage'),dWire=document.getElementById('dWire'),dPct=document.getElementById('dPct');
+  var dPagina=document.getElementById('dPagina'),dFoco=document.getElementById('dFoco');
+  function pag(){return START+pagIdx}
+  function pintaPaginas(){
+    var pgs=PAGES[pagIdx];
+    dPagina.innerHTML='<p class="d-cap">'+pgs.cap+'</p>'+pgs.lines.map(function(l){
+      return '<span class="d-linea'+(l[1]?' d-foco':'')+'">'+l[0]+'</span>';}).join('');
+    aplicarFoco();
+    dPage.textContent=pag();
+    var pct=Math.round(pag()/TOTAL*100);
+    dWire.style.width=pct+'%';dPct.textContent=pct+'%';
+  }
+  function aplicarFoco(){
+    var min=0.18+(foco/100)*0.5;
+    dPagina.querySelectorAll('.d-linea').forEach(function(l){
+      if(l.classList.contains('d-foco')){l.style.opacity='1';l.style.filter='none'}
+      else{l.style.opacity=min.toFixed(2);l.style.filter='blur(.5px)'}
+    });
+  }
+  document.getElementById('dPrev').addEventListener('click',function(){if(pagIdx>0){pagIdx--;pintaPaginas()}});
+  document.getElementById('dNext').addEventListener('click',function(){if(pagIdx<PAGES.length-1){pagIdx++;pintaPaginas()}});
+  dFoco.addEventListener('input',function(){foco=Number(dFoco.value);aplicarFoco()});
+  var toast=document.getElementById('dToast'),tTimer=null;
+  document.getElementById('dSave').addEventListener('click',function(){
+    toast.setAttribute('data-on','true');
+    if(tTimer)clearTimeout(tTimer);
+    tTimer=setTimeout(function(){toast.setAttribute('data-on','false')},2600);
+  });
+  pintaPaginas();
+})();
+</script>
+</body>
+</html>

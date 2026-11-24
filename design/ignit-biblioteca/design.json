@@ -1,0 +1,13 @@
+{
+  "title": "Ignit — App autenticada (/biblioteca)",
+  "brief": "Diseño de la vista principal tras iniciar sesión (/biblioteca) manteniendo la paleta monocromática azul (#04050a, #5f86c9, #9fc0ee) y estética brutalista-editorial de 04-lampara-brutalista. Incluye continuidad de lectura, gestión de descargas offline en IndexedDB, catálogo por categoría, seguimiento de aportes en el pipeline (standby -> en curso -> tested -> catálogo / rechazado) y modal de subida.",
+  "artboards": [
+    {
+      "file": "01-sala-escritorio.html",
+      "title": "Sala de lectura (/biblioteca)",
+      "tradeoff": "Vista única con pestañas rápidas (En este dispositivo, Mi biblioteca, Catálogo, Mis aportes), card de continuidad arriba, medidor IndexedDB y modal de subida a standby. Mantiene foco en leer sin ruido de dashboard genérico.",
+      "width": 1440,
+      "height": 1100
+    }
+  ]
+}

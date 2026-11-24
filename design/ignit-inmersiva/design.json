@@ -1,0 +1,34 @@
+{
+  "title": "Landing inmersiva de Ignit",
+  "brief": "Dirección GSAP + Three.js: la landing debe sumergir como el modo Vigilia. Fondo negro #05060b / #04050a, paleta monocromática de azules. Los artboards autocontenidos simulan con canvas 2D la película que en producción animarían Three.js (cámara, partículas, fog, luces) + GSAP (ScrollTrigger, quickTo, horizontalLoop); cada uno trae su nota de producción con la receta real. Lógica de negocio vigente: pipeline standby → en curso → tested → catálogo con aprobación humana, categorías curadas, todo libro subido se publica (sin estantes privados), PWA con lectura offline de descargados. La artboard 03 fue promovida a landing integral: 8 secciones numeradas con voz del lugar, demo del lector con 3 páginas navegables y sección VI de viaje pc↔celu.",
+  "artboards": [
+    {
+      "file": "01-el-descenso.html",
+      "title": "El descenso",
+      "tradeoff": "La lectura es un descenso de exposición: catálogo iluminado → umbral → lámpara; cámara Three.js con dolly-down scrub por ScrollTrigger. Meta-narrativa fuerte, pero exige scroll largo y pierde impacientes",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "02-el-atril.html",
+      "title": "El atril",
+      "tradeoff": "Sin scroll: doble página 3D central y la cámara orbita de doble página en doble página (rueda/teclado/swipe); denso y literario, pero esconde el contenido tras un gesto no estándar",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "03-la-lampara.html",
+      "title": "El lugar tranquilo para leer (landing integral)",
+      "tradeoff": "Estructura I–VII completa con hilo de progreso global y lámpara reactiva; demo interpolable del lector real. Queda como referencia previa frente a 04.",
+      "width": 1440,
+      "height": 1600
+    },
+    {
+      "file": "04-lampara-brutalista.html",
+      "title": "Lámpara brutalista (app PWA + catálogo offline)",
+      "tradeoff": "Misma paleta monocromática azul con hero brutalista-editorial + estantería orgánica interactiva arriba del fold, catálogo real con descarga selectiva interactiva, pipeline real de 4 filtros interactivo, slot de embed para el lector real de Vigilia (sin demo falsa) y viaje interactivo Desktop ↔ Celu PWA.",
+      "width": 1440,
+      "height": 1600
+    }
+  ]
+}
