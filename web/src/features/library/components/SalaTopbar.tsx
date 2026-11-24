@@ -117,6 +117,11 @@ export default function SalaTopbar(props: SalaTopbarProps) {
 	const [signingOut, setSigningOut] = createSignal(false);
 	const [menuOpen, setMenuOpen] = createSignal(false);
 
+	const avatarInitial = () => {
+		const trimmed = props.userLabel.trim();
+		return trimmed.length > 0 ? trimmed.charAt(0).toUpperCase() : '·';
+	};
+
 	let tabRefs: HTMLButtonElement[] = [];
 	let menuToggleRef: HTMLButtonElement | undefined;
 	let menuRef: HTMLDivElement | undefined;
