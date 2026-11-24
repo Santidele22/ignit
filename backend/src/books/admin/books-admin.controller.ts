@@ -83,4 +83,29 @@ export class BooksAdminController {
   firewall(@Param('id', ParseIntPipe) id: number) {
     return this.booksAdminService.firewall(id);
   }
+
+  @Post(':id/refine')
+  @ApiOperation({
+    summary: 'Re-run LLM structural refinement on extracted reading.json (admin only)',
+    description:
+      'Applies patch-based structural fixes (TOC, heading levels, cross-page merges, header noise drops) on top of the deterministic baseline without rewriting author prose.',
+  })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiCreatedResponse({ description: 'Summary of applied structural patches' })
+  @ApiNotFoundResponse({ description: 'Book not found or no extracted reading.json' })
+  refine(@Param('id', ParseIntPipe) id: number) {
+    return this.booksAdminService.refineReading(id);
+  }
+
+  @Post(':id/refine/revert')
+  @ApiOperation({
+    summary: 'Revert reading.json to the deterministic baseline (admin only)',
+    description: 'Restores `reading.deterministic.json` over `reading.json`.',
+  })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiCreatedResponse({ description: 'Reverted confirmation' })
+  @ApiNotFoundResponse({ description: 'Book not found or no deterministic baseline saved' })
+  revertRefinement(@Param('id', ParseIntPipe) id: number) {
+    return this.booksAdminService.revertReadingRefinement(id);
+  }
 }

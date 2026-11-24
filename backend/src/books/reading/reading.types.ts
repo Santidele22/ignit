@@ -36,11 +36,21 @@ export interface ReadingChunk {
   align?: 'left' | 'center' | 'right';
 }
 
+export interface AiRefinementSummary {
+  applied: boolean;
+  model?: string;
+  reclassified: number;
+  merged: number;
+  dropped: number;
+}
+
 export interface BookReadingDocument {
   bookId: string;
   pdfPages: number;
   ocrPending: boolean;
   extractorVersion?: number;
+  refinedByAi?: boolean;
+  aiRefinement?: AiRefinementSummary | null;
   chunks: ReadingChunk[];
 }
 

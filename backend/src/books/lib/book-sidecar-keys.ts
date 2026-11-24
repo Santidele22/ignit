@@ -5,6 +5,9 @@
 export const readingJsonKey = (bookId: number | string): string =>
   `reading/${bookId}/reading.json`;
 
+export const readingDeterministicJsonKey = (bookId: number | string): string =>
+  `reading/${bookId}/reading.deterministic.json`;
+
 export const readingStateKey = (bookId: number | string): string =>
   `reading/${bookId}/state.json`;
 

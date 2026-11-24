@@ -10,6 +10,10 @@ export function readingJsonPath(bookId: number): string {
   return join(resolveUploadDir(), String(bookId), 'reading.json');
 }
 
+export function readingDeterministicJsonPath(bookId: number): string {
+  return join(resolveUploadDir(), String(bookId), 'reading.deterministic.json');
+}
+
 export function readingStatePath(bookId: number): string {
   return join(resolveUploadDir(), String(bookId), 'state.json');
 }
@@ -28,6 +32,26 @@ export async function readBookReadingJson(
 ): Promise<BookReadingDocument | null> {
   try {
     const raw = await readFile(readingJsonPath(bookId), 'utf8');
+    return JSON.parse(raw) as BookReadingDocument;
+  } catch {
+    return null;
+  }
+}
+
+export async function writeBookDeterministicReadingJson(
+  bookId: number,
+  doc: BookReadingDocument,
+): Promise<void> {
+  const target = readingDeterministicJsonPath(bookId);
+  await mkdir(dirname(target), { recursive: true });
+  await writeFile(target, JSON.stringify(doc, null, 2), 'utf8');
+}
+
+export async function readBookDeterministicReadingJson(
+  bookId: number,
+): Promise<BookReadingDocument | null> {
+  try {
+    const raw = await readFile(readingDeterministicJsonPath(bookId), 'utf8');
     return JSON.parse(raw) as BookReadingDocument;
   } catch {
     return null;

@@ -2,16 +2,21 @@ import { HttpException, HttpStatus } from '@nestjs/common';
 import { unlink } from 'node:fs/promises';
 import type { Repository } from 'typeorm';
 import { aiColumnsFor, analyzeReadingDocument } from '../ai/ai-analysis.service.js';
+import { refineReadingDocument } from '../ai/ai-refiner.service.js';
 import type { Book } from '../entities/book.entity.js';
 import type { BookStorage } from '../storage/book-storage.js';
-import { extractReadingFromPdf, writeBookReadingJson } from '../reading/book-reading.extractor.js';
+import {
+  extractReadingFromPdf,
+  writeBookReadingJson,
+} from '../reading/book-reading.extractor.js';
+import { writeBookDeterministicReadingJson } from '../reading/reading.state.js';
 import {
   inspectSafePdfFile,
 } from '../pdf-firewall/pdf-firewall.service.js';
 import type { PdfFirewallReport } from '../pdf-firewall/pdf-firewall.types.js';
 import { saveBookFirewallReport } from './book-firewall-report.js';
 import { emptyReadingDocument } from './book-reading.js';
-import { readingJsonKey } from './book-sidecar-keys.js';
+import { readingDeterministicJsonKey, readingJsonKey } from './book-sidecar-keys.js';
 
 /** The multer temp file as the controller forwards it. */
 export type UploadedPdf = {
@@ -52,9 +57,15 @@ export async function attachBookFile(
 
   // Extract `reading.json` while `file.path` is still on local disk (in S3
   // mode `bookStorage.persist` deletes the multer temp file after upload).
-  const readingDoc = await extractReadingFromPdf(book.id, file.path).catch(
+  const deterministicDoc = await extractReadingFromPdf(book.id, file.path).catch(
     () => emptyReadingDocument(book.id),
   );
+
+  // Optional LLM structural refiner: keeps the deterministic extraction as the
+  // base and applies chunk-ID patches (`toc`, headings, cross-page merges)
+  // fail-open so Vigilia's unified book aesthetic renders cleanly.
+  const refined = await refineReadingDocument(deterministicDoc);
+  const readingDoc = refined.document;
 
   // Optional AI text analysis (S3), after the firewall and the extraction, and
   // strictly fail-open: `analyzeReadingDocument` answers `null` on any problem
@@ -76,6 +87,15 @@ export async function attachBookFile(
 
   if (previousRef && previousRef !== ref) {
     await bookStorage.remove(previousRef);
+  }
+
+  if (refined.summary.applied) {
+    await writeBookDeterministicReadingJson(book.id, deterministicDoc).catch(() => undefined);
+    if (bookStorage.putJson) {
+      await bookStorage
+        .putJson(readingDeterministicJsonKey(book.id), deterministicDoc)
+        .catch(() => undefined);
+    }
   }
 
   await writeBookReadingJson(book.id, readingDoc).catch(() => undefined);
