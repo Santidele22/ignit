@@ -49,6 +49,15 @@ export async function inspectPdfBuffer(buffer: Buffer): Promise<PdfFirewallVerdi
  * never leaks a file on disk.
  */
 export async function assertSafePdfFile(filePath: string): Promise<void> {
+  await inspectSafePdfFile(filePath);
+}
+
+/**
+ * Same check as `assertSafePdfFile`, but answers the accepted verdict so the
+ * caller can persist the page count the structural tier measured. A rejected
+ * or unreadable file still throws the `400` and drops the temp file.
+ */
+export async function inspectSafePdfFile(filePath: string): Promise<PdfFirewallVerdict> {
   let buffer: Buffer;
   try {
     buffer = await readFile(filePath);
@@ -59,7 +68,7 @@ export async function assertSafePdfFile(filePath: string): Promise<void> {
 
   const verdict = await inspectPdfBuffer(buffer);
   if (verdict.safe) {
-    return;
+    return verdict;
   }
 
   await dropTempFile(filePath);

@@ -1,10 +1,11 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { unlink } from 'node:fs/promises';
 import type { Repository } from 'typeorm';
+import { aiColumnsFor, analyzeReadingDocument } from '../ai/ai-analysis.service.js';
 import type { Book } from '../entities/book.entity.js';
 import type { BookStorage } from '../storage/book-storage.js';
 import { extractReadingFromPdf, writeBookReadingJson } from '../reading/book-reading.extractor.js';
-import { assertSafePdfFile } from '../pdf-firewall/pdf-firewall.service.js';
+import { inspectSafePdfFile } from '../pdf-firewall/pdf-firewall.service.js';
 import { emptyReadingDocument } from './book-reading.js';
 import { readingJsonKey } from './book-sidecar-keys.js';
 
@@ -30,9 +31,9 @@ export async function attachBookFile(
   file: UploadedPdf,
 ): Promise<Book> {
   // The firewall runs before anything else: a rejected upload never reaches
-  // text extraction nor durable storage, and `assertSafePdfFile` drops the
+  // text extraction nor durable storage, and `inspectSafePdfFile` drops the
   // multer temp file itself (same convention as `assertStoredPdf`).
-  await assertSafePdfFile(file.path);
+  const verdict = await inspectSafePdfFile(file.path);
 
   // Extract `reading.json` while `file.path` is still on local disk (in S3
   // mode `bookStorage.persist` deletes the multer temp file after upload).
@@ -40,13 +41,21 @@ export async function attachBookFile(
     () => emptyReadingDocument(book.id),
   );
 
+  // Optional AI text analysis (S3), after the firewall and the extraction, and
+  // strictly fail-open: `analyzeReadingDocument` answers `null` on any problem
+  // (env gate off, timeout, refusal, unparseable answer) and the upload keeps
+  // going with `aiStatus: 'skipped'`.
+  const aiColumns = aiColumnsFor(await analyzeReadingDocument(readingDoc));
+
   const ref = await persistUploadedPdf(bookStorage, book.id, file);
 
   const previousRef = book.filePath;
   book.filePath = ref;
   book.originalName = file.originalname;
   book.fileSize = String(file.size);
+  book.filePages = verdict.pageCount;
   book.mimeType = file.mimetype;
+  Object.assign(book, aiColumns);
 
   await saveAttachedBook(booksRepository, bookStorage, book, ref);
 

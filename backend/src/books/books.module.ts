@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../users/entities/user.entity.js';
+import { BooksAdminController } from './admin/books-admin.controller.js';
+import { BooksAdminService } from './admin/books-admin.service.js';
 import { BooksController } from './books.controller.js';
 import { BooksService } from './books.service.js';
 import { Book } from './entities/book.entity.js';
@@ -11,9 +13,10 @@ import { BOOK_STORAGE, createBookStorage } from './storage/book-storage.js';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Book, DownloadEvent, ReadingState, User])],
-  controllers: [BooksController],
+  controllers: [BooksController, BooksAdminController],
   providers: [
     BooksService,
+    BooksAdminService,
     BookOwnerGuard,
     {
       provide: BOOK_STORAGE,

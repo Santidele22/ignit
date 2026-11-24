@@ -4,6 +4,7 @@ import type { User } from '../../users/entities/user.entity.js';
 import type { CreateBookDto } from '../dto/create-book.dto.js';
 import type { UpdateBookDto } from '../dto/update-book.dto.js';
 import type { Book } from '../entities/book.entity.js';
+import { REVIEW_STATUS_PENDING } from '../entities/book.entity.js';
 import type { ReadingState } from '../entities/reading-state.entity.js';
 import { removeBookReadingArtifacts } from '../reading/book-reading.extractor.js';
 import type { BookStorage } from '../storage/book-storage.js';
@@ -23,6 +24,9 @@ export async function createBookRow(
 
   const book = booksRepository.create(dto);
   book.ownerId = owner.id;
+  // Every new row starts in the admin review queue (S4); uploads keep it
+  // pending until an admin decides, and the column default backfills old rows.
+  book.reviewStatus = REVIEW_STATUS_PENDING;
 
   return booksRepository.save(book);
 }
