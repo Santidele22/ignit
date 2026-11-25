@@ -7,6 +7,12 @@
     "BACKEND_URL": "https://ignit-api-ohm4.onrender.com",
     "NEON_AUTH_BASE_URL": "https://ep-orange-dust-bevbvwtp.neonauth.c-9.us-east-2.aws.neon.tech/neondb/auth"
   },
+  "kv_namespaces": [
+    {
+      "binding": "CONTENT_CACHE",
+      "id": "e21a1dbb5ca74a2c99df6ef8637ccdd7"
+    }
+  ],
   "observability": {
     "enabled": true
   },
