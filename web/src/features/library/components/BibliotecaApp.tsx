@@ -129,7 +129,9 @@ export default function BibliotecaApp(props: BibliotecaAppProps) {
 	const [activeTab, setActiveTab] = createSignal<SalaTabId>('device');
 	const [kindFilter, setKindFilter] = createSignal<CatalogKindFilter>('*');
 	/** Room lens of the shelf: `null` keeps every room visible (unchanged default). */
-	const [estadoFilter, setEstadoFilter] = createSignal<SalaEstado | null>(null);
+	// A05: «Estudio y Disciplina» comes active by default (user decision, 2026-11-25);
+	// pressing nothing again restores the unscoped full-shelf view.
+	const [estadoFilter, setEstadoFilter] = createSignal<SalaEstado | null>("estudio");
 	const [searchQuery, setSearchQuery] = createSignal('');
 
 	// Offline state = real `navigator` state OR the manual test toggle.
