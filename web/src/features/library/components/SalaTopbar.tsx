@@ -1,5 +1,6 @@
 import { For, Show, createSignal, onCleanup, onMount } from 'solid-js';
 import { signOutCleanly } from '../../auth/api/authActions';
+import { subscribeInstallMode, triggerInstall, type InstallMode } from '../../pwa/installPrompt';
 import {
 	PALETTE_CHANGE_EVENT,
 	applyPaletteToDocument,
@@ -31,6 +32,7 @@ export interface SalaTopbarProps {
 	counts: Record<SalaTabId, number>;
 	isOffline: boolean;
 	userLabel: string;
+	isAdmin?: boolean;
 	onTabChange: (tab: SalaTabId) => void;
 	onToggleOffline: () => void;
 	onOpenUpload: () => void;
@@ -116,6 +118,7 @@ export default function SalaTopbar(props: SalaTopbarProps) {
 	const [palette, setPalette] = createSignal<AppPalette>('noche-azul');
 	const [signingOut, setSigningOut] = createSignal(false);
 	const [menuOpen, setMenuOpen] = createSignal(false);
+	const [installMode, setInstallMode] = createSignal<InstallMode>('hidden');
 
 	const avatarInitial = () => {
 		const trimmed = props.userLabel.trim();
@@ -163,8 +166,15 @@ export default function SalaTopbar(props: SalaTopbarProps) {
 		}
 	}
 
+	async function handleInstallApp() {
+		closeMenu();
+		await triggerInstall();
+	}
+
 	onMount(() => {
 		setPalette(readDocumentPalette());
+
+		const unsubscribeInstall = subscribeInstallMode((mode) => setInstallMode(mode));
 
 		const onPaletteChange = (event: Event) => {
 			const detail = (event as CustomEvent<{ palette?: AppPalette }>).detail;
@@ -172,7 +182,10 @@ export default function SalaTopbar(props: SalaTopbarProps) {
 			if (next === 'original' || next === 'noche-azul') setPalette(next);
 		};
 		window.addEventListener(PALETTE_CHANGE_EVENT, onPaletteChange);
-		onCleanup(() => window.removeEventListener(PALETTE_CHANGE_EVENT, onPaletteChange));
+		onCleanup(() => {
+			unsubscribeInstall();
+			window.removeEventListener(PALETTE_CHANGE_EVENT, onPaletteChange);
+		});
 	});
 
 	// Compact menu panel: `Escape` closes it and returns focus to the toggle,
@@ -251,6 +264,16 @@ export default function SalaTopbar(props: SalaTopbarProps) {
 				<div class="top-actions">
 					<NetToggle isOffline={props.isOffline} onToggleOffline={props.onToggleOffline} />
 					<PaletteGroup palette={palette()} onSelect={selectPalette} />
+					<Show when={installMode() !== 'hidden'}>
+						<button class="btn-ghost" type="button" onClick={() => void handleInstallApp()}>
+							Instalar app
+						</button>
+					</Show>
+					<Show when={props.isAdmin}>
+						<a class="btn-ghost" href="/admin">
+							Admin
+						</a>
+					</Show>
 					<button class="btn-primary" type="button" onClick={() => props.onOpenUpload()}>
 						+ Subir libro
 					</button>
@@ -262,6 +285,31 @@ export default function SalaTopbar(props: SalaTopbarProps) {
 				</div>
 
 				<div class="top-compact-actions">
+					<Show when={installMode() !== 'hidden'}>
+						<button
+							class="btn-ghost btn-install-mini"
+							type="button"
+							aria-label="Instalar app"
+							title="Instalar app"
+							onClick={() => void handleInstallApp()}
+						>
+							<svg
+								width="18"
+								height="18"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="1.8"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								aria-hidden="true"
+							>
+								<path d="M12 4v11" />
+								<path d="M7.5 11.5 12 16l4.5-4.5" />
+								<path d="M4.5 19.5h15" />
+							</svg>
+						</button>
+					</Show>
 					<button
 						class="btn-primary btn-subir-mini"
 						type="button"
@@ -302,6 +350,16 @@ export default function SalaTopbar(props: SalaTopbarProps) {
 				<Show when={menuOpen()}>
 					<NetToggle isOffline={props.isOffline} onToggleOffline={props.onToggleOffline} />
 					<PaletteGroup palette={palette()} onSelect={selectPalette} />
+					<Show when={installMode() !== 'hidden'}>
+						<button class="btn-ghost" type="button" onClick={() => void handleInstallApp()}>
+							Instalar app
+						</button>
+					</Show>
+					<Show when={props.isAdmin}>
+						<a class="btn-ghost" href="/admin">
+							Admin
+						</a>
+					</Show>
 					<UserPill
 						label={props.userLabel}
 						signingOut={signingOut()}

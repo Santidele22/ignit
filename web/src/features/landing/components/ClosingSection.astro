@@ -27,6 +27,9 @@ const { authenticated } = Astro.props;
 				entre tus dispositivos.
 			</p>
 			<div class="acciones">
+				<button class="cta" type="button" data-pwa-install data-pwa-install-only>
+					Instalar app
+				</button>
 				<a class="cta" href="#s2">Explorar catálogo</a>
 				{
 					authenticated ? (

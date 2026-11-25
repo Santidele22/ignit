@@ -185,7 +185,7 @@ function scoreCandidate(candidate: CoverSearchCandidate, queryTokenSets: string[
   return bestScore;
 }
 
-const WIKIMEDIA_USER_AGENT = 'IgnitLibrary/1.0 (https://ignit.ezedelebecq22.workers.dev)';
+const WIKIMEDIA_USER_AGENT = 'IgnitLibrary/1.0 (https://ignit.ignit677.workers.dev)';
 const ALLOWED_WIKIMEDIA_MIMES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 async function queryWikimediaCommonsCovers(

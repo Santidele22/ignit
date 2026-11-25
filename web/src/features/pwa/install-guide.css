@@ -1,0 +1,150 @@
+/**
+ * Diálogo discreto de instalación para iOS/iPadOS («Agregar a pantalla de inicio»).
+ * Comparte la estética editorial calma de `sw-toast.css` (`noche-azul` + `original`).
+ */
+
+#ignit-ios-install-guide {
+	position: fixed;
+	inset: 0;
+	z-index: 2147483100;
+	display: grid;
+	place-items: end center;
+	padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+	background: rgb(4 5 10 / 0.72);
+	backdrop-filter: blur(4px);
+	-webkit-backdrop-filter: blur(4px);
+}
+
+#ignit-ios-install-guide .pwa-guide-dialog {
+	width: 100%;
+	max-width: 400px;
+	padding: 18px 20px 20px;
+	background: #060810;
+	border: 1px solid #232941;
+	border-left: 2px solid #5f86c9;
+	color: #e6edf7;
+	font-family: var(--font-zen, system-ui, -apple-system, sans-serif);
+	box-shadow: 0 24px 48px -20px rgb(0 0 0 / 0.92);
+	animation: ignit-pwa-guide-in 180ms ease-out both;
+}
+
+#ignit-ios-install-guide .pwa-guide-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 8px;
+}
+
+#ignit-ios-install-guide .pwa-guide-eyebrow {
+	font-family: var(--font-geist-mono, 'Geist Mono', ui-monospace, monospace);
+	font-size: 11px;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: #9fc0ee;
+}
+
+#ignit-ios-install-guide .pwa-guide-close {
+	flex: none;
+	min-width: 44px;
+	min-height: 44px;
+	margin: -10px -10px -10px 0;
+	border: 0;
+	background: transparent;
+	color: #9aa7bf;
+	font-size: 16px;
+	cursor: pointer;
+	touch-action: manipulation;
+}
+
+#ignit-ios-install-guide .pwa-guide-close:hover {
+	color: #e6edf7;
+}
+
+#ignit-ios-install-guide .pwa-guide-title {
+	margin: 0 0 12px;
+	font-family: var(--font-shippori, Georgia, serif);
+	font-size: 20px;
+	font-weight: 600;
+	line-height: 1.25;
+	color: #f4eadb;
+}
+
+#ignit-ios-install-guide .pwa-guide-steps {
+	margin: 0 0 18px;
+	padding-left: 20px;
+	display: grid;
+	gap: 8px;
+	font-size: 14px;
+	line-height: 1.5;
+	color: #cfd8e8;
+}
+
+#ignit-ios-install-guide .pwa-guide-done {
+	width: 100%;
+	min-height: 44px;
+	padding: 0 16px;
+	border: 1px solid #5f86c9;
+	border-radius: 0;
+	background: transparent;
+	color: #9fc0ee;
+	font-family: var(--font-geist-mono, 'Geist Mono', ui-monospace, monospace);
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	cursor: pointer;
+	touch-action: manipulation;
+	transition:
+		background-color 120ms ease-out,
+		color 120ms ease-out;
+}
+
+#ignit-ios-install-guide .pwa-guide-done:hover {
+	background: #5f86c9;
+	color: #04050a;
+}
+
+#ignit-ios-install-guide .pwa-guide-done:focus-visible,
+#ignit-ios-install-guide .pwa-guide-close:focus-visible {
+	outline: 2px solid #9fc0ee;
+	outline-offset: 2px;
+}
+
+@keyframes ignit-pwa-guide-in {
+	from {
+		opacity: 0;
+		transform: translateY(8px);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	#ignit-ios-install-guide .pwa-guide-dialog {
+		animation: none;
+	}
+}
+
+@media (prefers-color-scheme: light) {
+	#ignit-ios-install-guide .pwa-guide-dialog {
+		border-color: #3a3026;
+		border-left-color: #b44637;
+	}
+
+	#ignit-ios-install-guide .pwa-guide-eyebrow {
+		color: #d4a759;
+	}
+
+	#ignit-ios-install-guide .pwa-guide-done {
+		border-color: #b44637;
+		color: #d4a759;
+	}
+
+	#ignit-ios-install-guide .pwa-guide-done:hover {
+		background: #b44637;
+		color: #f4eadb;
+	}
+}

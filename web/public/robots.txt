@@ -3,4 +3,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://personal-page.ezedelebecq22.workers.dev/sitemap-index.xml
+Sitemap: https://ignit.ignit677.workers.dev/sitemap-index.xml

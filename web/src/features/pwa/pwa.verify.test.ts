@@ -119,11 +119,19 @@ describe('S3 manifest + icons + layouts', () => {
       expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([px, px]);
     }
   });
-  it('links manifest + apple-touch-icon + theme-color in both layouts', () => {
-    for (const src of layouts) {
+  it('links manifest + apple-touch-icon + theme-color in both layouts and reader', () => {
+    const reader = read('../../pages/lecturas/[id].astro');
+    for (const src of [...layouts, reader]) {
       expect(src).toContain('rel="manifest" href="/manifest.webmanifest"');
       expect(src).toContain('rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png"');
       expect(src).toContain('<meta name="theme-color" content="#04050a" />');
     }
+  });
+  it('ships Cloudflare _headers with no-cache for /sw.js and manifest content-type', () => {
+    const headersFile = read('../../../public/_headers');
+    expect(headersFile).toContain('/sw.js');
+    expect(headersFile).toContain('Cache-Control: no-cache');
+    expect(headersFile).toContain('/manifest.webmanifest');
+    expect(headersFile).toContain('application/manifest+json');
   });
 });

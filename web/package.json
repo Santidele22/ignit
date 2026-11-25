@@ -10,7 +10,7 @@
     "astro": "astro",
     "test": "vitest run",
     "test:watch": "vitest",
-    "deploy": "astro build && wrangler deploy"
+    "deploy": "node scripts/build-sw.mjs && astro build && wrangler deploy"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^14.4.2",

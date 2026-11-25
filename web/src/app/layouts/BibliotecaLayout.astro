@@ -62,5 +62,9 @@ const {
 		<div class="bg-grid" aria-hidden="true"></div>
 		<SessionGuard client:load />
 		<slot />
+		<script>
+			import { initInstallPrompt } from '../../features/pwa/installPrompt';
+			initInstallPrompt();
+		</script>
 	</body>
 </html>

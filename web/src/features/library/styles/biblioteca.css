@@ -2174,6 +2174,17 @@ body.biblioteca-body .cov-svg-label {
 		margin-left: auto;
 	}
 
+	body.biblioteca-body .btn-install-mini {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 44px;
+		height: 44px;
+		min-width: 44px;
+		min-height: 44px;
+		padding: 0;
+	}
+
 	body.biblioteca-body .btn-subir-mini {
 		min-height: 44px;
 		padding: 0 12px;

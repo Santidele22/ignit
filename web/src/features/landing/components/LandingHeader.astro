@@ -39,11 +39,16 @@ const { session } = Astro.props;
 		<PaletteToggle />
 		{
 			session.authenticated ? (
-				<a href="/biblioteca">Mi biblioteca</a>
+				<>
+					<a href="/biblioteca">Mi biblioteca</a>
+					<a class="nav-install" href="#s6" data-pwa-install data-pwa-install-only>
+						Instalar app
+					</a>
+				</>
 			) : (
 				<>
 					<a href="/login">Entrar</a>
-					<a class="nav-install" href="#s6">
+					<a class="nav-install" href="#s6" data-pwa-install data-pwa-install-only>
 						Instalar app
 					</a>
 				</>
@@ -82,6 +87,8 @@ const { session } = Astro.props;
 	// inline a `script-src 'self'`. Se engancha acá en vez de `initLanding.ts`
 	// para no tocar el runtime de la landing (1 línea de código cliente).
 	import { registerServiceWorker } from '../../pwa/registerSW';
+	import { bindLandingInstallTriggers } from '../../pwa/installPrompt';
 
 	registerServiceWorker();
+	bindLandingInstallTriggers();
 </script>

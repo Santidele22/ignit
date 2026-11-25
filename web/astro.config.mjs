@@ -21,6 +21,8 @@ export default defineConfig({
 				"img-src 'self' https: data:",
 				"font-src 'self'",
 				"frame-src 'self'",
+				"manifest-src 'self'",
+				"worker-src 'self'",
 				"base-uri 'self'",
 				"form-action 'self'",
 			],

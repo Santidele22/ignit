@@ -81,11 +81,13 @@ describe('security headers and CSP frame scoping', () => {
 		expect(csp).not.toContain("'unsafe-eval'");
 	});
 
-	it('registers frame-src self in astro.config.mjs while keeping default-src none', () => {
+	it('registers frame-src, manifest-src, and worker-src self in astro.config.mjs while keeping default-src none', () => {
 		const webRoot = path.resolve(import.meta.dirname, '../../..');
 		const astroConfig = fs.readFileSync(path.join(webRoot, 'astro.config.mjs'), 'utf8');
 
 		expect(astroConfig).toContain("default-src 'none'");
 		expect(astroConfig).toContain("frame-src 'self'");
+		expect(astroConfig).toContain("manifest-src 'self'");
+		expect(astroConfig).toContain("worker-src 'self'");
 	});
 });
