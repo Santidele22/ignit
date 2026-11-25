@@ -1,6 +1,58 @@
-import { getBookKindLabel, type Book, type BookKind } from '../../../entities/book/types';
+import {
+	BOOK_KIND_OPTIONS,
+	getBookKindLabel,
+	type Book,
+	type BookKind,
+} from '../../../entities/book/types';
 
 export type CatalogKindFilter = '*' | BookKind;
+
+export type SalaId = 'estudio' | 'despeje';
+
+/**
+ * The two rooms of the landing («Estudio Profesional» / «Despeje Literario»).
+ *
+ * They are a *view* over the existing `BookKind` domain — never a second
+ * classification: `tecnico`/`ciencia` are studied, every other kind belongs to
+ * the literary room. Adding a discipline (derecho, medicina, economía, diseño)
+ * would be a `BookKind` change in `entities/book/types.ts` + the API enum, so
+ * it stays out of the landing.
+ */
+export const SALA_KINDS: Record<SalaId, readonly BookKind[]> = {
+	estudio: ['tecnico', 'ciencia'],
+	despeje: ['ficcion', 'terror_scifi', 'filosofia', 'historia', 'poesia', 'no_tecnico'],
+};
+
+/** Kind each room opens the shelf with when its card is clicked. */
+export const SALA_DEFAULT_KIND: Record<SalaId, BookKind> = {
+	estudio: 'tecnico',
+	despeje: 'ficcion',
+};
+
+export function salaForKind(kind: BookKind): SalaId {
+	return SALA_KINDS.estudio.includes(kind) ? 'estudio' : 'despeje';
+}
+
+/** Counts the books of the current page per room (no invented totals). */
+export function countSalaBooks(books: readonly Pick<Book, 'kind'>[]): Record<SalaId, number> {
+	const counts: Record<SalaId, number> = { estudio: 0, despeje: 0 };
+	for (const book of books) {
+		counts[salaForKind(book.kind)] += 1;
+	}
+	return counts;
+}
+
+/**
+ * The discipline chip row: one chip per real catalog kind plus the «all» chip.
+ * Values are the `data-filtro` of the existing kind filter, so the client
+ * runtime keeps a single source of state.
+ */
+export function buildDisciplineChips(): Array<{ value: CatalogKindFilter; label: string }> {
+	return [
+		{ value: '*', label: 'Todas las disciplinas' },
+		...BOOK_KIND_OPTIONS.map((option) => ({ value: option.value, label: option.label })),
+	];
+}
 
 export interface ShelfBookInfo {
 	id: number;

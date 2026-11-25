@@ -1,26 +1,36 @@
 ---
 /**
- * Sección II · Catálogo + descarga selectiva (S4).
+ * Sección II · «Elegí tu estancia de lectura»: las dos salas + estante (S1/S4).
  *
  * Todo el estado inicial es server-rendered y real: el conteo del medidor de
  * dispositivo, los filtros activos (`activeKind` de la URL), el índice de
  * búsqueda normalizado de cada libro, el peso en KB (`fileSize` cuando existe,
  * estimación cuando no) y el enlace directo al lector real `/lecturas/:id`.
  *
+ * Las dos tarjetas de sala y la fila de disciplinas son una vista sobre el
+ * filtro de categorías que ya existía: los chips son los mismos
+ * `.chip[data-filtro]` (valores de `BookKind`, uno por categoría real del
+ * catálogo) y las tarjetas sólo piden al runtime que active el chip por defecto
+ * de su sala (`data-estancia`), nunca un estado paralelo.
+ *
  * El marcado también declara los nodos que `initLanding.ts` necesita
  * (`#catSearch`, `.chip[data-filtro]`, `.tomo`, `.btn-dl`, `#dlCount`,
  * `#dlBar`, `#catEmptySearch`); por eso no hay `<script is:inline>`.
  */
 import { formatLicenseBadge } from '../../../entities/book/open-licenses';
-import { BOOK_KIND_OPTIONS, type Book, type BookKind } from '../../../entities/book/types';
+import { type Book, type BookKind } from '../../../entities/book/types';
 import PaginationControls from '../../../shared/ui/PaginationControls.astro';
 import {
 	bookSearchIndex,
 	bookSizeKb,
+	buildDisciplineChips,
 	computeOfflineMeter,
+	countSalaBooks,
 	coverVariantIndex,
 	formatSizeKb,
 	kindLabel,
+	type CatalogKindFilter,
+	type SalaId,
 } from '../lib/catalog';
 import BookCoverArt from './BookCoverArt.astro';
 
@@ -38,11 +48,8 @@ const { books, total, offset, limit, activeKind } = Astro.props;
 const unreachable = books === null;
 const items = books ?? [];
 
-const filters: Array<{ value: '*' | BookKind; label: string }> = [
-	{ value: '*', label: 'Todos' },
-	...BOOK_KIND_OPTIONS,
-];
-const isActiveFilter = (value: '*' | BookKind) =>
+const filters = buildDisciplineChips();
+const isActiveFilter = (value: CatalogKindFilter) =>
 	value === '*' ? activeKind === undefined : activeKind === value;
 
 /* The artboard starts its offline preview with two downloads; we mirror that
@@ -52,16 +59,36 @@ const meter = computeOfflineMeter(previewBooks.map((book) => bookSizeKb(book)));
 const meterLabel = previewBooks.length === 0 ? '0 libros · 0 KB' : meter.label;
 const initialOfflineIds = new Set(previewBooks.map((book) => book.id));
 
+/* The two rooms are a view over the real kinds and count only the books this
+   page actually fetched, so the badge can never overstate the shelf. */
+const salaCounts = countSalaBooks(items);
+const salaBadge = (count: number) =>
+	`${count} ${count === 1 ? 'tomo' : 'tomos'} en esta página`;
+const salas: Array<{ id: SalaId; num: string; name: string; caption: string }> = [
+	{
+		id: 'estudio',
+		num: 'Dominio I',
+		name: 'Estudio Profesional',
+		caption: 'Ingeniería, computación, derecho, medicina, economía y diseño',
+	},
+	{
+		id: 'despeje',
+		num: 'Dominio II',
+		name: 'Despeje Literario',
+		caption: 'Filosofía, ficción, terror clásico, historia y poesía universal',
+	},
+];
+
 const basePath = activeKind ? `/?kind=${activeKind}` : '/';
 const indexLabel = (position: number) => String(position).padStart(2, '0');
 ---
 
 <section class="capa" data-capa id="s2">
 	<div class="anim">
-		<p class="num">II · el catálogo</p>
+		<p class="num">II · las dos salas</p>
 		<div class="cat-head">
 			<div>
-				<h2>Elegí qué descargar, <span class="azu">no instales todo.</span></h2>
+				<h2>Elegí tu <span class="azu">estancia de lectura.</span></h2>
 				<p class="lead">
 					El catálogo público reúne exclusivamente obras en dominio público y licencias abiertas (Creative Commons,
 					documentación técnica open source y libros libres), listas para leer en Vigilia o descargar offline.
@@ -76,8 +103,28 @@ const indexLabel = (position: number) => String(position).padStart(2, '0');
 			</div>
 		</div>
 
+		<div class="estancias" role="group" aria-label="Elegir sala de lectura">
+			{
+				salas.map((sala) => (
+					<a
+						class="estancia"
+						href="#rejilla"
+						data-estancia={sala.id}
+						aria-label={`${sala.name}: ${sala.caption}. Filtrar el estante por esta sala.`}
+					>
+						<span class="estancia-copy">
+							<span class="domain-num">{sala.num}</span>
+							<span class="domain-name">{sala.name}</span>
+							<span class="domain-caption">{sala.caption}</span>
+						</span>
+						<span class="domain-badge">{salaBadge(salaCounts[sala.id])}</span>
+					</a>
+				))
+			}
+		</div>
+
 		<div class="cat-controls">
-			<div class="filtros" role="group" aria-label="Filtrar por categoría">
+			<div class="filtros" role="group" aria-label="Filtrar por disciplina">
 				{
 					filters.map((filter) => (
 						<button

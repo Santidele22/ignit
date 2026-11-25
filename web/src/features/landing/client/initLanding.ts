@@ -11,7 +11,7 @@
 // for Astro view transitions / hot reload).
 
 import type { ShelfHudInfo, ShelfLayout } from '../lib/catalog';
-import { computeOfflineMeter, normalizeSearchText } from '../lib/catalog';
+import { computeOfflineMeter, normalizeSearchText, SALA_DEFAULT_KIND } from '../lib/catalog';
 import { resolveSafeReaderEmbedPath } from '../lib/embed';
 import {
 	JOURNEY_SNIPPETS,
@@ -772,6 +772,35 @@ export function initLanding(): () => void {
 		}
 
 		catalogSearch?.addEventListener('input', applyCatalogFilter, { signal });
+
+		/* ---------------------------------------------------------------
+		 * c2) Two rooms (S1) — the hero lanes and the shelf entry cards reuse
+		 *     the chip filter above instead of opening a parallel state: a
+		 *     click activates the room's default kind chip and brings the shelf
+		 *     into view. Without JS they stay plain `#s2` / `#rejilla` anchors.
+		 * ------------------------------------------------------------ */
+
+		for (const room of Array.from(document.querySelectorAll<HTMLElement>('[data-estancia]'))) {
+			const sala = room.dataset.estancia;
+			if (sala !== 'estudio' && sala !== 'despeje') continue;
+			const defaultKind = SALA_DEFAULT_KIND[sala];
+
+			room.addEventListener(
+				'click',
+				(event) => {
+					const chip = chips.find((candidate) => candidate.dataset.filtro === defaultKind);
+					if (!chip) return;
+					event.preventDefault();
+					chip.click();
+					byId<HTMLElement>('s2')?.scrollIntoView({
+						behavior: reduceMotion ? 'auto' : 'smooth',
+						block: 'start',
+					});
+				},
+				{ signal },
+			);
+		}
+
 		bindTomoButtons();
 		renderOfflineMeter();
 	}

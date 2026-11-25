@@ -1,16 +1,21 @@
 import { describe, expect, it } from 'vitest';
 
-import type { Book } from '../../../entities/book/types';
+import { BOOK_KIND_OPTIONS, type Book } from '../../../entities/book/types';
 import {
+	buildDisciplineChips,
 	bookSizeKb,
 	buildShelfLayout,
 	computeOfflineMeter,
+	countSalaBooks,
 	coverVariantIndex,
 	filterCatalogBooks,
 	formatSizeKb,
 	kindLabel,
 	normalizeSearchText,
 	parseFileSizeBytes,
+	SALA_DEFAULT_KIND,
+	SALA_KINDS,
+	salaForKind,
 } from './catalog';
 import { defaultEmbedPath, resolveSafeReaderEmbedPath } from './embed';
 import {
@@ -145,6 +150,51 @@ describe('landing catalog helpers', () => {
 			expect(v).toBeLessThanOrEqual(7);
 		}
 		expect(coverVariantIndex(4)).toBe(coverVariantIndex(4));
+	});
+});
+
+describe('landing two rooms — Estudio y Despeje (S1)', () => {
+	it('shelves every real book kind in exactly one room', () => {
+		expect(SALA_KINDS.estudio).toEqual(['tecnico', 'ciencia']);
+		expect(SALA_KINDS.despeje).toEqual([
+			'ficcion',
+			'terror_scifi',
+			'filosofia',
+			'historia',
+			'poesia',
+			'no_tecnico',
+		]);
+
+		for (const option of BOOK_KIND_OPTIONS) {
+			expect(SALA_KINDS[salaForKind(option.value)]).toContain(option.value);
+		}
+		expect(salaForKind('tecnico')).toBe('estudio');
+		expect(salaForKind('ciencia')).toBe('estudio');
+		expect(salaForKind('no_tecnico')).toBe('despeje');
+	});
+
+	it('counts the books already fetched per room instead of inventing totals', () => {
+		expect(countSalaBooks(SAMPLE_BOOKS)).toEqual({ estudio: 1, despeje: 2 });
+		expect(countSalaBooks([])).toEqual({ estudio: 0, despeje: 0 });
+		expect(countSalaBooks([SAMPLE_BOOKS[1]!])).toEqual({ estudio: 1, despeje: 0 });
+	});
+
+	it('exposes one default kind per room, both present in the chip row', () => {
+		const chipValues = buildDisciplineChips().map((chip) => chip.value);
+		expect(chipValues).toContain(SALA_DEFAULT_KIND.estudio);
+		expect(chipValues).toContain(SALA_DEFAULT_KIND.despeje);
+	});
+
+	it('builds the discipline chip row from the real book kinds', () => {
+		const chipsRow = buildDisciplineChips();
+		expect(chipsRow[0]).toEqual({ value: '*', label: 'Todas las disciplinas' });
+		expect(chipsRow).toHaveLength(BOOK_KIND_OPTIONS.length + 1);
+		expect(chipsRow.slice(1).map((chip) => chip.value)).toEqual(
+			BOOK_KIND_OPTIONS.map((option) => option.value),
+		);
+		expect(chipsRow.slice(1).map((chip) => chip.label)).toEqual(
+			BOOK_KIND_OPTIONS.map((option) => option.label),
+		);
 	});
 });
 

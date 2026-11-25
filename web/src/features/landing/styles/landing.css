@@ -916,6 +916,122 @@ body.landing-body .nav-install:focus-visible {
 	letter-spacing: 0.08em;
 }
 
+/* ------------------- the two rooms (artboard 04, S1) -------------------- */
+
+/* «Dos ritmos de lectura · misma calma»: the dial the artboard puts in the
+   hero. It sits as a full-width band under the hero grid so the interactive
+   shelf (and its `aria-live` HUD) keeps its place on the right. */
+.landing-page .hero-dial {
+	position: relative;
+	padding: clamp(18px, 2.4vw, 26px);
+	border-top: 1px solid var(--l-border);
+	background: color-mix(in srgb, var(--l-surface-deep) 88%, transparent);
+}
+
+.landing-page .hero-dial::before,
+.landing-page .hero-dial::after {
+	content: "";
+	position: absolute;
+	width: 8px;
+	height: 8px;
+	border: 1.5px solid var(--l-accent-bright);
+	pointer-events: none;
+}
+
+.landing-page .hero-dial::before {
+	top: 8px;
+	left: 8px;
+}
+
+.landing-page .hero-dial::after {
+	bottom: 8px;
+	right: 8px;
+}
+
+.landing-page .dial-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 12px;
+	flex-wrap: wrap;
+	margin-bottom: 14px;
+	padding-bottom: 8px;
+	border-bottom: 1px solid var(--l-border);
+	font-family: var(--font-mono);
+	font-size: 9.5px;
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+	color: var(--l-faint);
+}
+
+.landing-page .dial-lanes {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 14px;
+}
+
+@media (max-width: 900px) {
+	.landing-page .dial-lanes {
+		grid-template-columns: 1fr;
+	}
+}
+
+.landing-page .lane-box {
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+	gap: 10px;
+	min-height: 172px;
+	padding: 16px 18px;
+	border: 1px solid var(--l-border);
+	background: var(--l-bg);
+	color: var(--l-body);
+	text-decoration: none;
+	transition: border-color 0.16s, background 0.16s;
+}
+
+.landing-page .lane-box:hover {
+	border-color: var(--l-accent-bright);
+	background: color-mix(in oklab, var(--l-panel) 82%, var(--l-bg));
+}
+
+.landing-page .lane-tag {
+	display: block;
+	font-family: var(--font-mono);
+	font-size: 9.5px;
+	font-weight: 700;
+	letter-spacing: 0.16em;
+	text-transform: uppercase;
+	color: var(--l-accent-bright);
+}
+
+.landing-page .lane-time {
+	display: block;
+	margin-top: 3px;
+	font-family: var(--font-mono);
+	font-size: 9px;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--l-faint);
+}
+
+.landing-page .lane-quote {
+	margin: 0;
+	font-family: var(--font-mincho);
+	font-style: italic;
+	font-size: 14px;
+	line-height: 1.45;
+	color: var(--l-fg);
+}
+
+.landing-page .lane-meta {
+	font-family: var(--font-mono);
+	font-size: 9px;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	color: var(--l-ghost);
+}
+
 .landing-page .respira {
 	animation: breathe 7s ease-in-out infinite;
 }
@@ -1002,6 +1118,85 @@ body.landing-body .nav-install:focus-visible {
 	padding: 12px 14px;
 	border: 1px solid var(--l-border);
 	background: color-mix(in srgb, var(--l-panel) 75%, transparent);
+}
+
+/* The two shelf entry cards (artboard 04 «dominio I / II»): a view over the
+   real kinds, both links reach the same `.chip[data-filtro]` filter. */
+.landing-page .estancias {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 16px;
+	margin-bottom: 18px;
+}
+
+@media (max-width: 900px) {
+	.landing-page .estancias {
+		grid-template-columns: 1fr;
+	}
+}
+
+.landing-page .estancia {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	flex-wrap: wrap;
+	gap: 14px;
+	padding: clamp(16px, 2vw, 22px);
+	border: 1px solid var(--l-border-strong);
+	background: var(--l-panel);
+	color: var(--l-body);
+	text-decoration: none;
+	transition: border-color 0.16s, background 0.16s, box-shadow 0.16s;
+}
+
+.landing-page .estancia:hover {
+	border-color: var(--l-accent-bright);
+	background: color-mix(in oklab, var(--l-panel) 72%, var(--l-panel-2));
+	box-shadow: inset 4px 0 0 var(--l-accent);
+}
+
+.landing-page .estancia-copy {
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+	min-width: 0;
+}
+
+.landing-page .domain-num {
+	font-family: var(--font-mono);
+	font-size: 9.5px;
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+	color: var(--l-accent-bright);
+}
+
+.landing-page .domain-name {
+	font-family: var(--font-mincho);
+	font-size: clamp(20px, 2.2vw, 26px);
+	line-height: 1.2;
+	color: var(--l-fg);
+}
+
+.landing-page .domain-caption {
+	margin-top: 4px;
+	font-size: 13px;
+	line-height: 1.55;
+	color: var(--l-faint);
+	max-width: 46ch;
+}
+
+.landing-page .domain-badge {
+	flex: none;
+	padding: 6px 10px;
+	border: 1px solid var(--l-border-strong);
+	background: var(--l-bg);
+	color: var(--l-accent-bright);
+	font-family: var(--font-mono);
+	font-size: 10px;
+	font-weight: 700;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	white-space: nowrap;
 }
 
 .landing-page .filtros {
@@ -2441,6 +2636,18 @@ body.landing-body .landing-footer a:hover {
 	.landing-page .barre,
 	.landing-page .sync-pulse {
 		animation: none;
+	}
+
+	.landing-page .lane-box,
+	.landing-page .estancia,
+	.landing-page .tomo,
+	.landing-page .chip,
+	.landing-page .btn-dl {
+		transition: none;
+	}
+
+	.landing-page .tomo:hover {
+		transform: none;
 	}
 
 	body.landing-body #lampara {
