@@ -16,15 +16,15 @@ import {
 } from '../../book/api/books-admin';
 import type { AdminBookRow } from '../../book/api/books-admin';
 import { bookFormToBody } from '../../book/bookForm';
-import { formatSizeKb, kindFromValue, validatePdfUpload } from '../lib/sala';
+import { formatSizeKb, kindFromValue, validateBookUpload } from '../lib/sala';
 
 /**
  * `+ Subir libro` modal (S7).
  *
  * Accessible dialog (`role="dialog"`, `aria-modal`, focus trap on Tab/Shift+Tab,
  * `Escape`, backdrop click, focus restoration and auto-focus on the title)
- * that creates the book through the real `POST /books` and, when a PDF was
- * picked, uploads it through `POST /books/:id/file` in the same flow.
+ * that creates the book through the real `POST /books` and, when a PDF or EPUB
+ * was picked, uploads it through `POST /books/:id/file` in the same flow.
  */
 export type UploadOutcome = 'created' | 'file-failed';
 
@@ -125,7 +125,7 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 			setError(null);
 			return;
 		}
-		const problem = validatePdfUpload(next);
+		const problem = validateBookUpload(next);
 		if (problem) {
 			setFile(null);
 			setError(problem);
@@ -139,8 +139,8 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 		if (!licenseManual()) setLicense('');
 
 		// Prefill from the filename (e.g. `Título – Autor.pdf`) in real time
-		// whenever the user changes the selected PDF, without overwriting fields
-		// the user edited manually.
+		// whenever the user changes the selected book file, without overwriting
+		// fields the user edited manually.
 		const hints = pdfNameHints(next.name);
 		if (!titleManual()) setTitle(hints.title ?? '');
 		if (!authorManual()) setAuthor(hints.author ?? '');
@@ -230,7 +230,7 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 
 		const selected = file();
 		if (selected) {
-			const problem = validatePdfUpload(selected);
+			const problem = validateBookUpload(selected);
 			if (problem) {
 				setError(problem);
 				return;
@@ -310,9 +310,9 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 			setSubmittedPublic(wasPublic);
 			props.onCreated(created, 'created');
 		} catch (cause) {
-			const message = cause instanceof Error ? cause.message : 'No se pudo subir el PDF.';
+			const message = cause instanceof Error ? cause.message : 'No se pudo subir el archivo.';
 			setError(
-				`«${created.title}» se creó, pero el PDF no se pudo subir: ${message} Podés reintentar el envío acá o desde Editar.`,
+				`«${created.title}» se creó, pero el archivo no se pudo subir: ${message} Podés reintentar el envío acá o desde Editar.`,
 			);
 			props.onCreated(created, 'file-failed');
 		} finally {
@@ -450,7 +450,7 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 						>
 							<Show
 								when={file()}
-								fallback={<span>PDF · hasta 50 MB · entra en tu biblioteca</span>}
+								fallback={<span>PDF o EPUB · hasta 50 MB · entra en tu biblioteca</span>}
 							>
 								{(selected) => (
 									<span>
@@ -462,7 +462,7 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 								ref={fileInput}
 								id="upFile"
 								type="file"
-								accept="application/pdf,.pdf"
+								accept="application/pdf,.pdf,application/epub+zip,.epub"
 								disabled={submitting()}
 								onChange={(event) => pickFile(event.currentTarget.files?.[0] ?? null)}
 							/>
@@ -718,7 +718,7 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 								when={published()}
 								fallback={
 									<>
-										Tu PDF queda en tu <b>biblioteca privada</b> para leerlo en Modo Vigilia (solo vos podés
+										Tu archivo queda en tu <b>biblioteca privada</b> para leerlo en Modo Vigilia (solo vos podés
 										verlo). El catálogo público admite únicamente obras de <b>dominio público o licencias
 										abiertas</b>.
 									</>

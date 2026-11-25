@@ -8,6 +8,7 @@ import {
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import type { BookStorage, BookDownload } from './book-storage.js';
+import { EPUB_MIME_TYPE } from '../pdf.util.js';
 
 /** Fallback region for Neon Object Storage (aws-us-east-2). */
 const DEFAULT_REGION = 'us-east-2';
@@ -19,6 +20,15 @@ function resolveUrlTtlSeconds(raw: string | undefined): number {
   if (raw === undefined) return DEFAULT_DOWNLOAD_URL_TTL_SECONDS;
   const parsed = Number(raw);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_DOWNLOAD_URL_TTL_SECONDS;
+}
+
+/**
+ * Object-key suffix for the stored bytes (S6): EPUBs keep a `.epub` suffix and
+ * everything else — including every existing PDF — keeps the historical `.pdf`
+ * default, so no already-stored key changes.
+ */
+export function objectKeyExtension(mimetype: string): string {
+  return mimetype.split(';')[0]?.trim().toLowerCase() === EPUB_MIME_TYPE ? '.epub' : '.pdf';
 }
 
 /**
@@ -71,7 +81,8 @@ export class S3BookStorage implements BookStorage {
     _bookId: number,
     file: { path: string; mimetype: string },
   ): Promise<string> {
-    const key = `${Date.now()}-${randomBytes(6).toString('hex')}.pdf`;
+    const stem = `${Date.now()}-${randomBytes(6).toString('hex')}`;
+    const key = `${stem}${objectKeyExtension(file.mimetype)}`;
     // Read into memory instead of streaming so the SDK sends a known
     // Content-Length; uploads are capped at BOOKS_MAX_FILE_SIZE (50 MiB),
     // which a buffer comfortably fits.

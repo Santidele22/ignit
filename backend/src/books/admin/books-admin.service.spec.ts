@@ -1,12 +1,15 @@
 import 'reflect-metadata';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { Readable } from 'node:stream';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import type { Repository } from 'typeorm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Book } from '../entities/book.entity.js';
+import { buildEpubBuffer } from '../pdf-firewall/epub-firewall.fixtures.js';
+import type { BookReadingDocument } from '../reading/reading.types.js';
 import type { BookStorage } from '../storage/book-storage.js';
 import type { User } from '../../users/entities/user.entity.js';
 import { BooksAdminService } from './books-admin.service.js';
@@ -110,6 +113,72 @@ describe('BooksAdminService', () => {
       await expect(service.firewall(7)).rejects.toMatchObject({
         status: 404,
       });
+    });
+  });
+
+  /** One real one-page PDF whose content stream carries extractable text. */
+  const TEXT_PDF_BUFFER = Buffer.from(
+    [
+      '%PDF-1.4',
+      '1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj',
+      '2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj',
+      '3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >> endobj',
+      '4 0 obj << /Length 178 >> stream',
+      'BT /F1 18 Tf 72 720 Td (Capitulo I: La espera en el invierno) Tj ET',
+      'BT /F1 12 Tf 72 680 Td (Drogo contemplaba desde el muro la llanura gris en silencio durante el invierno.) Tj ET',
+      'endstream endobj',
+      '5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj',
+      'xref',
+      '0 6',
+      '0000000000 65535 f ',
+      'trailer << /Root 1 0 R /Size 6 >>',
+      '%%EOF',
+    ].join('\n'),
+  );
+
+  describe('reextractReading format dispatch (S6)', () => {
+    function localStorageWith(bytes: Buffer): BookStorage {
+      return {
+        strategy: 'local',
+        getJson,
+        putJson: vi.fn(async () => undefined),
+        resolveDownload: vi.fn(async () => ({ strategy: 'local', stream: Readable.from([bytes]) })),
+      } as unknown as BookStorage;
+    }
+
+    it('re-extracts an EPUB book through the EPUB extractor', async () => {
+      findOne = vi.fn(async () =>
+        bookRow({ filePath: 'stored.epub', mimeType: 'application/epub+zip', originalName: 'libro.epub' }),
+      );
+      service = new BooksAdminService(
+        { find, count, findOne, save } as unknown as Repository<Book>,
+        localStorageWith(await buildEpubBuffer()),
+      );
+
+      const result = await service.reextractReading(7);
+
+      expect(result.totalChunks).toBeGreaterThan(0);
+      const reading = JSON.parse(
+        await readFile(join(dir, '7', 'reading.json'), 'utf8'),
+      ) as BookReadingDocument;
+      expect(reading.chunks.some((chunk) => chunk.text.includes('La Mancha'))).toBe(true);
+      expect(reading.extractorVersion).toBeDefined();
+    });
+
+    it('keeps re-extracting PDF books from the stored bytes', async () => {
+      findOne = vi.fn(async () => bookRow({ filePath: 'stored.pdf' }));
+      service = new BooksAdminService(
+        { find, count, findOne, save } as unknown as Repository<Book>,
+        localStorageWith(TEXT_PDF_BUFFER),
+      );
+
+      const result = await service.reextractReading(7);
+
+      expect(result.totalChunks).toBeGreaterThan(0);
+      const reading = JSON.parse(
+        await readFile(join(dir, '7', 'reading.json'), 'utf8'),
+      ) as BookReadingDocument;
+      expect(reading.chunks.some((chunk) => chunk.text.includes('Drogo'))).toBe(true);
     });
   });
 

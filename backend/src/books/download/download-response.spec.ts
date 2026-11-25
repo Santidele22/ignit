@@ -79,6 +79,23 @@ describe('downloadHeaders (S2 reader hardening)', () => {
     expect(dispositionFilename('   ')).toBe('libro.pdf');
   });
 
+  it('serves an EPUB as an attachment with the .epub filename and no sandbox', () => {
+    expect(downloadHeaders('libro.epub', 'application/epub+zip')).toEqual({
+      'Content-Type': 'application/epub+zip',
+      'Content-Disposition': 'attachment; filename="libro.epub"',
+      'X-Content-Type-Options': 'nosniff',
+    });
+  });
+
+  it('forces the .epub extension when the stored name carries none', () => {
+    expect(downloadHeaders('invierno', 'application/epub+zip')['Content-Disposition']).toBe(
+      'attachment; filename="invierno.epub"',
+    );
+    expect(downloadHeaders('   ', 'application/epub+zip')['Content-Disposition']).toBe(
+      'attachment; filename="libro.epub"',
+    );
+  });
+
   it('keeps an attachment disposition for non-PDF payloads', () => {
     expect(downloadHeaders('scan.png', 'image/png')).toEqual({
       'Content-Type': 'image/png',

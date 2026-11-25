@@ -124,7 +124,7 @@ export interface StorageMeterView {
 	barPercent: number;
 }
 
-export const MAX_PDF_UPLOAD_BYTES = 50 * 1024 * 1024;
+export const MAX_BOOK_UPLOAD_BYTES = 50 * 1024 * 1024;
 const MAX_STORAGE_METER_KB = 4200;
 
 export function readLocalReadingSnapshots(
@@ -411,20 +411,29 @@ export function filterSalaCatalog(
 	return filterCatalogBooks(books, filter, query);
 }
 
-export function validatePdfUpload(
+const BOOK_MIME_TYPES: readonly string[] = ['application/pdf', 'application/epub+zip'];
+const BOOK_EXTENSIONS = ['.pdf', '.epub'] as const;
+
+/**
+ * Client-side gate of the book upload (`S6`): accepts the two formats the
+ * backend ingestion pipeline understands and enforces the same 50 MB cap as
+ * `BOOKS_MAX_FILE_SIZE`. The server re-checks both the mime type and the bytes.
+ */
+export function validateBookUpload(
 	file: File | null | undefined,
-	maxBytes = MAX_PDF_UPLOAD_BYTES,
+	maxBytes = MAX_BOOK_UPLOAD_BYTES,
 ): string | null {
 	if (!file) {
-		return 'Seleccioná un archivo PDF para subir.';
+		return 'Seleccioná un archivo PDF o EPUB para subir.';
 	}
-	const isPdfMime = file.type === 'application/pdf';
-	const isPdfName = file.name.toLowerCase().endsWith('.pdf');
-	if (!isPdfMime && !isPdfName) {
-		return 'El archivo debe ser un PDF válido (.pdf).';
+	const name = file.name.toLowerCase();
+	const isBookMime = BOOK_MIME_TYPES.includes(file.type);
+	const isBookName = BOOK_EXTENSIONS.some((extension) => name.endsWith(extension));
+	if (!isBookMime && !isBookName) {
+		return 'El archivo debe ser un PDF o un EPUB válido (.pdf, .epub).';
 	}
 	if (file.size <= 0) {
-		return 'El archivo PDF está vacío.';
+		return 'El archivo está vacío.';
 	}
 	if (file.size > maxBytes) {
 		const maxMb = Math.round(maxBytes / (1024 * 1024));

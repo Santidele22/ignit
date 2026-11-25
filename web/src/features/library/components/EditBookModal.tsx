@@ -11,14 +11,14 @@ import {
 	validateBookForm,
 	type BookFormState,
 } from '../../book/bookForm';
-import { formatSizeKb, kindFromValue, validatePdfUpload } from '../lib/sala';
+import { formatSizeKb, kindFromValue, validateBookUpload } from '../lib/sala';
 
 /**
  * `Editar` modal for the user's own books (S7).
  *
  * Same accessible dialog contract as `UploadBookModal` (focus trap, `Escape`,
  * backdrop click, focus restoration). Saves metadata through `PATCH /books/:id`,
- * optionally attaches/replaces the PDF through `POST /books/:id/file`, and
+ * optionally attaches/replaces the PDF or EPUB through `POST /books/:id/file`, and
  * deletes through `DELETE /books/:id` behind an inline two-step confirmation
  * (never `window.confirm`).
  */
@@ -89,7 +89,7 @@ export default function EditBookModal(props: EditBookModalProps) {
 			clearPdf();
 			return;
 		}
-		const problem = validatePdfUpload(next);
+		const problem = validateBookUpload(next);
 		if (problem) {
 			clearPdf();
 			setError(problem);
@@ -112,7 +112,7 @@ export default function EditBookModal(props: EditBookModalProps) {
 
 		const selected = pdfFile();
 		if (selected) {
-			const fileProblem = validatePdfUpload(selected);
+			const fileProblem = validateBookUpload(selected);
 			if (fileProblem) {
 				setError(fileProblem);
 				return;
@@ -139,11 +139,11 @@ export default function EditBookModal(props: EditBookModalProps) {
 		try {
 			await uploadBookFile(current.id, selected);
 			clearPdf();
-			props.onSaved({ message: `«${current.title}» actualizado y PDF cargado.`, close: true });
+			props.onSaved({ message: `«${current.title}» actualizado y archivo cargado.`, close: true });
 		} catch (cause) {
-			const message = cause instanceof Error ? cause.message : 'No se pudo subir el PDF.';
-			setError(`Los datos se guardaron, pero el PDF no se pudo subir: ${message}`);
-			props.onSaved({ message: `«${current.title}» actualizado. El PDF quedó pendiente.`, close: false });
+			const message = cause instanceof Error ? cause.message : 'No se pudo subir el archivo.';
+			setError(`Los datos se guardaron, pero el archivo no se pudo subir: ${message}`);
+			props.onSaved({ message: `«${current.title}» actualizado. El archivo quedó pendiente.`, close: false });
 		} finally {
 			setSaving(false);
 		}
@@ -535,7 +535,7 @@ export default function EditBookModal(props: EditBookModalProps) {
 						>
 							<Show
 								when={pdfFile()}
-								fallback={<span>PDF opcional · reemplaza el actual · hasta 50 MB</span>}
+								fallback={<span>PDF o EPUB opcional · reemplaza el actual · hasta 50 MB</span>}
 							>
 								{(selected) => (
 									<span>
@@ -547,7 +547,7 @@ export default function EditBookModal(props: EditBookModalProps) {
 								ref={fileInput}
 								id="editBookFile"
 								type="file"
-								accept="application/pdf,.pdf"
+								accept="application/pdf,.pdf,application/epub+zip,.epub"
 								disabled={saving()}
 								onChange={(event) => pickFile(event.currentTarget.files?.[0] ?? null)}
 							/>

@@ -1,32 +1,60 @@
 import { BadRequestException } from '@nestjs/common';
-import { unlink } from 'node:fs/promises';
-import { hasPdfMagicBytes } from '../pdf.util.js';
+import { readFile, unlink } from 'node:fs/promises';
+import JSZip from 'jszip';
+import { detectBookFormat, EPUB_MIME_TYPE } from '../pdf.util.js';
 import type { UploadedPdf } from '../lib/book-file.js';
 
 /** Body-less uploads reach the handler as `undefined` (the mimetype filter rejected them). */
-export const PDF_ONLY_MESSAGE = 'Solo se aceptan archivos PDF';
+export const BOOK_ONLY_MESSAGE = 'Solo se aceptan archivos PDF o EPUB';
 
-const INVALID_PDF_MESSAGE = 'El archivo subido no es un PDF válido';
+const INVALID_BOOK_FILE_MESSAGE = 'El archivo subido no es un PDF o EPUB válido';
 
 /**
- * The mimetype filter of the upload interceptor trusts the client, so the
- * bytes written to disk are verified here and the temp file dropped when it is
- * not a real PDF.
+ * The mimetype filter of the upload interceptor trusts the client, so the bytes
+ * written to disk are verified here and the temp file dropped when they are
+ * neither a PDF nor a real EPUB (S6). A `PK` header alone is not enough: the
+ * archive must also carry the OCF `mimetype` entry, so a plain ZIP (or a
+ * polyglot prefixed with ZIP magic) never reaches the EPUB pipeline.
  */
-export async function assertStoredPdf(file: UploadedPdf): Promise<void> {
-  if (await hasPdfMagicBytes(file.path)) {
+export async function assertStoredBookFile(file: UploadedPdf): Promise<void> {
+  const format = await detectBookFormat(file.path);
+  if (format === 'pdf' || (format === 'epub' && (await hasEpubMimetypeEntry(file.path)))) {
     return;
   }
   await unlink(file.path).catch(() => undefined);
-  throw new BadRequestException(INVALID_PDF_MESSAGE);
+  throw new BadRequestException(INVALID_BOOK_FILE_MESSAGE);
 }
 
-/** Guards the upload handler: `413`/`400` from multer aside, a rejected upload arrives as `undefined`. */
+/**
+ * Historical name the upload controller still imports: it accepts PDF **and**
+ * EPUB uploads now (S6), so new call sites should use `assertStoredBookFile`.
+ */
+export const assertStoredPdf = assertStoredBookFile;
+
+/** Guards the upload handler: a rejected upload arrives as `undefined` (`413`/`400` kept by multer). */
 export function requireUploadedPdf(
   file: UploadedPdf | undefined,
 ): UploadedPdf {
   if (!file) {
-    throw new BadRequestException(PDF_ONLY_MESSAGE);
+    throw new BadRequestException(BOOK_ONLY_MESSAGE);
   }
   return file;
+}
+
+/** Reads the `mimetype` entry the OCF container requires as its first file. */
+async function hasEpubMimetypeEntry(filePath: string): Promise<boolean> {
+  let bytes: Buffer;
+  try {
+    bytes = await readFile(filePath);
+  } catch {
+    return false;
+  }
+  try {
+    const zip = await JSZip.loadAsync(bytes);
+    const mimetype = zip.file('mimetype');
+    if (!mimetype) return false;
+    return (await mimetype.async('string')).replace(/\s+/g, '') === EPUB_MIME_TYPE;
+  } catch {
+    return false;
+  }
 }

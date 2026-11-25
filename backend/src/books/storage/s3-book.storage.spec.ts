@@ -113,6 +113,25 @@ describe('S3BookStorage', () => {
     await expect(access(tempPath)).rejects.toThrow();
   });
 
+  it('derives the object key extension from the mime type (EPUB keeps its own suffix)', async () => {
+    const tempPath = join(dir, 'multer-temp.epub');
+    const bytes = Buffer.from('PK\u0003\u0004epub-bytes');
+    await writeFile(tempPath, bytes);
+    aws.send.mockResolvedValue({});
+
+    const storage = new S3BookStorage(env);
+    const ref = await storage.persist(7, {
+      path: tempPath,
+      size: bytes.length,
+      mimetype: 'application/epub+zip',
+    });
+
+    expect(ref).toMatch(/^\d+-[0-9a-f]{12}\.epub$/);
+    const command = aws.send.mock.calls[0]![0] as { input: Record<string, unknown> };
+    expect(command.input.Key).toBe(ref);
+    expect(command.input.ContentType).toBe('application/epub+zip');
+  });
+
   it('keeps the temp file when the upload fails so the caller can clean up', async () => {
     const tempPath = join(dir, 'multer-temp.pdf');
     await writeFile(tempPath, '%PDF-1.4\n');

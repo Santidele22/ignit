@@ -13,7 +13,7 @@ import {
 	readLocalReadingSnapshots,
 	salaTabShortLabel,
 	selectContinuityBook,
-	validatePdfUpload,
+	validateBookUpload,
 	type SalaTabId,
 } from './sala';
 
@@ -236,7 +236,7 @@ describe('sala domain helpers', () => {
 		expect(filterSalaCatalog(books, '*', 'tartaros').map((b) => b.id)).toEqual([1]);
 	});
 
-	it('formats relative sync times and validates PDF uploads up to 50 MB', () => {
+	it('formats relative sync times and validates PDF/EPUB uploads up to 50 MB', () => {
 		expect(formatRelativeSync(undefined, 500_000)).toBe('sin sync local');
 		expect(formatRelativeSync(495_000, 500_000)).toBe('último sync: recién');
 		expect(formatRelativeSync(500_000 - 3 * 60_000, 500_000)).toBe('último sync: hace 3 min');
@@ -244,21 +244,28 @@ describe('sala domain helpers', () => {
 		const okPdf = new File([new Uint8Array([0x25, 0x50, 0x44, 0x46])], 'libro.pdf', {
 			type: 'application/pdf',
 		});
+		const okEpub = new File([new Uint8Array([0x50, 0x4b])], 'libro.epub', {
+			type: 'application/epub+zip',
+		});
+		const epubByNameOnly = { name: 'libro.epub', type: '', size: 2048 } as File;
 		const badExt = new File(['hola'], 'notas.txt', { type: 'text/plain' });
 		const emptyPdf = new File([], 'vacio.pdf', { type: 'application/pdf' });
 
-		expect(validatePdfUpload(okPdf)).toBeNull();
-		expect(validatePdfUpload(null)).toMatch(/PDF/i);
-		expect(validatePdfUpload(badExt)).toMatch(/PDF/i);
-		expect(validatePdfUpload(emptyPdf)).toMatch(/vacío/i);
-		expect(validatePdfUpload(okPdf, 2)).toMatch(/límite/i);
+		expect(validateBookUpload(okPdf)).toBeNull();
+		expect(validateBookUpload(okEpub)).toBeNull();
+		expect(validateBookUpload(epubByNameOnly)).toBeNull();
+		expect(validateBookUpload(null)).toMatch(/PDF/i);
+		expect(validateBookUpload(null)).toMatch(/EPUB/i);
+		expect(validateBookUpload(badExt)).toMatch(/EPUB/i);
+		expect(validateBookUpload(emptyPdf)).toMatch(/vacío/i);
+		expect(validateBookUpload(okPdf, 2)).toMatch(/límite/i);
 	});
 
 	it('enforces exact 50 MB boundary, clamps malformed snapshots, and keeps offline-only private books out of public catalog', () => {
 		const exact = { name: 'DOC.PDF', type: '', size: 50 * 1024 * 1024 } as File;
 		const over = { name: 'DOC.PDF', type: 'application/pdf', size: 50 * 1024 * 1024 + 1 } as File;
-		expect(validatePdfUpload(exact)).toBeNull();
-		expect(validatePdfUpload(over)).toBe('El archivo supera el límite de 50 MB.');
+		expect(validateBookUpload(exact)).toBeNull();
+		expect(validateBookUpload(over)).toBe('El archivo supera el límite de 50 MB.');
 
 		const entries: Record<string, string> = {
 			'ignit:book:u1:0': JSON.stringify({ progress: { page: 1, pct: 50 }, updatedAt: 1 }),

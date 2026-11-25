@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PaginationQueryDto } from '../common/pagination/pagination.dto.js';
 import { ReadingStatus } from '../common/enums/reading-status.enum.js';
 import { BooksService } from './books.service.js';
+import { buildEpubBuffer } from './pdf-firewall/epub-firewall.fixtures.js';
 import type { BookStorage } from './storage/book-storage.js';
 import type { Book } from './entities/book.entity.js';
 import type { DownloadEvent } from './entities/download-event.entity.js';
@@ -211,6 +212,55 @@ describe('BooksService storage interplay', () => {
       mimeType: 'application/pdf',
     });
     expect(saveEvent).not.toHaveBeenCalled();
+  });
+
+  it('names the download fallback after the stored format', async () => {
+    findOneBook.mockResolvedValue(
+      bookRow({
+        published: true,
+        filePath: '1730000000000-deadbeefcafe.epub',
+        originalName: null,
+        mimeType: 'application/epub+zip',
+      }),
+    );
+
+    const info = await service.prepareDownload(7, '127.0.0.1', {
+      id: 'admin-1',
+      email: 'admin@ignit.local',
+      name: 'Admin',
+      role: 'admin',
+    });
+
+    expect(info).toEqual({
+      filePath: '1730000000000-deadbeefcafe.epub',
+      originalName: 'book-7.epub',
+      mimeType: 'application/epub+zip',
+    });
+  });
+
+  it('serves an EPUB row through the reader dispatch and caches its reading.json', async () => {
+    const epubPath = join(dir, 'stored.epub');
+    await writeFile(epubPath, await buildEpubBuffer());
+    findOneBook.mockResolvedValue(
+      bookRow({ filePath: epubPath, mimeType: 'application/epub+zip', published: true }),
+    );
+    const localService = new BooksService(
+      booksRepository,
+      downloadEventsRepository,
+      readingStatesRepo,
+      usersRepository,
+      {
+        strategy: 'local',
+        persist: vi.fn(async (_id: number, file: { path: string }) => file.path),
+        remove: vi.fn(async () => undefined),
+        resolveDownload: vi.fn(),
+      } as unknown as BookStorage,
+    );
+
+    const doc = await localService.getReading(7, OWNER);
+
+    expect(doc.bookId).toBe('7');
+    expect(doc.chunks.some((chunk) => chunk.text.includes('La Mancha'))).toBe(true);
   });
 
   describe('findAllPage', () => {

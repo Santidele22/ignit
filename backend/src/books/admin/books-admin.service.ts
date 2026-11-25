@@ -1,5 +1,5 @@
 import { createWriteStream } from 'node:fs';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pipeline } from 'node:stream/promises';
@@ -16,6 +16,8 @@ import { loadBookFirewallReport } from '../lib/book-firewall-report.js';
 import { readingDeterministicJsonKey, readingJsonKey } from '../lib/book-sidecar-keys.js';
 import type { PdfFirewallReport } from '../pdf-firewall/pdf-firewall.types.js';
 import { extractReadingFromPdf } from '../reading/book-reading.extractor.js';
+import { extractReadingFromEpub } from '../reading/reading.epub.js';
+import { detectBookFormat, detectBookFormatFromHeader } from '../pdf.util.js';
 import {
   readBookDeterministicReadingJson,
   readBookReadingJson,
@@ -220,33 +222,42 @@ export class BooksAdminService {
   }
 
   /**
-   * Re-extracts `reading.json` directly from the stored PDF using the latest
-   * deterministic rules, then runs the LLM structural refiner on top.
+   * Re-extracts `reading.json` directly from the stored PDF **or EPUB** (S6)
+   * using the latest deterministic rules, then runs the LLM structural refiner
+   * on top. The format is sniffed from the stored bytes, so a book attached
+   * before the EPUB support re-extracts with its own extractor.
    */
   async reextractReading(
     id: number,
   ): Promise<{ bookId: number; totalChunks: number } & AiRefinementSummary> {
     const book = await findBookOrFail(this.booksRepository, id);
     if (!book.filePath) {
-      throw new NotFoundException('Este libro no tiene un archivo PDF guardado');
+      throw new NotFoundException('Este libro no tiene un archivo guardado');
     }
 
     const download = await this.bookStorage.resolveDownload(book.filePath);
     const workDir = await mkdtemp(join(tmpdir(), 'ignit-reextract-'));
-    const tempPdf = join(workDir, `book-${book.id}.pdf`);
+    const tempFile = join(workDir, `book-${book.id}.pdf`);
+    let downloadedEpub: Buffer | null = null;
     try {
       if (download.strategy === 'local') {
-        await pipeline(download.stream, createWriteStream(tempPdf));
+        await pipeline(download.stream, createWriteStream(tempFile));
       } else {
         const res = await fetch(download.url);
         if (!res.ok) {
-          throw new NotFoundException('No se pudo descargar el PDF guardado');
+          throw new NotFoundException('No se pudo descargar el archivo guardado');
         }
         const buf = Buffer.from(await res.arrayBuffer());
-        await writeFile(tempPdf, buf);
+        if (detectBookFormatFromHeader(buf) === 'epub') {
+          downloadedEpub = buf;
+        } else {
+          await writeFile(tempFile, buf);
+        }
       }
 
-      const deterministicDoc = await extractReadingFromPdf(book.id, tempPdf);
+      const deterministicDoc = downloadedEpub
+        ? (await extractReadingFromEpub(book.id, downloadedEpub)).document
+        : await this.extractStoredReading(book.id, tempFile);
       const refined = await refineReadingDocument(deterministicDoc);
       const finalDoc = refined.summary.applied ? refined.document : deterministicDoc;
 
@@ -356,6 +367,17 @@ export class BooksAdminService {
       totalChunks: result.document.chunks.length,
       ...result.summary,
     };
+  }
+
+  /** Dispatches one on-disk temp file to the extractor of its actual format. */
+  private async extractStoredReading(
+    bookId: number,
+    filePath: string,
+  ): Promise<BookReadingDocument> {
+    if ((await detectBookFormat(filePath)) === 'epub') {
+      return (await extractReadingFromEpub(bookId, await readFile(filePath))).document;
+    }
+    return extractReadingFromPdf(bookId, filePath);
   }
 
   private async loadReadingSidecar(

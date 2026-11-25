@@ -37,8 +37,16 @@ describe('pdf name hints (upload prefill)', () => {
 		const hints = pdfNameHints('documento.pdf');
 		expect(hints).toEqual({ title: 'documento', author: null });
 
+		// EPUB filenames carry the same title/author hints as PDFs.
+		expect(pdfNameHints('Rayuela - Julio Cortázar.epub')).toEqual({
+			title: 'Rayuela',
+			author: 'Julio Cortázar',
+		});
+		expect(pdfNameHints('documento.epub')).toEqual({ title: 'documento', author: null });
+
 		// Files without a usable name produce nothing at all.
 		expect(pdfNameHints('  .pdf')).toEqual({ title: null, author: null });
+		expect(pdfNameHints('  .epub')).toEqual({ title: null, author: null });
 		expect(pdfNameHints('')).toEqual({ title: null, author: null });
 	});
 

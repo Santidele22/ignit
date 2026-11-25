@@ -1,5 +1,6 @@
 import { HttpStatus } from '@nestjs/common';
 import type { BookDownload } from '../storage/book-storage.js';
+import { EPUB_MIME_TYPE } from '../pdf.util.js';
 
 /** MIME type whose responses get the hardened, sandboxed treatment (S2). */
 export const PDF_MIME_TYPE = 'application/pdf';
@@ -27,13 +28,14 @@ export type DownloadHeaders = {
  * Filename used in `Content-Disposition`. The stored name is client-controlled,
  * so quotes, backslashes, path separators and control characters (CR/LF would
  * split the header) are stripped before it is quoted; a served book file also
- * gets the `.pdf` extension enforced.
+ * gets the extension enforced (`.pdf` by default, `.epub` for EPUB payloads,
+ * `null` to keep the stored name as-is).
  */
 export function dispositionFilename(
   originalName: string,
-  options: { fallback?: string; pdfExtension?: boolean } = {},
+  options: { fallback?: string; extension?: string | null } = {},
 ): string {
-  const { fallback = 'libro.pdf', pdfExtension = true } = options;
+  const { fallback = 'libro.pdf', extension = '.pdf' } = options;
   const cleaned = String(originalName ?? '')
     // Control characters first: CR/LF inside the quoted name would terminate
     // the header line and let the client inject extra headers.
@@ -43,7 +45,10 @@ export function dispositionFilename(
     .trim();
   const base = cleaned.length > 0 ? cleaned : fallback;
 
-  return !pdfExtension || /\.pdf$/i.test(base) ? base : `${base}.pdf`;
+  if (!extension || base.toLowerCase().endsWith(extension.toLowerCase())) {
+    return base;
+  }
+  return `${base}${extension}`;
 }
 
 /**
@@ -52,7 +57,8 @@ export function dispositionFilename(
  * PDFs are served `inline` — the reader is the only rendering path, so the
  * browser's native viewer opens the document — with `nosniff` and a
  * `sandbox` CSP so the document cannot script its way into the app's origin.
- * Any other payload keeps the historical attachment disposition.
+ * Any other payload (EPUB included) keeps the historical attachment
+ * disposition, with the `.epub` extension enforced for EPUB payloads.
  */
 export function downloadHeaders(
   originalName: string,
@@ -68,9 +74,10 @@ export function downloadHeaders(
     headers['Content-Disposition'] = `inline; filename="${filename}"`;
     headers['Content-Security-Policy'] = 'sandbox';
   } else {
+    const extension = isEpubMimeType(mimeType) ? '.epub' : null;
     headers['Content-Disposition'] = `attachment; filename="${dispositionFilename(
       originalName,
-      { fallback: 'archivo', pdfExtension: false },
+      { fallback: extension ? `libro${extension}` : 'archivo', extension },
     )}"`;
   }
 
@@ -111,5 +118,13 @@ export function respondWithDownload(
 }
 
 function isPdfMimeType(mimeType: string): boolean {
-  return mimeType.split(';')[0]?.trim().toLowerCase() === PDF_MIME_TYPE;
+  return baseMimeType(mimeType) === PDF_MIME_TYPE;
+}
+
+function isEpubMimeType(mimeType: string): boolean {
+  return baseMimeType(mimeType) === EPUB_MIME_TYPE;
+}
+
+function baseMimeType(mimeType: string): string {
+  return mimeType.split(';')[0]?.trim().toLowerCase() ?? '';
 }

@@ -1,6 +1,6 @@
 /**
  * Filename → metadata hints for the "Subir libro" modal: uploads usually
- * carry the title (and often the author) in the PDF filename, so the modal
+ * carry the title (and often the author) in the PDF/EPUB filename, so the modal
  * prefills its empty inputs instead of making the user retype them.
  *
  * Pure and deterministic: it never invents data — anything it cannot clean
@@ -45,8 +45,8 @@ function formatSlugTitle(raw: string, fromSlug: boolean): string {
 
 /**
  * Derives `{ title, author }` from a filename like
- * `El elogio de la sombra – Junichiro Tanizaki.pdf` or
- * `la-maquina-se-detiene-por-e.m.-forster-1909.pdf`.
+ * `El elogio de la sombra – Junichiro Tanizaki.pdf` (or `.epub`, which strips
+ * the same way) or `la-maquina-se-detiene-por-e.m.-forster-1909.pdf`.
  *
  * Recognizes ` – `, ` — `, ` - ` and ` por ` / ` by ` as title/author
  * separators, converts underscores and kebab-case slugs to spaces, strips
@@ -58,7 +58,7 @@ export function pdfNameHints(rawFilename: string | null | undefined): PdfNameHin
 		return { title: null, author: null };
 	}
 
-	const stem = filename.replace(/\.pdf$/i, '');
+	const stem = filename.replace(/\.(?:pdf|epub)$/i, '');
 	const noiseStripped = NOISE_PATTERNS.reduce((acc, pattern) => acc.replace(pattern, ' '), stem);
 	let spaced = noiseStripped.replace(/[_]+/g, ' ').replace(/\s+/g, ' ').trim();
 

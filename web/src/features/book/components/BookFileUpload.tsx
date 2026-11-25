@@ -11,8 +11,9 @@ export type BookFileUploadProps = {
 };
 
 /**
- * Presentational PDF picker for one book row. Holds only the transient file
- * selection and delegates the upload request to the container.
+ * Presentational book-file picker (PDF or EPUB) for one book row. Holds only
+ * the transient file selection and delegates the upload request to the
+ * container.
  */
 export function BookFileUpload(props: BookFileUploadProps) {
 	const [file, setFile] = createSignal<File | null>(null);
@@ -23,7 +24,7 @@ export function BookFileUpload(props: BookFileUploadProps) {
 		<div class="mt-4 border-t border-border pt-4">
 			<Show when={props.book.originalName}>
 				<p class="text-[12px] text-muted-foreground">
-					PDF actual:{' '}
+					Archivo actual:{' '}
 					<span class="font-mono text-[11px] text-foreground">{props.book.originalName}</span>
 					<Show when={size()}>
 						{' '}
@@ -40,12 +41,12 @@ export function BookFileUpload(props: BookFileUploadProps) {
 				}}
 			>
 				<label for={inputId()} class={adminHintClass}>
-					{props.book.originalName ? 'Reemplazar PDF' : 'Subir PDF'}
+					{props.book.originalName ? 'Reemplazar archivo' : 'Subir archivo'}
 				</label>
 				<input
 					id={inputId()}
 					type="file"
-					accept="application/pdf"
+					accept="application/pdf,.pdf,application/epub+zip,.epub"
 					disabled={props.disabled || props.uploading}
 					onChange={(event) => setFile(event.currentTarget.files?.[0] ?? null)}
 					class="block max-w-full text-[12px] text-muted-foreground file:mr-3 file:rounded-md file:border file:border-border file:bg-card file:px-3 file:py-1.5 file:text-[12px] file:font-medium file:text-foreground hover:file:border-aka hover:file:text-aka disabled:cursor-not-allowed disabled:opacity-60"

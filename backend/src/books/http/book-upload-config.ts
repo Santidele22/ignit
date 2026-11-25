@@ -1,12 +1,15 @@
 import { diskStorage } from 'multer';
 import { mkdirSync } from 'node:fs';
 import type { MulterOptions } from '@nestjs/platform-express/multer/interfaces/multer-options.interface';
+import { EPUB_MIME_TYPE } from '../pdf.util.js';
 
 /**
  * Multer storage and limits for `POST /books/:id/file`. The multipart file is
  * written to disk under `BOOKS_UPLOAD_DIR` (default `uploads/books`) with a
  * generated name: the original one is client-controlled, so the stored file
- * always gets the `.pdf` extension the magic-byte check guarantees.
+ * always gets the extension of the accepted type (`.pdf`, or `.epub` for the
+ * EPUB mime type; S6). Both are only hints — the handler verifies the bytes on
+ * disk and the ingestion pipeline dispatches on the detected format.
  */
 export const booksUploadDir = process.env.BOOKS_UPLOAD_DIR ?? 'uploads/books';
 
@@ -29,6 +32,9 @@ export const booksMaxFileSize = resolveMaxFileSize(process.env.BOOKS_MAX_FILE_SI
 
 const PDF_MIMETYPE = 'application/pdf';
 
+/** Both accepted book formats (S6); anything else never reaches the handler. */
+export const BOOK_UPLOAD_MIMETYPES: readonly string[] = [PDF_MIMETYPE, EPUB_MIME_TYPE];
+
 export const booksPdfStorage = diskStorage({
   destination: (_req, _file, cb) => {
     mkdirSync(booksUploadDir, { recursive: true });
@@ -36,20 +42,21 @@ export const booksPdfStorage = diskStorage({
   },
   filename: (_req, file, cb) => {
     const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    cb(null, `${unique}.pdf`);
+    const extension = file.mimetype === EPUB_MIME_TYPE ? '.epub' : '.pdf';
+    cb(null, `${unique}${extension}`);
   },
 });
 
 /**
- * Options of the `FileInterceptor` guarding the upload: only
- * `application/pdf` reaches the handler, capped at `BOOKS_MAX_FILE_SIZE`. The
- * mimetype is client-controlled, so the handler still verifies the bytes on
- * disk (`assertStoredPdf`).
+ * Options of the `FileInterceptor` guarding the upload: only `application/pdf`
+ * and `application/epub+zip` reach the handler, capped at `BOOKS_MAX_FILE_SIZE`.
+ * The mimetype is client-controlled, so the handler still verifies the bytes on
+ * disk (`assertStoredBookFile`) and the pipeline dispatches on content.
  */
 export const booksPdfInterceptorOptions: MulterOptions = {
   storage: booksPdfStorage,
   fileFilter: (_req, file, cb) => {
-    if (file.mimetype !== PDF_MIMETYPE) {
+    if (!BOOK_UPLOAD_MIMETYPES.includes(file.mimetype)) {
       cb(null, false);
       return;
     }

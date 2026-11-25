@@ -2,6 +2,7 @@ import { HttpException, HttpStatus } from '@nestjs/common';
 import { MoreThanOrEqual, type Repository } from 'typeorm';
 import type { Book } from '../entities/book.entity.js';
 import type { DownloadEvent } from '../entities/download-event.entity.js';
+import { EPUB_MIME_TYPE } from '../pdf.util.js';
 
 /** Window used by the per-IP daily cap on `GET /books/:id/download`. */
 const DOWNLOAD_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -56,11 +57,18 @@ export async function recordDownload(
   );
 }
 
-/** Projects the stored reference into the transport-neutral download info. */
+/**
+ * Projects the stored reference into the transport-neutral download info. The
+ * fallback name follows the stored format, so an EPUB row without an original
+ * name downloads as `book-<id>.epub` instead of a misleading `.pdf` (S6).
+ */
 export function downloadDescriptor(book: Book, filePath: string): DownloadDescriptor {
+  const mimeType = book.mimeType ?? 'application/pdf';
+  const extension =
+    mimeType.split(';')[0]?.trim().toLowerCase() === EPUB_MIME_TYPE ? '.epub' : '.pdf';
   return {
     filePath,
-    originalName: book.originalName ?? `book-${book.id}.pdf`,
-    mimeType: book.mimeType ?? 'application/pdf',
+    originalName: book.originalName ?? `book-${book.id}${extension}`,
+    mimeType,
   };
 }
