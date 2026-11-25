@@ -40,7 +40,7 @@ describe('pdf-firewall rules (tier 1 helpers)', () => {
 
   it('finds forbidden dictionary names in raw bytes', () => {
     expect(findForbiddenNames('<< /Type /Action /S /JavaScript >>')).toEqual(['JavaScript']);
-    expect(findForbiddenNames('<< /S /JS /OpenAction 4 0 R >>')).toEqual(['JS', 'OpenAction']);
+    expect(findForbiddenNames('<< /S /JS /AA 4 0 R >>')).toEqual(['JS', 'AA']);
     expect(findForbiddenNames('/#4a#61#76#61#53#63#72#69#70#74')).toEqual(['JavaScript']);
     expect(findForbiddenNames('trailer << /Encrypt 2 0 R >>')).toEqual(['Encrypt']);
   });
@@ -123,18 +123,59 @@ describe('inspectPdfBuffer tier 1 (lexical scan of the raw bytes)', () => {
     expect(verdict.violations).toContainEqual({ code: 'ACTIVE_CONTENT_KEY', detail: '/JS' });
   });
 
-  it('rejects /OpenAction injected straight into the catalog', async () => {
-    const doc = await PDFDocument.create();
-    doc.addPage();
-    doc.catalog.set(
+  it('allows benign /OpenAction view destinations (Fit / GoTo) while rejecting executable /OpenAction', async () => {
+    // 1. Benign destination array [pageRef /Fit] (LaTeX hyperref / editorial default)
+    const benignArrayDoc = await PDFDocument.create();
+    const page1 = benignArrayDoc.addPage();
+    benignArrayDoc.catalog.set(
       PDFName.of('OpenAction'),
-      doc.context.obj({ Type: 'Action', S: 'Launch', F: 'calc.exe' }),
+      benignArrayDoc.context.obj([page1.ref, PDFName.of('Fit')]),
     );
+    const benignArrayVerdict = await inspectPdfBuffer(
+      Buffer.from(await benignArrayDoc.save({ useObjectStreams: false })),
+    );
+    expect(benignArrayVerdict.safe).toBe(true);
 
-    const verdict = await inspectPdfBuffer(Buffer.from(await doc.save({ useObjectStreams: false })));
+    // 2. Benign internal /GoTo dictionary with no /Next
+    const benignGoToDoc = await PDFDocument.create();
+    const page2 = benignGoToDoc.addPage();
+    benignGoToDoc.catalog.set(
+      PDFName.of('OpenAction'),
+      benignGoToDoc.context.obj({
+        S: 'GoTo',
+        D: [page2.ref, PDFName.of('XYZ'), 0, 792, 0],
+      }),
+    );
+    const benignGoToVerdict = await inspectPdfBuffer(
+      Buffer.from(await benignGoToDoc.save({ useObjectStreams: false })),
+    );
+    expect(benignGoToVerdict.safe).toBe(true);
 
-    expect(verdict.safe).toBe(false);
-    expect(verdict.violations.map((violation) => violation.detail)).toContain('/OpenAction');
+    // 3. Hostile /OpenAction with /URI (passes tier 1, caught by tier 2)
+    const hostileUriDoc = await PDFDocument.create();
+    hostileUriDoc.addPage();
+    hostileUriDoc.catalog.set(
+      PDFName.of('OpenAction'),
+      hostileUriDoc.context.obj({ Type: 'Action', S: 'URI', URI: 'https://evil.example' }),
+    );
+    const hostileUriVerdict = await inspectPdfBuffer(
+      Buffer.from(await hostileUriDoc.save({ useObjectStreams: false })),
+    );
+    expect(hostileUriVerdict.safe).toBe(false);
+    expect(hostileUriVerdict.violations.map((v) => v.detail)).toContain('/OpenAction');
+
+    // 4. Hostile /OpenAction with /Launch (caught by tier 1)
+    const hostileLaunchDoc = await PDFDocument.create();
+    hostileLaunchDoc.addPage();
+    hostileLaunchDoc.catalog.set(
+      PDFName.of('OpenAction'),
+      hostileLaunchDoc.context.obj({ Type: 'Action', S: 'Launch', F: 'calc.exe' }),
+    );
+    const hostileLaunchVerdict = await inspectPdfBuffer(
+      Buffer.from(await hostileLaunchDoc.save({ useObjectStreams: false })),
+    );
+    expect(hostileLaunchVerdict.safe).toBe(false);
+    expect(hostileLaunchVerdict.violations.map((v) => v.detail)).toContain('/Launch');
   });
 
   it('keeps a PDF whose only JavaScript-looking bytes are prose and a longer /JSX name', async () => {
@@ -949,10 +990,7 @@ describe('pdf firewall pipeline report (admin dashboard)', () => {
       status: 'violation',
     });
     expect(pipelineCheck(report, 1, 'active-content')?.violations).toEqual(
-      expect.arrayContaining([
-        { code: 'ACTIVE_CONTENT_KEY', detail: '/JavaScript' },
-        { code: 'ACTIVE_CONTENT_KEY', detail: '/OpenAction' },
-      ]),
+      expect.arrayContaining([{ code: 'ACTIVE_CONTENT_KEY', detail: '/JavaScript' }]),
     );
     expect(pipelineCheck(report, 1, 'encryption')?.status).toBe('passed');
     expect(report.tiers[2].status).toBe('skipped');

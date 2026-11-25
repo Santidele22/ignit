@@ -7,7 +7,6 @@ import { PDF_HEADER_SCAN_WINDOW } from '../pdf.util.js';
 export const FORBIDDEN_PDF_NAMES = [
   'JavaScript',
   'JS',
-  'OpenAction',
   'AA',
   'Launch',
   'GoToR',

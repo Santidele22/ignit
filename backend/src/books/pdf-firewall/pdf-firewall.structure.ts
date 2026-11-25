@@ -6,8 +6,10 @@ import {
   PDFHexString,
   PDFInvalidObject,
   PDFName,
+  PDFNull,
   PDFNumber,
   PDFRawStream,
+  PDFRef,
   PDFStream,
   PDFString,
   type PDFContext,
@@ -255,6 +257,83 @@ function countPageTreeSafely(
   return { pageCount };
 }
 
+const BENIGN_DEST_FIT_MODES = new Set([
+  'XYZ',
+  'Fit',
+  'FitH',
+  'FitV',
+  'FitR',
+  'FitB',
+  'FitBH',
+  'FitBV',
+]);
+
+function isBenignDestinationArray(value: PDFObject | undefined, context: PDFContext): boolean {
+  const resolved = value ? context.lookup(value) : undefined;
+  if (!(resolved instanceof PDFArray)) return false;
+  const items = resolved.asArray();
+  if (items.length < 2) return false;
+
+  const first = items[0];
+  const firstValid =
+    first instanceof PDFRef ||
+    first instanceof PDFNumber ||
+    (first !== undefined && context.lookup(first) instanceof PDFDict);
+  if (!firstValid) return false;
+
+  const modeObj = items[1] ? context.lookup(items[1]) : undefined;
+  if (!(modeObj instanceof PDFName) || !BENIGN_DEST_FIT_MODES.has(canonicalPdfName(modeObj))) {
+    return false;
+  }
+
+  for (let i = 2; i < items.length; i += 1) {
+    const param = items[i] ? context.lookup(items[i]) : undefined;
+    if (!(param instanceof PDFNumber) && param !== PDFNull) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Allows `/OpenAction` ONLY when it is a benign initial-view destination
+ * (`[pageRef /Fit|XYZ|...]`) or an internal `/S /GoTo` action with no `/Next`
+ * chain (commonly emitted by LaTeX `hyperref`, Pandoc, and editorial tools).
+ * Any executable action (`/JavaScript`, `/Launch`, `/URI`, `/GoToR`, etc.)
+ * continues to be rejected as `ACTIVE_CONTENT_KEY /OpenAction`.
+ */
+function isBenignOpenAction(entry: PDFObject | undefined, context: PDFContext): boolean {
+  if (!entry) return false;
+  const resolved = context.lookup(entry);
+  if (!resolved) return false;
+
+  if (resolved instanceof PDFArray) {
+    return isBenignDestinationArray(resolved, context);
+  }
+
+  if (resolved instanceof PDFDict) {
+    const allowedKeys = new Set(['Type', 'S', 'D']);
+    for (const [key] of resolved.entries()) {
+      const name = canonicalPdfName(key);
+      if (!allowedKeys.has(name)) {
+        return false;
+      }
+    }
+    const subtype = lookupDictEntry(resolved, 'S', context);
+    if (!(subtype instanceof PDFName) || canonicalPdfName(subtype) !== 'GoTo') {
+      return false;
+    }
+    const dest = lookupDictEntry(resolved, 'D', context);
+    if (!dest) return false;
+    if (dest instanceof PDFArray) {
+      return isBenignDestinationArray(dest, context);
+    }
+    return dest instanceof PDFName || dest instanceof PDFString || dest instanceof PDFHexString;
+  }
+
+  return false;
+}
+
 function countDeclaredOrMeasuredPages(
   pagesRoot: PDFDict,
   context: PDFContext,
@@ -304,7 +383,11 @@ function scanObjectGraph(
 
       for (const [key, entry] of resolved.entries()) {
         for (const part of decodePdfNameParts(key)) {
-          if (isForbiddenPdfName(part)) {
+          if (part === 'OpenAction') {
+            if (!isBenignOpenAction(entry, context)) {
+              contextualViolations.push({ code: 'ACTIVE_CONTENT_KEY', detail: '/OpenAction' });
+            }
+          } else if (isForbiddenPdfName(part)) {
             foundForbidden.add(part);
           }
         }
