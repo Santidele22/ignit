@@ -47,16 +47,61 @@ const NAV_XHTML = `<?xml version="1.0" encoding="utf-8"?>
 <body><nav epub:type="toc"><ol><li><a href="content.xhtml">Capitulo 1</a></li></ol></nav></body>
 </html>`;
 
-const CONTAINER_XML = `<?xml version="1.0" encoding="utf-8"?>
+/** `META-INF/container.xml` pointing at the OPF package document at `fullPath`. */
+export function containerXmlFor(fullPath: string): string {
+  return `<?xml version="1.0" encoding="utf-8"?>
 <container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
-  <rootfiles><rootfile full-path="content.opf" media-type="application/oebps-package+xml"/></rootfiles>
+  <rootfiles><rootfile full-path="${fullPath}" media-type="application/oebps-package+xml"/></rootfiles>
 </container>`;
+}
+
+const CONTAINER_XML = containerXmlFor('content.opf');
+
+/**
+ * Builds an OPF package that keeps the analysis manifest/spine (nav + `content.xhtml`)
+ * but swaps in the given `<metadata>` markup, so metadata cases never drift from the
+ * documents the extractor walks.
+ */
+export function buildAnalysisOpf(metadataXml: string): string {
+  return `<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://www.idpf.org/2007/opf" xmlns:opf="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="book-id">
+  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+${metadataXml}
+  </metadata>
+  <manifest>
+    <item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
+    <item id="c1" href="content.xhtml" media-type="application/xhtml+xml"/>
+  </manifest>
+  <spine>
+    <itemref idref="nav"/>
+    <itemref idref="c1"/>
+  </spine>
+</package>`;
+}
+
+/** OPF metadata with an `urn:isbn:` identifier and an `opf:role="aut"` creator. */
+export const EPUB_METADATA_OPF_URN = buildAnalysisOpf(`    <dc:identifier id="book-id">urn:uuid:1234-5678</dc:identifier>
+    <dc:identifier>urn:isbn:978-3-16-148410-0</dc:identifier>
+    <dc:title>Manual de prueba</dc:title>
+    <dc:creator>Traductora Secundaria</dc:creator>
+    <dc:creator opf:role="aut">Autora Principal</dc:creator>
+    <dc:publisher>Editorial Prueba</dc:publisher>
+    <dc:description>Un <b>clásico</b> intemporal &amp; breve.</dc:description>`);
+
+/** OPF metadata whose ISBN comes from `opf:scheme="ISBN"` instead of `urn:isbn:`. */
+export const EPUB_METADATA_OPF_SCHEME = buildAnalysisOpf(`    <dc:identifier opf:scheme="ISBN">0-306-40615-2</dc:identifier>
+    <dc:title>Otro manual</dc:title>
+    <dc:creator>Autora Única</dc:creator>
+    <dc:publisher>Otra Editorial</dc:publisher>
+    <dc:description>Descripción simple.</dc:description>`);
 
 export type EpubFixtureOptions = {
   /** Spine document body (replaces `content.xhtml`). */
   xhtml?: string;
   /** OPF package document (replaces the minimal one). */
   opf?: string;
+  /** ZIP path of the OPF package document (defaults to `content.opf`, mirrored in container.xml). */
+  opfPath?: string;
   /** Extra raw entries to inject (path traversal payloads, DRM, junk). */
   extraEntries?: Array<{ path: string; data: string }>;
   /** Replaces `META-INF/encryption.xml` content; when set, DRM is present. */
@@ -69,8 +114,12 @@ export type EpubFixtureOptions = {
 export async function buildEpub(options: EpubFixtureOptions = {}): Promise<JSZip> {
   const zip = new JSZip();
   zip.file('mimetype', 'application/epub+zip');
-  zip.file('META-INF/container.xml', CONTAINER_XML);
-  zip.file('content.opf', options.opf ?? EPUB_ANALYSIS_OPF_MINIMAL);
+  const opfPath = options.opfPath ?? 'content.opf';
+  zip.file(
+    'META-INF/container.xml',
+    opfPath === 'content.opf' ? CONTAINER_XML : containerXmlFor(opfPath),
+  );
+  zip.file(opfPath, options.opf ?? EPUB_ANALYSIS_OPF_MINIMAL);
   zip.file(
     'nav.xhtml',
     NAV_XHTML.replace('</ol>', `${options.navExtra ?? ''}</ol>`),
