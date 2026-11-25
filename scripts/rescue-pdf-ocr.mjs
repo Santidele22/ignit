@@ -62,6 +62,18 @@ function rescueWithPdftoppmAndTesseract(inputPath, outputPath, lang) {
     writeFileSync(listFile, `${pages.join('\n')}\n`, 'utf8');
     const outBase = outputPath.replace(/\.pdf$/i, '');
     execFileSync('tesseract', [listFile, outBase, '-l', lang, 'pdf'], { stdio: 'inherit' });
+    if (!existsSync(`${outBase}.pdf`)) {
+      // Tesseract drops to plain text and ignores the `pdf` config when its
+      // TESSDATA_PREFIX lacks the configs/ directory: fail loudly instead of
+      // leaving the caller to "verify" the untouched input file (and possibly
+      // overwrite it when input and output share a directory).
+      if (existsSync(`${outBase}.txt`)) {
+        throw new Error(
+          'tesseract produced text output, not a searchable PDF: TESSDATA_PREFIX is missing the tesseract configs/ directory',
+        );
+      }
+      throw new Error('tesseract did not produce the output PDF');
+    }
   } finally {
     rmSync(workDir, { recursive: true, force: true });
   }
@@ -124,6 +136,7 @@ if (!opts.dryRun && !existsSync(outDir)) {
 let okCount = 0;
 let rescuedCount = 0;
 let needsOcrCount = 0;
+let skippedCount = 0;
 
 for (const file of files) {
   const verdict = assessTextLegibility(extractTextWithPdftotext(file));
@@ -149,6 +162,12 @@ for (const file of files) {
   if (opts.dryRun) continue;
 
   const outPath = join(outDir, name);
+  if (outPath === resolve(file)) {
+    // Never rasterize the input into itself: refuse instead of destroying it.
+    console.error(`  -> SKIPPED ${name}: output would overwrite the input PDF (use --out-dir)`);
+    skippedCount += 1;
+    continue;
+  }
   if (useOcrmypdf) {
     rescueWithOcrmypdf(file, outPath, opts.lang);
   } else {
@@ -162,5 +181,5 @@ for (const file of files) {
 }
 
 console.log(
-  `\nSummary: total=${files.length}, ok=${okCount}, needs_ocr=${needsOcrCount}, rescued=${rescuedCount}`,
+  `\nSummary: total=${files.length}, ok=${okCount}, needs_ocr=${needsOcrCount}, rescued=${rescuedCount}, skipped=${skippedCount}`,
 );
