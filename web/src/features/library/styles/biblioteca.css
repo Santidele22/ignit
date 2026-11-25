@@ -475,6 +475,170 @@ body.biblioteca-body main.shell {
 	padding-right: max(clamp(16px, 4vw, 40px), env(safe-area-inset-right));
 }
 
+/* --------------------------------------------- umbral de estado (S2) ----- */
+
+/* The two mounted rooms of the shelf (artboard 05 `.state-threshold`): both
+   panels start unpressed so the shelf keeps every book, and each one is a
+   toggle that scopes the shelf (and the continuity hero) to its own kinds. */
+body.biblioteca-body .state-threshold {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 16px;
+	margin-bottom: 16px;
+}
+
+body.biblioteca-body .state-card {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	text-align: left;
+	padding: 18px 20px;
+	border: 1px solid var(--b-border-strong);
+	background: var(--b-panel);
+	color: var(--b-body);
+	transition: border-color 0.16s, background 0.16s;
+}
+
+body.biblioteca-body .state-card:hover {
+	border-color: var(--b-accent-bright);
+}
+
+body.biblioteca-body .state-card[aria-pressed="true"] {
+	border-color: var(--b-accent-bright);
+	background: var(--b-panel-2);
+	box-shadow: inset 4px 0 0 var(--b-accent);
+}
+
+body.biblioteca-body .state-copy {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+
+body.biblioteca-body .state-kicker {
+	font-family: var(--b-mono);
+	font-size: 9.5px;
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+	color: var(--b-accent-bright);
+	margin-bottom: 4px;
+}
+
+body.biblioteca-body .state-title {
+	font-family: var(--b-serif);
+	font-size: clamp(19px, 1.8vw, 24px);
+	line-height: 1.2;
+	color: var(--b-fg);
+}
+
+/* The study room speaks in the working mono voice, the literary one in serif. */
+body.biblioteca-body .state-card[data-state="estudio"] .state-title {
+	font-family: var(--b-mono);
+	font-size: clamp(16px, 1.5vw, 20px);
+	font-weight: 700;
+	letter-spacing: 0.02em;
+}
+
+body.biblioteca-body .state-sub {
+	font-size: 12.5px;
+	line-height: 1.45;
+	color: var(--b-faint);
+	margin-top: 5px;
+}
+
+body.biblioteca-body .state-count {
+	flex: 0 0 auto;
+	min-width: 74px;
+	padding: 8px 12px;
+	text-align: center;
+	font-family: var(--b-mono);
+	font-size: 20px;
+	font-weight: 700;
+	color: var(--b-fg);
+	border: 1px solid var(--b-border-strong);
+	background: var(--b-bg);
+}
+
+body.biblioteca-body .state-count small {
+	display: block;
+	font-size: 8.5px;
+	font-weight: 400;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--b-ghost);
+}
+
+/* Fila de sync/offline + resumen del almacenamiento (S2). */
+body.biblioteca-body .sync-strip {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-wrap: wrap;
+	padding: 9px 14px;
+	margin-bottom: 20px;
+	border: 1px solid var(--b-border);
+	background: color-mix(in srgb, var(--b-panel) 80%, transparent);
+	font-family: var(--b-mono);
+	font-size: 9.5px;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--b-faint);
+}
+
+body.biblioteca-body .sync-dot {
+	width: 7px;
+	height: 7px;
+	flex: 0 0 auto;
+	border-radius: 50%;
+	background: var(--b-accent-bright);
+	box-shadow: 0 0 8px var(--b-accent-bright);
+}
+
+body.biblioteca-body .sync-strip[data-offline="true"] .sync-dot {
+	background: var(--b-warn);
+	box-shadow: none;
+}
+
+body.biblioteca-body .sync-strip .sync-state {
+	color: var(--b-accent-bright);
+}
+
+body.biblioteca-body .sync-strip[data-offline="true"] .sync-state {
+	color: var(--b-warn);
+}
+
+body.biblioteca-body .sync-strip .sync-offline {
+	color: var(--b-fg);
+}
+
+body.biblioteca-body .sync-strip .sync-storage {
+	margin-left: auto;
+	color: var(--b-ghost);
+}
+
+@media (max-width: 900px) {
+	body.biblioteca-body .state-threshold {
+		grid-template-columns: 1fr;
+	}
+}
+
+@media (max-width: 600px) {
+	body.biblioteca-body .state-card {
+		gap: 12px;
+		padding: 14px 16px;
+	}
+
+	body.biblioteca-body .state-count {
+		min-width: 62px;
+		font-size: 17px;
+	}
+
+	body.biblioteca-body .sync-strip .sync-storage {
+		margin-left: 0;
+	}
+}
+
 /* ------------------------------- hero-dash: continuidad + almacenamiento -- */
 
 body.biblioteca-body .hero-dash {
@@ -756,6 +920,13 @@ body.biblioteca-body .section-bar {
 	background: color-mix(in srgb, var(--b-panel) 80%, transparent);
 }
 
+body.biblioteca-body .section-lead {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
 body.biblioteca-body .section-title {
 	font-family: var(--b-mono);
 	font-size: 11px;
@@ -824,25 +995,15 @@ body.biblioteca-body .search-input:focus {
 
 /* ------------------------------------------------------------- rejilla ---- */
 
+/* The artboard's `estudio-grid`: the numbered fichas fill rows of >= 400px and
+   collapse to one column on tablets and phones. */
 body.biblioteca-body .rejilla {
 	display: grid;
-	grid-template-columns: repeat(4, minmax(0, 1fr));
-	gap: 16px;
+	grid-template-columns: repeat(auto-fill, minmax(min(100%, 400px), 1fr));
+	gap: 14px;
 }
 
-@media (max-width: 1080px) {
-	body.biblioteca-body .rejilla {
-		grid-template-columns: repeat(3, minmax(0, 1fr));
-	}
-}
-
-@media (max-width: 768px) {
-	body.biblioteca-body .rejilla {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-	}
-}
-
-@media (max-width: 480px) {
+@media (max-width: 900px) {
 	body.biblioteca-body .rejilla {
 		grid-template-columns: 1fr;
 	}
@@ -850,16 +1011,21 @@ body.biblioteca-body .rejilla {
 
 /* ------------------------------------------------------------------ tomo -- */
 
+/* The numbered ficha of the shelf (S2): a 68px cover thumb, the editorial
+   body and the stacked real actions, exactly the artboard's `estudio-row`. */
 body.biblioteca-body .tomo {
-	display: flex;
-	flex-direction: column;
+	display: grid;
+	grid-template-columns: 68px minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 16px;
+	padding: 14px 16px;
 	background: var(--b-panel);
 	border: 1px solid var(--b-border);
 	transition: border-color 0.18s, transform 0.18s;
 }
 
 body.biblioteca-body .tomo:hover {
-	border-color: var(--b-accent);
+	border-color: var(--b-accent-bright);
 	transform: translateY(-2px);
 }
 
@@ -869,11 +1035,9 @@ body.biblioteca-body .tomo[data-offline="true"] {
 
 body.biblioteca-body .tomo-tapa {
 	position: relative;
+	width: 68px;
 	aspect-ratio: 4 / 5;
-	padding: 13px 13px 15px 17px;
-	display: flex;
-	flex-direction: column;
-	justify-content: space-between;
+	border: 1px solid var(--b-border-strong);
 	text-decoration: none;
 	overflow: hidden;
 	background: var(--b-surface-cover);
@@ -1034,29 +1198,14 @@ body.biblioteca-body .tomo:hover .tomo-art {
 	filter: brightness(1.14);
 }
 
-/* Editorial vignette: in `noche-azul` this is the artboard's dark wash
-   (`--b-bg-rgb` = 4 5 10); in `original` it becomes a paper wash so the ink
-   title keeps its contrast instead of inheriting blue-black. */
+/* Editorial shading of the thumb: keeps the `01/02` stamp readable without
+   the old full-cover wash (the title now lives outside the art, S2). */
 body.biblioteca-body .tomo-tapa::after {
 	content: "";
 	position: absolute;
 	inset: 0;
 	pointer-events: none;
-	background:
-		linear-gradient(
-			90deg,
-			rgb(var(--b-bg-rgb) / 0.65) 0,
-			rgb(var(--b-accent-rgb) / 0.12) 9px,
-			rgb(var(--b-bg-rgb) / 0.5) 11px,
-			transparent 16px
-		),
-		linear-gradient(
-			180deg,
-			rgb(var(--b-bg-rgb) / 0.45) 0%,
-			transparent 34%,
-			rgb(var(--b-bg-rgb) / 0.55) 66%,
-			rgb(var(--b-bg-rgb) / 0.96) 100%
-		);
+	background: linear-gradient(180deg, transparent 52%, rgb(var(--b-bg-rgb) / 0.62) 100%);
 }
 
 /* Spine wire. */
@@ -1076,53 +1225,80 @@ body.biblioteca-body .tomo[data-offline="true"] .tomo-tapa::before {
 	opacity: 1;
 }
 
-body.biblioteca-body .tomo-top,
-body.biblioteca-body .tomo-copy {
-	position: relative;
-	z-index: 2;
+/* `01/02/…` index stamped on the thumb, the artboard's spine code. */
+body.biblioteca-body .tomo-idx {
+	position: absolute;
+	left: 0;
+	bottom: 0;
+	z-index: 3;
+	font-family: var(--b-mono);
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.1em;
+	color: var(--b-fg);
+	background: rgb(var(--b-bg-rgb) / 0.86);
+	padding: 2px 6px;
+	border-top: 1px solid var(--b-border);
+	border-right: 1px solid var(--b-border);
 }
 
-body.biblioteca-body .tomo-top {
+body.biblioteca-body .tomo-body {
 	display: flex;
-	justify-content: space-between;
+	flex-direction: column;
+	gap: 3px;
+	min-width: 0;
+}
+
+/* Domain chip + offline state + pages/size line (mono metadata). */
+body.biblioteca-body .tomo-meta {
+	display: flex;
 	align-items: center;
 	gap: 8px;
-}
-
-body.biblioteca-body .tomo-idx {
+	flex-wrap: wrap;
 	font-family: var(--b-mono);
-	font-size: 10.5px;
-	letter-spacing: 0.14em;
-	color: var(--b-body);
-	background: rgb(var(--b-bg-rgb) / 0.78);
-	padding: 3px 7px;
-	border: 1px solid color-mix(in srgb, var(--b-border) 85%, transparent);
-}
-
-body.biblioteca-body .tomo-badge {
-	font-family: var(--b-mono);
-	font-size: 10.5px;
-	letter-spacing: 0.12em;
+	font-size: 9.5px;
+	letter-spacing: 0.1em;
 	text-transform: uppercase;
-	padding: 4px 8px;
-	border: 1px solid var(--b-border-strong);
 	color: var(--b-faint);
-	background: rgb(var(--b-bg-rgb) / 0.86);
 }
 
-body.biblioteca-body .tomo[data-offline="true"] .tomo-badge {
-	background: var(--b-accent-bright);
-	border-color: var(--b-accent-bright);
-	color: var(--b-accent-fg);
+body.biblioteca-body .tomo-tag {
+	padding: 1px 6px;
+	border: 1px solid var(--b-accent);
+	color: var(--b-accent-bright);
 	font-weight: 700;
 }
 
+body.biblioteca-body .tomo-badge {
+	padding: 1px 6px;
+	border: 1px solid var(--b-border-strong);
+	color: var(--b-ghost);
+}
+
+body.biblioteca-body .tomo[data-offline="true"] .tomo-badge {
+	border-color: var(--b-accent);
+	color: var(--b-accent-bright);
+	background: rgb(var(--b-accent-rgb) / 0.14);
+	font-weight: 700;
+}
+
+body.biblioteca-body .tomo-meta .tomo-datos {
+	color: var(--b-ghost);
+}
+
+body.biblioteca-body .tomo-meta .lic {
+	color: var(--b-body);
+	opacity: 0.85;
+	font-size: 9px;
+}
+
 body.biblioteca-body .tomo-titulo {
+	margin: 0;
 	font-family: var(--b-serif);
-	font-size: 16px;
+	font-size: 17px;
+	font-weight: 400;
 	line-height: 1.25;
 	color: var(--b-fg);
-	text-shadow: 0 2px 12px rgb(var(--b-bg-rgb) / 0.9);
 }
 
 body.biblioteca-body .tomo-autor {
@@ -1130,46 +1306,37 @@ body.biblioteca-body .tomo-autor {
 	font-size: 10.5px;
 	letter-spacing: 0.12em;
 	text-transform: uppercase;
-	color: var(--b-body);
-	margin-top: 5px;
-	opacity: 0.92;
+	color: var(--b-faint);
 }
 
-/* `flex-wrap` keeps the meta + actions readable in the 3-col tablet and the
-   2-col mobile grid instead of clipping the download button (S2). */
-body.biblioteca-body .tomo-foot {
+/* Mini reading progress of the ficha. */
+body.biblioteca-body .tomo-prog {
 	display: flex;
-	justify-content: space-between;
 	align-items: center;
 	gap: 8px;
-	flex-wrap: wrap;
-	padding: 10px 12px;
-	border-top: 1px solid var(--b-border);
-	background: var(--b-surface-deep);
-}
-
-body.biblioteca-body .tomo-meta {
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
+	margin-top: 5px;
 	font-family: var(--b-mono);
-	font-size: 10.5px;
+	font-size: 9.5px;
 	letter-spacing: 0.1em;
 	text-transform: uppercase;
-}
-
-body.biblioteca-body .tomo-meta .cat {
-	color: var(--b-accent-bright);
-}
-
-body.biblioteca-body .tomo-meta .lic {
-	color: var(--b-body);
-	opacity: 0.85;
-	font-size: 9.5px;
-}
-
-body.biblioteca-body .tomo-meta .peso {
 	color: var(--b-ghost);
+}
+
+body.biblioteca-body .mini-bar {
+	display: block;
+	width: 80px;
+	height: 4px;
+	flex: 0 0 auto;
+	background: var(--b-bar-track);
+	border: 1px solid var(--b-border);
+	overflow: hidden;
+}
+
+body.biblioteca-body .mini-bar i {
+	display: block;
+	height: 100%;
+	background: var(--b-accent-bright);
+	transition: width 0.3s ease;
 }
 
 body.biblioteca-body .btn-dl {
@@ -1191,7 +1358,21 @@ body.biblioteca-body .btn-dl:hover:not(:disabled) {
 	color: var(--b-accent-bright);
 }
 
-body.biblioteca-body .tomo[data-offline="true"] .btn-dl {
+/* `Añadir` is the primary action of the ficha (artboard 05); `Quitar` the
+   pressed/offline counterpart of the same IndexedDB toggle. */
+body.biblioteca-body .btn-dl[data-tone="anadir"] {
+	background: var(--b-accent);
+	border-color: var(--b-accent-bright);
+	color: var(--b-accent-fg);
+	font-weight: 700;
+}
+
+body.biblioteca-body .btn-dl[data-tone="anadir"]:hover:not(:disabled) {
+	background: var(--b-accent-bright);
+	color: var(--b-accent-fg);
+}
+
+body.biblioteca-body .btn-dl[data-tone="quitar"] {
 	background: rgb(var(--b-accent-rgb) / 0.16);
 	border-color: var(--b-accent);
 	color: var(--b-accent-bright);
@@ -1201,6 +1382,30 @@ body.biblioteca-body .btn-dl:disabled {
 	opacity: 0.65;
 	cursor: not-allowed;
 	border-color: var(--b-border);
+}
+
+/* `Leer`: the editorial entrance to `/lecturas/:id` of a book with a PDF. */
+body.biblioteca-body .btn-leer {
+	font-family: var(--b-mono);
+	font-size: 10.5px;
+	font-weight: 700;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	padding: 9px 12px;
+	min-height: 40px;
+	border: 1px solid var(--b-border-strong);
+	background: var(--b-bg);
+	color: var(--b-fg);
+	text-decoration: none;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	transition: border-color 0.16s, color 0.16s;
+}
+
+body.biblioteca-body .btn-leer:hover {
+	border-color: var(--b-accent-bright);
+	color: var(--b-accent-bright);
 }
 
 /* Offline gate: cloud-only books lose their colour and their download. */
@@ -1224,13 +1429,14 @@ body.biblioteca-body .sala-root[data-offline="true"] .tomo[data-offline="false"]
 	border-color: var(--b-border);
 }
 
-/* Discrete edit/delete affordance on the user's own cards (S7). */
+/* Discrete edit/delete affordance on the user's own cards (S7). The ficha
+   stacks its real actions in the right column, like the artboard. */
 body.biblioteca-body .tomo-actions {
 	display: flex;
-	align-items: center;
+	flex-direction: column;
+	align-items: stretch;
 	gap: 6px;
-	flex-wrap: wrap;
-	justify-content: flex-end;
+	min-width: 96px;
 }
 
 body.biblioteca-body .btn-edit-mini {
@@ -2398,6 +2604,7 @@ body.biblioteca-body .user-pill .user-name {
 	body.biblioteca-body .net-toggle,
 	body.biblioteca-body .chip,
 	body.biblioteca-body .btn-dl,
+	body.biblioteca-body .btn-leer,
 	body.biblioteca-body .btn-primary,
 	body.biblioteca-body .btn-sec,
 	body.biblioteca-body .btn-danger,
@@ -2416,25 +2623,29 @@ body.biblioteca-body .user-pill .user-name {
 		padding: 0 12px;
 	}
 
-	/* `.tomo-foot` degrades to two stacked rows instead of clipping. */
-	body.biblioteca-body .tomo-foot {
-		gap: 8px;
+	/* The ficha collapses to thumb + body and moves its actions to a full-width
+	   row instead of squeezing the button column (S5). */
+	body.biblioteca-body .tomo {
+		grid-template-columns: 56px minmax(0, 1fr);
+		gap: 12px;
+		padding: 12px;
 	}
 
-	body.biblioteca-body .tomo-meta {
-		flex-direction: row;
-		flex-wrap: wrap;
-		align-items: baseline;
-		gap: 4px 8px;
+	body.biblioteca-body .tomo-tapa {
+		width: 56px;
 	}
 
 	body.biblioteca-body .tomo-actions {
-		flex: 1 1 100%;
-		justify-content: flex-start;
+		grid-column: 1 / -1;
+		flex-direction: row;
+		flex-wrap: wrap;
+		align-items: center;
 		gap: 8px;
+		min-width: 0;
 	}
 
-	body.biblioteca-body .tomo-actions .btn-dl {
+	body.biblioteca-body .tomo-actions .btn-dl,
+	body.biblioteca-body .tomo-actions .btn-leer {
 		flex: 1 1 auto;
 	}
 

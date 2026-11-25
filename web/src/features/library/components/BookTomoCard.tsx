@@ -4,10 +4,12 @@ import { formatSizeKb, type SalaBook } from '../lib/sala';
 import BookCoverSvg from './BookCoverSvg';
 
 /**
- * One `.tomo` card of the Sala de lectura (S5): bespoke 4/5 cover, spine wire,
- * offline/cloud/network badge, category + progress + pages/size metadata, link
- * to `/lecturas/:id` and the real IndexedDB `↓ Descargar` / `Quitar` action.
- * Owned books also expose the discrete `Editar` affordance (S7).
+ * One numbered ficha of the shelf (S2/S5, artboard
+ * `design/biblioteca-tecnico-literatura/05-biblioteca-estudio-despeje.html`):
+ * `01/02/…` index, cover thumb, domain chip, pages + size metadata line, mini
+ * progress bar, and the real actions of the sala — `Leer` (the `/lecturas/:id`
+ * reader when the PDF exists), `Ficha`/`Editar` modals and the primary
+ * `Añadir`/`Quitar` IndexedDB toggle of `offlineStore.ts`.
  */
 export interface BookTomoCardProps {
 	book: SalaBook;
@@ -23,32 +25,39 @@ export interface BookTomoCardProps {
 }
 
 export default function BookTomoCard(props: BookTomoCardProps) {
+	const hasFile = () => props.book.hasFile !== false;
+	const readerHref = () => `/lecturas/${props.book.id}`;
+
 	const badgeLabel = () => {
 		if (props.book.isOffline) return 'offline ✓';
 		return props.appOffline ? 'requiere red' : 'nube';
 	};
 
+	/** `214 p · 566 KB` — pages and local size, the artboard metadata line. */
 	const sizeLabel = () => {
 		const size = formatSizeKb(props.book.sizeKb);
 		return props.book.pdfPages ? `${props.book.pdfPages} p · ${size}` : size;
 	};
 
-	const progressSuffix = () => (props.book.progressPct > 0 ? ` · ${props.book.progressPct}%` : '');
+	const progressLabel = () => {
+		if (props.book.progressPct > 0) return `${props.book.progressPct}% avanzado`;
+		return props.book.status === 'finished' ? 'Leído' : 'Sin comenzar';
+	};
+
 	const licenseBadge = () => formatLicenseBadge(props.book.license);
 
 	const [coverFailed, setCoverFailed] = createSignal(false);
-	const hasFile = () => props.book.hasFile !== false;
 
 	const downloadDisabled = () => !hasFile() || props.busy === true || (props.appOffline && !props.book.isOffline);
 
 	const downloadLabel = () => {
 		if (props.busy) return 'Guardando…';
-		return props.book.isOffline ? 'Quitar' : '↓ Descargar';
+		return props.book.isOffline ? 'Quitar' : 'Añadir';
 	};
 
 	return (
 		<article class="tomo" data-offline={String(props.book.isOffline)}>
-			<a class="tomo-tapa" href={`/lecturas/${props.book.id}`}>
+			<a class="tomo-tapa" href={readerHref()} aria-label={`Abrir «${props.book.title}»`}>
 				{props.book.coverUrl && !coverFailed() ? (
 					<img
 						class="tomo-art tomo-cover-img"
@@ -64,21 +73,14 @@ export default function BookTomoCard(props: BookTomoCardProps) {
 						prefix={props.coverPrefix}
 					/>
 				)}
-				<div class="tomo-top">
-					<span class="tomo-idx">{props.book.idx}</span>
-					<span class="tomo-badge">{badgeLabel()}</span>
-				</div>
-				<div class="tomo-copy">
-					<div class="tomo-titulo">{props.book.title}</div>
-					<div class="tomo-autor">{props.book.author}</div>
-				</div>
+				<span class="tomo-idx">{props.book.idx}</span>
 			</a>
-			<div class="tomo-foot">
+
+			<div class="tomo-body">
 				<div class="tomo-meta">
-					<span class="cat">
-						{props.book.catLabel}
-						{progressSuffix()}
-					</span>
+					<span class="tomo-tag">{props.book.catLabel}</span>
+					<span class="tomo-badge">{badgeLabel()}</span>
+					<span class="tomo-datos">{sizeLabel()}</span>
 					<Show when={licenseBadge()}>
 						{(badge) => (
 							<span class="lic" title={`Licencia: ${props.book.license ?? badge()}`}>
@@ -86,40 +88,54 @@ export default function BookTomoCard(props: BookTomoCardProps) {
 							</span>
 						)}
 					</Show>
-					<span class="peso">{sizeLabel()}</span>
 				</div>
-				<div class="tomo-actions">
-					<Show when={props.onOpenFicha}>
-						<button
-							class="btn-edit-mini"
-							type="button"
-							aria-label={`Ver ficha de ${props.book.title}`}
-							onClick={() => props.onOpenFicha?.(props.book)}
-						>
-							Ficha
-						</button>
-					</Show>
-					<Show when={props.book.isOwner && props.onEdit}>
-						<button
-							class="btn-edit-mini"
-							type="button"
-							aria-label={`Editar ${props.book.title}`}
-							onClick={() => props.onEdit?.(props.book)}
-						>
-							Editar
-						</button>
-					</Show>
+				<h3 class="tomo-titulo">{props.book.title}</h3>
+				<div class="tomo-autor">{props.book.author}</div>
+				<div class="tomo-prog">
+					<span class="mini-bar" aria-hidden="true">
+						<i style={{ width: `${props.book.progressPct}%` }} />
+					</span>
+					<span>{progressLabel()}</span>
+				</div>
+			</div>
+
+			<div class="tomo-actions">
+				<Show when={hasFile()}>
+					<a class="btn-leer" href={readerHref()} aria-label={`Leer «${props.book.title}»`}>
+						Leer
+					</a>
+				</Show>
+				<Show when={props.onOpenFicha}>
 					<button
-						class="btn-dl"
+						class="btn-edit-mini"
 						type="button"
-						aria-pressed={props.book.isOffline}
-						disabled={downloadDisabled()}
-						title={hasFile() ? undefined : 'Sin PDF disponible'}
-						onClick={() => props.onToggleOffline(props.book)}
+						aria-label={`Ver ficha de ${props.book.title}`}
+						onClick={() => props.onOpenFicha?.(props.book)}
 					>
-						{downloadLabel()}
+						Ficha
 					</button>
-				</div>
+				</Show>
+				<Show when={props.book.isOwner && props.onEdit}>
+					<button
+						class="btn-edit-mini"
+						type="button"
+						aria-label={`Editar ${props.book.title}`}
+						onClick={() => props.onEdit?.(props.book)}
+					>
+						Editar
+					</button>
+				</Show>
+				<button
+					class="btn-dl"
+					type="button"
+					data-tone={props.book.isOffline ? 'quitar' : 'anadir'}
+					aria-pressed={props.book.isOffline}
+					disabled={downloadDisabled()}
+					title={hasFile() ? undefined : 'Sin PDF disponible'}
+					onClick={() => props.onToggleOffline(props.book)}
+				>
+					{downloadLabel()}
+				</button>
 			</div>
 		</article>
 	);

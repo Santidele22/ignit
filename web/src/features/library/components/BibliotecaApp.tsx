@@ -1,5 +1,5 @@
 import { For, Show, createEffect, createMemo, createSignal, onCleanup, onMount } from 'solid-js';
-import { BOOK_KIND_OPTIONS, parseBookKind, type Book } from '../../../entities/book/types';
+import { parseBookKind, type Book } from '../../../entities/book/types';
 import { fetchBookClientReading, fetchBooks, recordBookMetric, safeExternalUrl } from '../../book/api/books';
 import { fetchMyBooks } from '../../book/api/books-admin';
 import type { AdminBookRow } from '../../book/api/books-admin';
@@ -15,13 +15,17 @@ import {
 } from '../lib/offlineStore';
 import {
 	computeStorageMeter,
+	countSalaEstados,
 	deriveAporteRows,
 	filterSalaCatalog,
+	filterSalaEstado,
 	mergeSalaBooks,
 	readLocalReadingSnapshots,
+	salaEstadoChips,
 	selectContinuityBook,
 	type LocalReadingSnapshot,
 	type SalaBook,
+	type SalaEstado,
 	type SalaTabId,
 } from '../lib/sala';
 import { registerServiceWorker } from '../../pwa/registerSW';
@@ -30,6 +34,7 @@ import BookFichaModal from './BookFichaModal';
 import BookTomoCard from './BookTomoCard';
 import EditBookModal, { type EditBookResult } from './EditBookModal';
 import HeroDash from './HeroDash';
+import SalaEstadoPanels from './SalaEstadoPanels';
 import SalaTopbar from './SalaTopbar';
 import UploadBookModal, { type UploadOutcome } from './UploadBookModal';
 
@@ -53,10 +58,34 @@ export interface BibliotecaAppProps {
 	ssrCatalogLoaded?: boolean;
 }
 
-const CATALOG_CHIPS: ReadonlyArray<{ value: CatalogKindFilter; label: string }> = [
-	{ value: '*', label: 'Todos' },
-	...BOOK_KIND_OPTIONS,
-];
+/**
+ * Domain chips of a shelf bar (S2): the kinds of the active room, or every kind
+ * of the single `BookKind` taxonomy when no room is selected.
+ */
+function DomainChips(props: {
+	options: ReadonlyArray<{ value: CatalogKindFilter; label: string }>;
+	active: CatalogKindFilter;
+	onSelect: (value: CatalogKindFilter) => void;
+}) {
+	return (
+		<div class="filtros" role="group" aria-label="Disciplinas">
+			<For each={props.options}>
+				{(chip) => (
+					<button
+						class="chip"
+						type="button"
+						data-filtro={chip.value}
+						data-activa={String(props.active === chip.value)}
+						aria-pressed={props.active === chip.value}
+						onClick={() => props.onSelect(chip.value)}
+					>
+						{chip.label}
+					</button>
+				)}
+			</For>
+		</div>
+	);
+}
 
 /** `AdminBookRow` (real `GET /books?mine=true`) → the UI `Book` shape. */
 function rowToBook(row: AdminBookRow): Book {
@@ -98,7 +127,9 @@ export default function BibliotecaApp(props: BibliotecaAppProps) {
 	const [storageAvailable, setStorageAvailable] = createSignal(false);
 
 	const [activeTab, setActiveTab] = createSignal<SalaTabId>('device');
-	const [catFilter, setCatFilter] = createSignal<CatalogKindFilter>('*');
+	const [kindFilter, setKindFilter] = createSignal<CatalogKindFilter>('*');
+	/** Room lens of the shelf: `null` keeps every room visible (unchanged default). */
+	const [estadoFilter, setEstadoFilter] = createSignal<SalaEstado | null>(null);
 	const [searchQuery, setSearchQuery] = createSignal('');
 
 	// Offline state = real `navigator` state OR the manual test toggle.
@@ -125,13 +156,33 @@ export default function BibliotecaApp(props: BibliotecaAppProps) {
 	const deviceBooks = createMemo(() => salaBooks().filter((book) => book.isOffline));
 	const libraryBooks = createMemo(() => salaBooks().filter((book) => book.inLibrary || book.isOffline));
 	const publicCatalogBooks = createMemo(() => salaBooks().filter((book) => book.published));
+
+	/** Real tomo counts of the two rooms over the user's own shelf (S2). */
+	const estadoCounts = createMemo(() => countSalaEstados(libraryBooks()));
+	/** Domain chips follow the active room; every kind when no room is active. */
+	const chipOptions = createMemo(() => salaEstadoChips(estadoFilter()));
+
+	const deviceView = createMemo(() =>
+		filterSalaCatalog(filterSalaEstado(deviceBooks(), estadoFilter()), kindFilter(), ''),
+	);
+	const libraryView = createMemo(() =>
+		filterSalaCatalog(filterSalaEstado(libraryBooks(), estadoFilter()), kindFilter(), ''),
+	);
 	const catalogView = createMemo(() =>
-		filterSalaCatalog(publicCatalogBooks(), catFilter(), searchQuery()),
+		filterSalaCatalog(
+			filterSalaEstado(publicCatalogBooks(), estadoFilter()),
+			kindFilter(),
+			searchQuery(),
+		),
 	);
 	const aporteRows = createMemo(() => deriveAporteRows(salaBooks()));
 	// Continuity only considers the user's own shelf (owned, downloaded or read),
 	// so a fresh account gets the empty card instead of a random catalog book.
-	const continuity = createMemo(() => selectContinuityBook(libraryBooks()));
+	// The active room scopes it first; an empty room falls back to the whole shelf.
+	const continuity = createMemo(() => {
+		const scoped = filterSalaEstado(libraryBooks(), estadoFilter());
+		return selectContinuityBook(scoped.length > 0 ? scoped : libraryBooks());
+	});
 	const meter = createMemo(() => computeStorageMeter(offlineRecords()));
 
 	const counts = createMemo<Record<SalaTabId, number>>(() => ({
@@ -143,6 +194,15 @@ export default function BibliotecaApp(props: BibliotecaAppProps) {
 
 	function announce(message: string) {
 		setLiveMessage(message);
+	}
+
+	/**
+	 * Room toggle of the two mounted panels (S2): picking a room resets the
+	 * domain chip, pressing the active room again clears the lens.
+	 */
+	function handleSelectEstado(next: SalaEstado | null) {
+		setEstadoFilter(next);
+		setKindFilter('*');
 	}
 
 	function fail(message: string) {
@@ -345,6 +405,21 @@ export default function BibliotecaApp(props: BibliotecaAppProps) {
 					</p>
 				</Show>
 
+				<SalaEstadoPanels
+					counts={estadoCounts()}
+					active={estadoFilter()}
+					onSelect={handleSelectEstado}
+				/>
+
+				<div class="sync-strip" data-offline={String(isOffline())}>
+					<span class="sync-dot" aria-hidden="true" />
+					<span class="sync-state">
+						{isOffline() ? 'Offline · leyendo local' : 'Online · sync al día'}
+					</span>
+					<span class="sync-offline">{meter().countLabel}</span>
+					<span class="sync-storage">{meter().badge}</span>
+				</div>
+
 				<HeroDash
 					continuity={continuity()}
 					meter={meter()}
@@ -363,20 +438,30 @@ export default function BibliotecaApp(props: BibliotecaAppProps) {
 					hidden={activeTab() !== 'device'}
 				>
 					<div class="section-bar">
-						<span class="section-title">Listos para leer sin internet</span>
-						<span class="section-hint">Estos libros abren en Vigilia aunque cortes la señal</span>
+						<div class="section-lead">
+							<span class="section-title">Listos para leer sin internet</span>
+							<span class="section-hint">
+								Estos libros abren en Vigilia aunque cortes la señal
+							</span>
+						</div>
+						<DomainChips
+							options={chipOptions()}
+							active={kindFilter()}
+							onSelect={(value) => setKindFilter(value)}
+						/>
 					</div>
 					<div class="rejilla">
 						<Show
-							when={deviceBooks().length > 0}
+							when={deviceView().length > 0}
 							fallback={
 								<p class="empty-box">
-									No tenés libros descargados en este dispositivo. Podés bajar cualquiera desde Mi
-									biblioteca o Catálogo.
+									{deviceBooks().length > 0
+										? 'No hay libros de esa disciplina en este dispositivo. Probá con «Todas las disciplinas».'
+										: 'No tenés libros descargados en este dispositivo. Podés bajar cualquiera desde Mi biblioteca o Catálogo.'}
 								</p>
 							}
 						>
-							<For each={deviceBooks()}>
+							<For each={deviceView()}>
 								{(book) => (
 									<BookTomoCard
 										book={book}
@@ -402,22 +487,35 @@ export default function BibliotecaApp(props: BibliotecaAppProps) {
 					hidden={activeTab() !== 'library'}
 				>
 					<div class="section-bar">
-						<span class="section-title">Tu estante guardado en la nube</span>
-						<span class="section-hint">
-							Sincronizado entre tu PC y tu celular · elegí cuáles bajar
-						</span>
+						<div class="section-lead">
+							<span class="section-title">Tu estante guardado en la nube</span>
+							<span class="section-hint">
+								Sincronizado entre tu PC y tu celular · elegí cuáles bajar
+							</span>
+						</div>
+						<DomainChips
+							options={chipOptions()}
+							active={kindFilter()}
+							onSelect={(value) => setKindFilter(value)}
+						/>
 					</div>
 					<div class="rejilla">
 						<Show
-							when={libraryBooks().length > 0}
+							when={libraryView().length > 0}
 							fallback={
 								<p class="empty-box">
-									Tu estante en la nube está vacío. Subí un PDF con <b>+ Subir libro</b> o descargá
-									algo del catálogo para empezar tu biblioteca.
+									{libraryBooks().length > 0 ? (
+										'No hay libros de esa disciplina en tu estante. Probá con «Todas las disciplinas».'
+									) : (
+										<>
+											Tu estante en la nube está vacío. Subí un PDF con <b>+ Subir libro</b> o
+											descargá algo del catálogo para empezar tu biblioteca.
+										</>
+									)}
 								</p>
 							}
 						>
-							<For each={libraryBooks()}>
+							<For each={libraryView()}>
 								{(book) => (
 									<BookTomoCard
 										book={book}
@@ -443,27 +541,16 @@ export default function BibliotecaApp(props: BibliotecaAppProps) {
 					hidden={activeTab() !== 'catalog'}
 				>
 					<div class="section-bar">
-						<div class="filtros" role="group" aria-label="Categorías">
-							<For each={CATALOG_CHIPS}>
-								{(chip) => (
-									<button
-										class="chip"
-										type="button"
-										data-filtro={chip.value}
-										data-activa={String(catFilter() === chip.value)}
-										aria-pressed={catFilter() === chip.value}
-										onClick={() => setCatFilter(chip.value)}
-									>
-										{chip.label}
-									</button>
-								)}
-							</For>
-						</div>
+						<DomainChips
+							options={chipOptions()}
+							active={kindFilter()}
+							onSelect={(value) => setKindFilter(value)}
+						/>
 						<input
 							class="search-input"
 							id="catSearch"
 							type="search"
-							placeholder="Buscar título o autor…"
+							placeholder="Buscar por título, autor o disciplina…"
 							aria-label="Buscar en el catálogo"
 							value={searchQuery()}
 							onInput={(event) => setSearchQuery(event.currentTarget.value)}

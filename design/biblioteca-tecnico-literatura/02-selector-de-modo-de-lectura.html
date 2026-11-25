@@ -1,0 +1,664 @@
+<!doctype html>
+<html lang="es" data-palette="noche-azul">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ignit · Dirección 02 — Selector de Modo de Lectura</title>
+<style>
+  :root {
+    --font-sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-serif: Georgia, 'Times New Roman', serif;
+    --font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+
+    /* Original (warm paper light theme — design/system.md) */
+    --b-bg: #f4efe4;
+    --b-panel: #fbf8f0;
+    --b-panel-2: #ece5d4;
+    --b-fg: #23201a;
+    --b-body: #57503f;
+    --b-faint: #6f6657;
+    --b-ghost: #6f6657;
+    --b-border: #ddd2bc;
+    --b-border-strong: #6f6657;
+    --b-accent: #c73e3a;
+    --b-accent-deep: #a02f2b;
+    --b-accent-bright: #a02f2b;
+    --b-accent-fg: #fdf8ee;
+    --b-surface-cover: #ece5d4;
+    --b-bar-track: #e9e1cd;
+    --b-bg-glass: rgba(244, 239, 228, 0.92);
+    --b-accent-tint: rgba(199, 62, 58, 0.11);
+    --b-grid-line: rgba(111, 102, 87, 0.11);
+    --b-grid-glow: rgba(199, 62, 58, 0.08);
+  }
+
+  html[data-palette="noche-azul"] {
+    color-scheme: dark;
+    /* Noche azul + interior contrast lift (--b-* bridge — design/system.md) */
+    --b-bg: #04050a;
+    --b-panel: #0a101c;
+    --b-panel-2: #10182e;
+    --b-fg: #e6edf7;
+    --b-body: #b9c6dd;
+    --b-faint: #a9bcdf;
+    --b-ghost: #93a6cc;
+    --b-border: #4d5c86;
+    --b-border-strong: #56658f;
+    --b-accent: #5f86c9;
+    --b-accent-deep: #43649e;
+    --b-accent-bright: #9fc0ee;
+    --b-accent-fg: #04050a;
+    --b-surface-cover: #131a2e;
+    --b-bar-track: #233054;
+    --b-bg-glass: rgba(4, 5, 10, 0.9);
+    --b-accent-tint: rgba(95, 134, 201, 0.15);
+    --b-grid-line: rgba(77, 92, 134, 0.16);
+    --b-grid-glow: rgba(95, 134, 201, 0.12);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    background: var(--b-bg);
+    color: var(--b-body);
+    font-family: var(--font-sans);
+    font-feature-settings: "palt" 1;
+    line-height: 1.5;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  ::selection { background: var(--b-accent); color: var(--b-accent-fg); }
+  :focus-visible { outline: 2px solid var(--b-accent-bright); outline-offset: 3px; }
+  button, a, input { font-family: inherit; }
+  button { cursor: pointer; }
+
+  .skip-link {
+    position: fixed; left: 16px; top: -80px; z-index: 100;
+    background: var(--b-accent); color: var(--b-accent-fg);
+    font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    padding: 10px 14px; text-decoration: none;
+  }
+  .skip-link:focus { top: 12px; }
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+  }
+
+  .bg-grid {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background:
+      radial-gradient(ellipse 60% 38% at 50% 0%, var(--b-grid-glow), transparent 72%),
+      linear-gradient(90deg, var(--b-grid-line) 1px, transparent 1px) 0 0 / 40px 40px,
+      linear-gradient(0deg, var(--b-grid-line) 1px, transparent 1px) 0 0 / 40px 40px;
+  }
+
+  header.app-top {
+    position: sticky; top: 0; z-index: 20;
+    border-bottom: 1px solid var(--b-border);
+    background: var(--b-bg-glass);
+    backdrop-filter: blur(12px);
+  }
+  .top-inner {
+    max-width: 1280px; margin: 0 auto;
+    padding: 12px clamp(16px, 3vw, 36px);
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 14px; flex-wrap: wrap;
+  }
+  .brand {
+    display: inline-flex; align-items: center; gap: 10px;
+    text-decoration: none; color: var(--b-fg);
+    font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+    letter-spacing: 0.2em; text-transform: uppercase;
+  }
+  .hanko {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px;
+    background: var(--b-accent); color: var(--b-accent-fg);
+    font-family: var(--font-serif); font-size: 15px; font-weight: 700;
+  }
+  .top-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+  .top-tab {
+    font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.12em;
+    text-transform: uppercase; padding: 9px 12px; min-height: 40px;
+    background: none; border: 1px solid transparent; color: var(--b-faint);
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .top-tab:hover { color: var(--b-fg); border-color: var(--b-border); }
+  .top-tab[aria-selected="true"] {
+    background: var(--b-accent-tint); border-color: var(--b-accent);
+    color: var(--b-accent-bright); font-weight: 700;
+  }
+  .top-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .tema-toggle {
+    display: inline-flex; border: 1px solid var(--b-border-strong); background: var(--b-panel);
+  }
+  .tema-toggle button {
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.14em;
+    text-transform: uppercase; padding: 7px 10px; background: none; border: 0;
+    color: var(--b-faint);
+  }
+  .tema-toggle button + button { border-left: 1px solid var(--b-border); }
+  .tema-toggle button[aria-pressed="true"] {
+    background: var(--b-accent); color: var(--b-accent-fg); font-weight: 700;
+  }
+  .btn-primary {
+    font-family: var(--font-mono); font-size: 10.5px; font-weight: 700;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    padding: 9px 15px; background: var(--b-accent);
+    border: 1px solid var(--b-accent-bright); color: var(--b-accent-fg);
+    text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn-primary:hover { background: var(--b-accent-bright); }
+
+  main.shell {
+    position: relative; z-index: 2;
+    max-width: 1280px; margin: 0 auto;
+    padding: 24px clamp(16px, 3vw, 36px) 64px;
+  }
+
+  /* THRESHOLD MODE SWITCHER — The centerpiece of Direction 02 */
+  .mode-threshold {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .mode-card {
+    text-align: left;
+    padding: 18px 20px;
+    border: 1px solid var(--b-border);
+    background: var(--b-panel);
+    color: var(--b-body);
+    display: flex; justify-content: space-between; align-items: center; gap: 16px;
+    transition: border-color 0.16s, background 0.16s;
+  }
+  .mode-card:hover { border-color: var(--b-accent-bright); }
+  .mode-card[aria-pressed="true"] {
+    border-color: var(--b-accent-bright);
+    background: var(--b-panel-2);
+    box-shadow: inset 3px 0 0 var(--b-accent);
+  }
+  .mode-kicker {
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--b-accent-bright); display: block; margin-bottom: 4px;
+  }
+  .mode-name {
+    font-family: var(--font-serif); font-size: 22px; color: var(--b-fg); display: block; line-height: 1.2;
+  }
+  .mode-card[data-mode="tech"] .mode-name {
+    font-family: var(--font-mono); font-size: 18px; font-weight: 700;
+  }
+  .mode-sub {
+    font-size: 12.5px; color: var(--b-faint); display: block; margin-top: 4px;
+  }
+  .mode-stat {
+    font-family: var(--font-mono); font-size: 18px; font-weight: 700;
+    color: var(--b-fg); padding: 8px 12px;
+    border: 1px solid var(--b-border-strong); background: var(--b-bg);
+    text-align: center; min-width: 64px;
+  }
+  .mode-stat small {
+    display: block; font-size: 8.5px; font-weight: 400; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--b-ghost);
+  }
+  .mode-all-btn {
+    padding: 0 16px; border: 1px solid var(--b-border); background: var(--b-panel);
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--b-faint);
+    writing-mode: horizontal-tb;
+  }
+  .mode-all-btn[aria-pressed="true"] {
+    background: var(--b-accent); color: var(--b-accent-fg); border-color: var(--b-accent); font-weight: 700;
+  }
+
+  /* Context-aware Continuity Hero */
+  .hero-dash {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(260px, 0.7fr);
+    gap: 16px; margin-bottom: 24px;
+  }
+  .resume-card {
+    position: relative; border: 1px solid var(--b-border-strong);
+    background: var(--b-panel); padding: 20px;
+    display: grid; grid-template-columns: 112px 1fr; gap: 20px; align-items: center;
+  }
+  .resume-cover {
+    aspect-ratio: 4 / 5; border: 1px solid var(--b-border-strong);
+    background: var(--b-surface-cover); overflow: hidden;
+  }
+  .resume-cover svg { width: 100%; height: 100%; display: block; }
+  .kicker {
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--b-accent-bright);
+    display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+  }
+  .resume-title {
+    margin: 6px 0 0; font-family: var(--font-serif); font-size: clamp(22px, 2.3vw, 28px);
+    font-weight: 400; color: var(--b-fg); line-height: 1.2;
+  }
+  .resume-author {
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--b-faint); margin-top: 4px;
+  }
+  .resume-quote {
+    margin: 10px 0 0; font-family: var(--font-serif); font-style: italic;
+    font-size: 13.5px; color: var(--b-body);
+    border-left: 2px solid var(--b-accent); padding-left: 12px;
+  }
+  .resume-bottom {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap; margin-top: 14px;
+  }
+  .prog-wrap { flex: 1; min-width: 170px; }
+  .prog-labels {
+    display: flex; justify-content: space-between;
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--b-faint); margin-bottom: 5px;
+  }
+  .prog-labels b { color: var(--b-fg); }
+  .prog-bar {
+    height: 5px; background: var(--b-bar-track); border: 1px solid var(--b-border); overflow: hidden;
+  }
+  .prog-bar i {
+    display: block; height: 100%;
+    background: linear-gradient(90deg, var(--b-accent), var(--b-accent-bright));
+  }
+
+  .storage-card {
+    border: 1px solid var(--b-border-strong); background: var(--b-panel);
+    padding: 18px; display: flex; flex-direction: column; justify-content: space-between; gap: 12px;
+  }
+  .storage-head {
+    display: flex; justify-content: space-between;
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--b-ghost);
+  }
+  .storage-head b { color: var(--b-accent-bright); font-size: 12px; }
+  .storage-big { font-size: 22px; font-weight: 700; color: var(--b-fg); margin-top: 4px; }
+  .storage-sub { font-size: 12.5px; color: var(--b-faint); margin: 4px 0 0; }
+
+  /* Filter & Search Bar */
+  .section-bar {
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 12px; flex-wrap: wrap;
+    padding: 12px 16px; margin-bottom: 20px;
+    border: 1px solid var(--b-border); background: var(--b-panel);
+  }
+  .filtros { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip {
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em;
+    text-transform: uppercase; padding: 7px 12px; min-height: 36px;
+    background: var(--b-bg); border: 1px solid var(--b-border); color: var(--b-faint);
+  }
+  .chip:hover { border-color: var(--b-accent); color: var(--b-fg); }
+  .chip[aria-pressed="true"] {
+    background: var(--b-accent); border-color: var(--b-accent);
+    color: var(--b-accent-fg); font-weight: 700;
+  }
+  .search-input {
+    min-width: 220px; flex: 0 1 300px;
+    padding: 8px 12px; background: var(--b-bg); color: var(--b-fg);
+    border: 1px solid var(--b-border-strong);
+    font-family: var(--font-mono); font-size: 11px;
+  }
+  .search-input::placeholder { color: var(--b-ghost); }
+
+  /* TECHNICAL MODE: Structured Reference Table/Grid */
+  .tech-table {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 14px;
+  }
+  .tech-card {
+    border: 1px solid var(--b-border); background: var(--b-panel);
+    padding: 16px 18px; display: flex; flex-direction: column; justify-content: space-between; gap: 12px;
+    transition: border-color 0.15s;
+  }
+  .tech-card:hover { border-color: var(--b-accent-bright); }
+  .tech-top {
+    display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--b-faint);
+  }
+  .tech-pill {
+    padding: 2px 7px; border: 1px solid var(--b-accent); color: var(--b-accent-bright);
+  }
+  .tech-card h3 {
+    margin: 6px 0 2px; font-size: 16px; font-weight: 600; color: var(--b-fg); line-height: 1.3;
+  }
+  .tech-card .author { font-family: var(--font-mono); font-size: 10.5px; color: var(--b-faint); }
+  .tech-card .summary { font-size: 13px; color: var(--b-body); margin: 8px 0 0; }
+  .tech-foot {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    padding-top: 12px; border-top: 1px solid var(--b-border);
+    font-family: var(--font-mono); font-size: 9.5px; color: var(--b-ghost);
+  }
+
+  /* LITERATURE MODE: Calm Editorial Gallery */
+  .lit-gallery {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px;
+  }
+  .tomo {
+    border: 1px solid var(--b-border); background: var(--b-panel);
+    display: flex; flex-direction: column;
+    transition: border-color 0.15s, transform 0.15s;
+  }
+  .tomo:hover { border-color: var(--b-accent-bright); transform: translateY(-2px); }
+  .tomo-tapa {
+    position: relative; aspect-ratio: 4 / 5; padding: 14px;
+    background: var(--b-surface-cover);
+    display: flex; flex-direction: column; justify-content: space-between;
+    text-decoration: none; color: inherit; overflow: hidden;
+    border-bottom: 1px solid var(--b-border);
+  }
+  .tomo-tapa svg {
+    position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0.42; pointer-events: none;
+  }
+  .tomo-top, .tomo-copy { position: relative; z-index: 2; }
+  .tomo-top {
+    display: flex; justify-content: space-between;
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase;
+  }
+  .tomo-badge {
+    padding: 2px 6px; border: 1px solid var(--b-border-strong);
+    background: var(--b-panel); color: var(--b-accent-bright);
+  }
+  .tomo-titulo { font-family: var(--font-serif); font-size: 18px; line-height: 1.25; color: var(--b-fg); }
+  .tomo-autor {
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--b-faint); margin-top: 4px;
+  }
+  .tomo-foot {
+    padding: 11px 14px; display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  }
+  .tomo-meta { font-family: var(--font-mono); font-size: 9.5px; color: var(--b-faint); text-transform: uppercase; }
+
+  .btn-dl {
+    font-family: var(--font-mono); font-size: 9.5px; font-weight: 700;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    padding: 6px 9px; border: 1px solid var(--b-border-strong);
+    background: var(--b-bg); color: var(--b-fg);
+  }
+  .btn-dl[aria-pressed="true"] {
+    border-color: var(--b-accent); color: var(--b-accent-bright); background: var(--b-accent-tint);
+  }
+
+  @media (max-width: 920px) {
+    .mode-threshold { grid-template-columns: 1fr; }
+    .hero-dash { grid-template-columns: 1fr; }
+    .tech-table { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 600px) {
+    .resume-card { grid-template-columns: 1fr; }
+    .resume-cover { max-width: 120px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+  }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main-content">Saltar al contenido</a>
+<div class="bg-grid" aria-hidden="true"></div>
+
+<header class="app-top">
+  <div class="top-inner">
+    <a class="brand" href="#main-content">
+      <span class="hanko" aria-hidden="true">熒</span>
+      Ignit · Sala de lectura
+    </a>
+    <nav class="top-tabs" role="tablist" aria-label="Espacio de lectura">
+      <button class="top-tab" role="tab" aria-selected="false" data-scope="device">En este dispositivo</button>
+      <button class="top-tab" role="tab" aria-selected="true" data-scope="library">Mi biblioteca</button>
+      <button class="top-tab" role="tab" aria-selected="false" data-scope="catalog">Catálogo</button>
+      <button class="top-tab" role="tab" aria-selected="false" data-scope="submissions">Mis aportes</button>
+    </nav>
+    <div class="top-actions">
+      <div class="tema-toggle" role="group" aria-label="Paleta de colores">
+        <button type="button" data-pal="noche-azul" aria-pressed="true">Noche azul</button>
+        <button type="button" data-pal="original" aria-pressed="false">Original</button>
+      </div>
+      <button class="btn-primary" type="button">+ Subir libro</button>
+    </div>
+  </div>
+</header>
+
+<main class="shell" id="main-content">
+  <div class="sr-only" aria-live="polite" id="live"></div>
+
+  <section class="mode-threshold" aria-label="Elegir sala de lectura">
+    <button class="mode-card" type="button" data-mode="tech" aria-pressed="true">
+      <span>
+        <span class="mode-kicker">01 · SALA DE ESTUDIO</span>
+        <span class="mode-name">Libros Técnicos</span>
+        <span class="mode-sub">Ingeniería, sistemas, compiladores y ciencia · vista densa de referencia</span>
+      </span>
+      <span class="mode-stat" id="stat-tech">4<small>tomos</small></span>
+    </button>
+
+    <button class="mode-card" type="button" data-mode="lit" aria-pressed="false">
+      <span>
+        <span class="mode-kicker">02 · SALA DE VIGILIA</span>
+        <span class="mode-name">Literatura</span>
+        <span class="mode-sub">Ficción, terror y sci-fi, filosofía, historia y poesía · galería serena</span>
+      </span>
+      <span class="mode-stat" id="stat-lit">6<small>tomos</small></span>
+    </button>
+
+    <button class="mode-all-btn" type="button" data-mode="all" aria-pressed="false">Ver todo</button>
+  </section>
+
+  <section class="hero-dash" aria-label="Continuidad del modo activo y almacenamiento">
+    <article class="resume-card" id="hero-continuity"></article>
+    <aside class="storage-card" aria-label="Almacenamiento local PWA">
+      <div>
+        <div class="storage-head">
+          <span>almacenamiento local (pwa)</span>
+          <b id="meter-kb">2.1 MB usados</b>
+        </div>
+        <div class="storage-big" id="meter-count">4 libros offline</div>
+        <p class="storage-sub">Tu continuidad recuerda el último libro técnico y la última obra literaria por separado.</p>
+      </div>
+      <div>
+        <div class="prog-bar"><i id="meter-bar" style="width:52%"></i></div>
+      </div>
+    </aside>
+  </section>
+
+  <div class="section-bar">
+    <div class="filtros" id="subfilters" role="group" aria-label="Subcategorías"></div>
+    <input class="search-input" id="search" type="search" placeholder="Buscar título o autor…" aria-label="Buscar libros" />
+  </div>
+
+  <section aria-label="Estantería activa" id="shelf-mount"></section>
+</main>
+
+<script>
+const BOOKS = [
+  { id: 1, mode: 'tech', kind: 'tecnico', label: 'Técnico', title: 'Crafting Interpreters', author: 'Robert Nystrom', pages: 639, kb: 680, pct: 34, offline: true, quote: '«A bytecode virtual machine trades raw simplicity for predictable memory locality and speed.»', summary: 'Implementación paso a paso de un intérprete tree-walk y una máquina virtual en C.' },
+  { id: 2, mode: 'tech', kind: 'tecnico', label: 'Técnico', title: 'Operating Systems: Three Easy Pieces', author: 'Remzi & Andrea Arpaci-Dusseau', pages: 712, kb: 820, pct: 18, offline: true, quote: '«Virtualization, concurrency, and persistence form the three pillars of an operating system.»', summary: 'Virtualización de CPU y memoria, concurrencia y sistemas de archivos.' },
+  { id: 3, mode: 'tech', kind: 'tecnico', label: 'Técnico', title: 'Structure and Interpretation of Computer Programs', author: 'Abelson & Sussman', pages: 657, kb: 540, pct: 0, offline: false, quote: '«Programs must be written for people to read, and only incidentally for machines to execute.»', summary: 'Abstracción procedural, datos, modularidad y evaluadores metacirculares.' },
+  { id: 4, mode: 'tech', kind: 'ciencia', label: 'Ciencia', title: 'Relatividad: la teoría especial y general', author: 'Albert Einstein', pages: 168, kb: 210, pct: 62, offline: false, quote: '«El espacio y el tiempo no son condiciones en las que vivimos, sino modos en los que pensamos.»', summary: 'Exposición divulgativa original sobre simultaneidad, gravedad y geometría.' },
+  { id: 5, mode: 'lit', kind: 'terror_scifi', label: 'Terror y Sci-Fi', title: 'Frankenstein o el moderno Prometeo', author: 'Mary Shelley', pages: 280, kb: 310, pct: 71, offline: true, quote: '«Fue en una lúgubre noche de noviembre cuando contemplé el logro de mis esfuerzos.»', summary: 'Novela gótica sobre la ambición científica y la soledad de lo creado.' },
+  { id: 6, mode: 'lit', kind: 'filosofia', label: 'Filosofía y Ensayo', title: 'Meditaciones', author: 'Marco Aurelio', pages: 194, kb: 180, pct: 45, offline: true, quote: '«Tienes poder sobre tu mente, no sobre los acontecimientos externos. Date cuenta y hallarás fuerza.»', summary: 'Cuadernos personales de filosofía estoica escritos en campaña.' },
+  { id: 7, mode: 'lit', kind: 'ficcion', label: 'Ficción', title: 'La metamorfosis', author: 'Franz Kafka', pages: 112, kb: 120, pct: 100, offline: false, quote: '«Al despertar Gregorio Samsa una mañana tras un sueño intranquilo, encontróse en su cama convertido en un monstruoso insecto.»', summary: 'Relato sobre el extrañamiento familiar y la rutina.' },
+  { id: 8, mode: 'lit', kind: 'terror_scifi', label: 'Terror y Sci-Fi', title: 'El extraño caso del Dr. Jekyll y Mr. Hyde', author: 'Robert Louis Stevenson', pages: 140, kb: 155, pct: 0, offline: false, quote: '«El hombre no es verdaderamente uno, sino verdaderamente dos.»', summary: 'Dualidad moral y misterio en las calles brumosas de Londres.' },
+  { id: 9, mode: 'lit', kind: 'historia', label: 'Historia', title: 'El arte de la guerra', author: 'Sun Tzu', pages: 128, kb: 140, pct: 20, offline: false, quote: '«La suprema excelencia consiste en quebrar la resistencia del enemigo sin luchar.»', summary: 'Tratado clásico de estrategia y lectura del terreno.' },
+  { id: 10, mode: 'lit', kind: 'poesia', label: 'Poesía y Teatro', title: 'Las flores del mal', author: 'Charles Baudelaire', pages: 248, kb: 230, pct: 0, offline: false, quote: '«Allí todo es orden y belleza, lujo, calma y voluptuosidad.»', summary: 'Poemario fundacional de la lírica moderna.' }
+];
+
+const SUBFILTERS = {
+  tech: [
+    { value: '*', label: 'Todos los técnicos' },
+    { value: 'tecnico', label: 'Técnico' },
+    { value: 'ciencia', label: 'Ciencia' }
+  ],
+  lit: [
+    { value: '*', label: 'Toda la literatura' },
+    { value: 'ficcion', label: 'Ficción' },
+    { value: 'terror_scifi', label: 'Terror y Sci-Fi' },
+    { value: 'filosofia', label: 'Filosofía y Ensayo' },
+    { value: 'historia', label: 'Historia' },
+    { value: 'poesia', label: 'Poesía y Teatro' }
+  ],
+  all: [
+    { value: '*', label: 'Todos' },
+    { value: 'tecnico', label: 'Técnico' },
+    { value: 'ciencia', label: 'Ciencia' },
+    { value: 'ficcion', label: 'Ficción' },
+    { value: 'terror_scifi', label: 'Terror y Sci-Fi' },
+    { value: 'filosofia', label: 'Filosofía y Ensayo' },
+    { value: 'historia', label: 'Historia' },
+    { value: 'poesia', label: 'Poesía y Teatro' }
+  ]
+};
+
+let activeMode = 'tech';
+let activeScope = 'library';
+let activeSub = '*';
+let query = '';
+
+function coverSvg(id) {
+  const g = [
+    '<circle cx="90" cy="112" r="44" stroke="var(--b-accent-bright)" stroke-width="1.2"/><line x1="20" y1="36" x2="160" y2="36" stroke="var(--b-accent)" stroke-width="1"/>',
+    '<rect x="34" y="42" width="112" height="140" stroke="var(--b-accent)" stroke-width="1.2"/><circle cx="90" cy="112" r="20" stroke="var(--b-accent-bright)" stroke-width="1"/>',
+    '<path d="M28 176 L90 42 L152 176 Z" stroke="var(--b-accent-bright)" stroke-width="1.2"/>'
+  ];
+  return `<svg viewBox="0 0 180 225" fill="none" aria-hidden="true">${g[id % g.length]}</svg>`;
+}
+
+function render() {
+  const scoped = BOOKS.filter(b => activeScope === 'device' ? b.offline : true);
+  document.getElementById('stat-tech').innerHTML = `${scoped.filter(b => b.mode === 'tech').length}<small>tomos</small>`;
+  document.getElementById('stat-lit').innerHTML = `${scoped.filter(b => b.mode === 'lit').length}<small>tomos</small>`;
+
+  // Context-aware continuity hero
+  const heroPool = activeMode === 'all' ? scoped : scoped.filter(b => b.mode === activeMode);
+  const heroBook = heroPool.find(b => b.pct > 0 && b.pct < 100) || heroPool[0] || BOOKS[0];
+  const modeBadge = heroBook.mode === 'tech' ? 'CONTINUAR ESTUDIO TÉCNICO' : 'CONTINUAR EN VIGILIA · LITERATURA';
+  document.getElementById('hero-continuity').innerHTML = `
+    <div class="resume-cover">${coverSvg(heroBook.id)}</div>
+    <div>
+      <div class="kicker">
+        <span>${modeBadge} · ${heroBook.offline ? 'OFFLINE' : 'EN LÍNEA'}</span>
+        <span>último sync: hace 12 min</span>
+      </div>
+      <h1 class="resume-title">${heroBook.title}</h1>
+      <div class="resume-author">${heroBook.author} · ${heroBook.label} · ${heroBook.pages} págs</div>
+      <p class="resume-quote">${heroBook.quote}</p>
+      <div class="resume-bottom">
+        <div class="prog-wrap">
+          <div class="prog-labels"><span>Progreso guardado</span><b>${heroBook.pct}%</b></div>
+          <div class="prog-bar"><i style="width:${heroBook.pct}%"></i></div>
+        </div>
+        <a class="btn-primary" href="#main-content">Seguir en Vigilia →</a>
+      </div>
+    </div>
+  `;
+
+  // Subfilters
+  const sf = SUBFILTERS[activeMode];
+  document.getElementById('subfilters').innerHTML = sf.map(item => `
+    <button class="chip" type="button" data-sub="${item.value}" aria-pressed="${activeSub === item.value}">${item.label}</button>
+  `).join('');
+
+  // Filtered books
+  const q = query.trim().toLowerCase();
+  const visible = scoped
+    .filter(b => activeMode === 'all' || b.mode === activeMode)
+    .filter(b => activeSub === '*' || b.kind === activeSub)
+    .filter(b => !q || (b.title + ' ' + b.author).toLowerCase().includes(q));
+
+  const mount = document.getElementById('shelf-mount');
+  if (activeMode === 'tech') {
+    mount.innerHTML = `<div class="tech-table">${visible.map((b, i) => `
+      <article class="tech-card">
+        <div>
+          <div class="tech-top">
+            <span class="tech-pill">${b.label}</span>
+            <span>#${String(i + 1).padStart(2, '0')} · ${b.pages} págs · ${b.kb} KB</span>
+          </div>
+          <h3>${b.title}</h3>
+          <div class="author">${b.author}</div>
+          <p class="summary">${b.summary}</p>
+        </div>
+        <div class="tech-foot">
+          <span>${b.pct > 0 ? 'Progreso: ' + b.pct + '%' : 'Sin comenzar'}</span>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button class="btn-dl" type="button" data-dl="${b.id}" aria-pressed="${b.offline}">${b.offline ? 'offline ✓' : '↓ Descargar'}</button>
+            <a class="btn-primary" href="#main-content" style="padding:6px 10px;font-size:9.5px;">Abrir →</a>
+          </div>
+        </div>
+      </article>
+    `).join('')}</div>`;
+  } else {
+    mount.innerHTML = `<div class="lit-gallery">${visible.map((b, i) => `
+      <article class="tomo">
+        <a class="tomo-tapa" href="#main-content">
+          ${coverSvg(b.id)}
+          <div class="tomo-top">
+            <span>${String(i + 1).padStart(2, '0')}</span>
+            <span class="tomo-badge">${b.offline ? 'offline ✓' : 'nube'}</span>
+          </div>
+          <div class="tomo-copy">
+            <div class="tomo-titulo">${b.title}</div>
+            <div class="tomo-autor">${b.author}</div>
+          </div>
+        </a>
+        <div class="tomo-foot">
+          <span class="tomo-meta">${b.label}${b.pct ? ' · ' + b.pct + '%' : ''}</span>
+          <button class="btn-dl" type="button" data-dl="${b.id}" aria-pressed="${b.offline}">${b.offline ? 'Quitar' : '↓ Bajar'}</button>
+        </div>
+      </article>
+    `).join('')}</div>`;
+  }
+
+  const off = BOOKS.filter(b => b.offline);
+  const totalKb = off.reduce((s, b) => s + b.kb, 0);
+  document.getElementById('meter-count').textContent = `${off.length} libros offline`;
+  document.getElementById('meter-kb').textContent = totalKb >= 1024 ? `${(totalKb / 1024).toFixed(1)} MB usados` : `${totalKb} KB usados`;
+  document.getElementById('meter-bar').style.width = Math.min(100, Math.round((totalKb / 4200) * 100)) + '%';
+}
+
+document.addEventListener('click', (e) => {
+  const pal = e.target.closest('[data-pal]');
+  if (pal) {
+    document.documentElement.dataset.palette = pal.dataset.pal;
+    document.querySelectorAll('[data-pal]').forEach(b => b.setAttribute('aria-pressed', String(b === pal)));
+    return;
+  }
+  const m = e.target.closest('[data-mode]');
+  if (m) {
+    activeMode = m.dataset.mode;
+    activeSub = '*';
+    document.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', String(b === m)));
+    document.getElementById('live').textContent = `Modo cambiado a ${activeMode}`;
+    render();
+    return;
+  }
+  const sc = e.target.closest('[data-scope]');
+  if (sc) {
+    activeScope = sc.dataset.scope;
+    document.querySelectorAll('[data-scope]').forEach(b => b.setAttribute('aria-selected', String(b === sc)));
+    render();
+    return;
+  }
+  const sub = e.target.closest('[data-sub]');
+  if (sub) {
+    activeSub = sub.dataset.sub;
+    render();
+    return;
+  }
+  const dl = e.target.closest('[data-dl]');
+  if (dl) {
+    const b = BOOKS.find(x => x.id === Number(dl.dataset.dl));
+    if (b) { b.offline = !b.offline; render(); }
+  }
+});
+
+document.getElementById('search').addEventListener('input', (e) => { query = e.target.value; render(); });
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,660 @@
+<!doctype html>
+<html lang="es" data-palette="noche-azul">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ignit — Mi Biblioteca · Estudio Profesional y Despeje</title>
+<style>
+  :root {
+    --font-sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-serif: Georgia, 'Times New Roman', serif;
+    --font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+
+    /* Original (Warm Paper — design/system.md) */
+    --b-bg: #f4efe4;
+    --b-panel: #fbf8f0;
+    --b-panel-2: #ece5d4;
+    --b-fg: #23201a;
+    --b-body: #57503f;
+    --b-faint: #6f6657;
+    --b-ghost: #6f6657;
+    --b-border: #ddd2bc;
+    --b-border-strong: #6f6657;
+    --b-accent: #c73e3a;
+    --b-accent-deep: #a02f2b;
+    --b-accent-bright: #a02f2b;
+    --b-accent-fg: #fdf8ee;
+    --b-surface-cover: #ece5d4;
+    --b-bar-track: #e9e1cd;
+    --b-bg-glass: rgba(244, 239, 228, 0.94);
+    --b-accent-tint: rgba(199, 62, 58, 0.12);
+    --b-grid-line: rgba(111, 102, 87, 0.11);
+    --b-grid-glow: rgba(199, 62, 58, 0.08);
+  }
+
+  html[data-palette="noche-azul"] {
+    color-scheme: dark;
+    /* Noche azul + interior contrast lift (--b-* bridge — design/system.md) */
+    --b-bg: #04050a;
+    --b-panel: #0a101c;
+    --b-panel-2: #10182e;
+    --b-fg: #e6edf7;
+    --b-body: #b9c6dd;
+    --b-faint: #a9bcdf;
+    --b-ghost: #93a6cc;
+    --b-border: #4d5c86;
+    --b-border-strong: #56658f;
+    --b-accent: #5f86c9;
+    --b-accent-deep: #43649e;
+    --b-accent-bright: #9fc0ee;
+    --b-accent-fg: #04050a;
+    --b-surface-cover: #131a2e;
+    --b-bar-track: #233054;
+    --b-bg-glass: rgba(4, 5, 10, 0.92);
+    --b-accent-tint: rgba(95, 134, 201, 0.16);
+    --b-grid-line: rgba(77, 92, 134, 0.16);
+    --b-grid-glow: rgba(95, 134, 201, 0.12);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    background: var(--b-bg);
+    color: var(--b-body);
+    font-family: var(--font-sans);
+    font-feature-settings: "palt" 1;
+    line-height: 1.5;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  ::selection { background: var(--b-accent); color: var(--b-accent-fg); }
+  :focus-visible { outline: 2px solid var(--b-accent-bright); outline-offset: 3px; }
+  button, a, input { font-family: inherit; }
+  button { cursor: pointer; }
+
+  .bg-grid {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background:
+      radial-gradient(ellipse 65% 42% at 75% 4%, var(--b-grid-glow), transparent 70%),
+      linear-gradient(90deg, var(--b-grid-line) 1px, transparent 1px) 0 0 / 40px 40px,
+      linear-gradient(0deg, var(--b-grid-line) 1px, transparent 1px) 0 0 / 40px 40px;
+  }
+
+  header.app-top {
+    position: sticky; top: 0; z-index: 20;
+    border-bottom: 1px solid var(--b-border);
+    background: var(--b-bg-glass);
+    backdrop-filter: blur(12px);
+  }
+  .top-inner {
+    max-width: 1360px; margin: 0 auto;
+    padding: 12px clamp(16px, 3vw, 36px);
+    display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+  }
+  .brand {
+    display: inline-flex; align-items: center; gap: 10px;
+    text-decoration: none; color: var(--b-fg);
+    font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+    letter-spacing: 0.2em; text-transform: uppercase;
+  }
+  .hanko {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px;
+    background: var(--b-accent); color: var(--b-accent-fg);
+    font-family: var(--font-serif); font-size: 15px; font-weight: 700;
+  }
+  .top-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+  .top-tab {
+    font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.12em;
+    text-transform: uppercase; padding: 9px 12px; min-height: 40px;
+    background: none; border: 1px solid transparent; color: var(--b-faint);
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .top-tab:hover { color: var(--b-fg); border-color: var(--b-border); }
+  .top-tab[aria-selected="true"] {
+    background: var(--b-accent-tint); border-color: var(--b-accent);
+    color: var(--b-accent-bright); font-weight: 700;
+  }
+  .tab-count {
+    font-size: 9px; padding: 1px 5px;
+    border: 1px solid var(--b-border-strong); color: var(--b-ghost);
+  }
+  .top-tab[aria-selected="true"] .tab-count {
+    border-color: var(--b-accent); color: var(--b-accent-bright);
+  }
+
+  .top-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .tema-toggle {
+    display: inline-flex; border: 1px solid var(--b-border-strong); background: var(--b-panel);
+  }
+  .tema-toggle button {
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.14em;
+    text-transform: uppercase; padding: 7px 10px; background: none; border: 0; color: var(--b-faint);
+  }
+  .tema-toggle button + button { border-left: 1px solid var(--b-border); }
+  .tema-toggle button[aria-pressed="true"] {
+    background: var(--b-accent); color: var(--b-accent-fg); font-weight: 700;
+  }
+  .btn-primary {
+    font-family: var(--font-mono); font-size: 10.5px; font-weight: 700;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    padding: 9px 14px; background: var(--b-accent);
+    border: 1px solid var(--b-accent-bright); color: var(--b-accent-fg);
+    text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn-primary:hover { background: var(--b-accent-bright); }
+
+  main.shell {
+    position: relative; z-index: 2;
+    max-width: 1360px; margin: 0 auto;
+    padding: 24px clamp(16px, 3vw, 36px) 64px;
+  }
+
+  /* UMBRAL DE ESTADO MENTAL */
+  .state-threshold {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;
+  }
+  .state-card {
+    text-align: left; padding: 20px 22px;
+    border: 1px solid var(--b-border-strong); background: var(--b-panel);
+    color: var(--b-body); display: flex; justify-content: space-between; align-items: center; gap: 16px;
+    transition: border-color 0.16s, background 0.16s;
+  }
+  .state-card:hover { border-color: var(--b-accent-bright); }
+  .state-card[aria-pressed="true"] {
+    border-color: var(--b-accent-bright); background: var(--b-panel-2);
+    box-shadow: inset 4px 0 0 var(--b-accent);
+  }
+  .state-kicker {
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.2em;
+    text-transform: uppercase; color: var(--b-accent-bright); display: block; margin-bottom: 4px;
+  }
+  .state-title {
+    font-family: var(--font-serif); font-size: 24px; color: var(--b-fg); display: block; line-height: 1.2;
+  }
+  .state-card[data-state="estudio"] .state-title {
+    font-family: var(--font-mono); font-size: 20px; font-weight: 700; letter-spacing: 0.02em;
+  }
+  .state-sub {
+    font-size: 13px; color: var(--b-faint); display: block; margin-top: 4px;
+  }
+  .state-count {
+    font-family: var(--font-mono); font-size: 20px; font-weight: 700;
+    color: var(--b-fg); padding: 8px 14px;
+    border: 1px solid var(--b-border-strong); background: var(--b-bg);
+    text-align: center; min-width: 70px;
+  }
+  .state-count small {
+    display: block; font-size: 8.5px; font-weight: 400; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--b-ghost);
+  }
+
+  /* CONTINUITY HERO */
+  .hero-dash {
+    display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(280px, 0.65fr);
+    gap: 16px; margin-bottom: 24px;
+  }
+  .resume-card {
+    position: relative; border: 1px solid var(--b-border-strong);
+    background: var(--b-panel); padding: 20px;
+    display: grid; grid-template-columns: 110px 1fr; gap: 20px; align-items: center;
+  }
+  .resume-card::before, .resume-card::after {
+    content: ""; position: absolute; width: 8px; height: 8px;
+    border: 1.5px solid var(--b-accent-bright); pointer-events: none;
+  }
+  .resume-card::before { top: -4px; left: -4px; }
+  .resume-card::after { bottom: -4px; right: -4px; }
+
+  .resume-cover {
+    aspect-ratio: 4 / 5; border: 1px solid var(--b-border-strong);
+    background: var(--b-surface-cover); overflow: hidden;
+  }
+  .resume-cover svg { width: 100%; height: 100%; display: block; }
+  .kicker {
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--b-accent-bright);
+    display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 4px;
+  }
+  .resume-title {
+    margin: 0; font-family: var(--font-serif); font-size: clamp(22px, 2.3vw, 28px);
+    font-weight: 400; color: var(--b-fg); line-height: 1.2;
+  }
+  .resume-author {
+    font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--b-faint); margin-top: 4px;
+  }
+  .resume-quote {
+    margin: 8px 0 0; font-family: var(--font-serif); font-style: italic;
+    font-size: 13.5px; color: var(--b-body);
+    border-left: 2px solid var(--b-accent); padding-left: 12px; line-height: 1.5;
+  }
+  .resume-bottom {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap; margin-top: 14px;
+  }
+  .prog-wrap { flex: 1; min-width: 170px; }
+  .prog-labels {
+    display: flex; justify-content: space-between;
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--b-faint); margin-bottom: 5px;
+  }
+  .prog-labels b { color: var(--b-fg); }
+  .prog-bar {
+    height: 5px; background: var(--b-bar-track); border: 1px solid var(--b-border); overflow: hidden;
+  }
+  .prog-bar i {
+    display: block; height: 100%;
+    background: linear-gradient(90deg, var(--b-accent), var(--b-accent-bright));
+  }
+
+  .storage-card {
+    border: 1px solid var(--b-border-strong); background: var(--b-panel);
+    padding: 20px; display: flex; flex-direction: column; justify-content: space-between; gap: 12px;
+  }
+  .storage-head {
+    display: flex; justify-content: space-between;
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--b-ghost);
+  }
+  .storage-head b { color: var(--b-accent-bright); font-size: 12px; }
+  .storage-big { font-size: 22px; font-weight: 700; color: var(--b-fg); margin-top: 4px; }
+  .storage-sub { font-size: 12.5px; color: var(--b-faint); margin: 4px 0 0; line-height: 1.45; }
+
+  /* CONTROLS BAR */
+  .section-bar {
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 12px; flex-wrap: wrap;
+    padding: 12px 16px; margin-bottom: 20px;
+    border: 1px solid var(--b-border); background: var(--b-panel);
+  }
+  .filtros { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip {
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em;
+    text-transform: uppercase; padding: 7px 12px;
+    background: var(--b-bg); border: 1px solid var(--b-border); color: var(--b-faint);
+  }
+  .chip:hover { border-color: var(--b-accent); color: var(--b-fg); }
+  .chip[aria-pressed="true"] {
+    background: var(--b-accent); border-color: var(--b-accent);
+    color: var(--b-accent-fg); font-weight: 700;
+  }
+  .search-input {
+    min-width: 220px; flex: 0 1 300px;
+    padding: 8px 12px; background: var(--b-bg); color: var(--b-fg);
+    border: 1px solid var(--b-border-strong);
+    font-family: var(--font-mono); font-size: 11px;
+  }
+  .search-input::placeholder { color: var(--b-ghost); }
+
+  /* ESTUDIO GRID (ROW MULTI-DISCIPLINA) */
+  .estudio-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 14px;
+  }
+  .estudio-row {
+    display: grid; grid-template-columns: 56px 1fr auto; gap: 14px; align-items: center;
+    padding: 14px 16px; border: 1px solid var(--b-border); background: var(--b-panel);
+    transition: border-color 0.15s;
+  }
+  .estudio-row:hover { border-color: var(--b-accent-bright); }
+  .tech-spine {
+    width: 56px; height: 70px; border: 1px solid var(--b-border-strong);
+    background: var(--b-panel-2);
+    display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+    padding: 6px 4px; font-family: var(--font-mono);
+  }
+  .tech-spine .code { font-size: 9px; color: var(--b-accent-bright); letter-spacing: 0.12em; font-weight: 700; }
+  .tech-spine .idx { font-size: 14px; font-weight: 700; color: var(--b-fg); }
+  .tech-meta-top {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--b-faint); margin-bottom: 3px;
+  }
+  .tech-tag {
+    padding: 1px 6px; border: 1px solid var(--b-accent); color: var(--b-accent-bright); font-weight: 700;
+  }
+  .tech-title {
+    margin: 0; font-size: 15px; font-weight: 600; color: var(--b-fg); line-height: 1.3;
+  }
+  .tech-author {
+    font-family: var(--font-mono); font-size: 10.5px; color: var(--b-faint); margin-top: 2px;
+  }
+  .tech-prog {
+    display: flex; align-items: center; gap: 8px; margin-top: 8px;
+    font-family: var(--font-mono); font-size: 9.5px; color: var(--b-ghost);
+  }
+  .tech-prog .mini-bar {
+    width: 80px; height: 4px; background: var(--b-bar-track); border: 1px solid var(--b-border);
+  }
+  .tech-prog .mini-bar i { display: block; height: 100%; background: var(--b-accent-bright); }
+
+  /* DESPEJE GRID (TOMO 4/5) */
+  .despeje-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 18px;
+  }
+  .tomo {
+    border: 1px solid var(--b-border); background: var(--b-panel);
+    display: flex; flex-direction: column;
+    transition: border-color 0.15s, transform 0.15s;
+  }
+  .tomo:hover { border-color: var(--b-accent-bright); transform: translateY(-2px); }
+  .tomo-tapa {
+    position: relative; aspect-ratio: 4 / 5; padding: 14px;
+    background: var(--b-surface-cover);
+    display: flex; flex-direction: column; justify-content: space-between;
+    text-decoration: none; color: inherit; overflow: hidden;
+    border-bottom: 1px solid var(--b-border);
+  }
+  .tomo-tapa svg {
+    position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0.42; pointer-events: none;
+  }
+  .tomo-top, .tomo-copy { position: relative; z-index: 2; }
+  .tomo-top {
+    display: flex; justify-content: space-between;
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase;
+  }
+  .tomo-badge {
+    padding: 2px 6px; border: 1px solid var(--b-border-strong);
+    background: var(--b-panel); color: var(--b-accent-bright);
+  }
+  .tomo-titulo { font-family: var(--font-serif); font-size: 17.5px; line-height: 1.25; color: var(--b-fg); }
+  .tomo-autor {
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--b-faint); margin-top: 4px;
+  }
+  .tomo-foot {
+    padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  }
+  .tomo-meta { font-family: var(--font-mono); font-size: 9px; color: var(--b-faint); text-transform: uppercase; }
+
+  .btn-dl {
+    font-family: var(--font-mono); font-size: 9.5px; font-weight: 700;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    padding: 6px 9px; border: 1px solid var(--b-border-strong);
+    background: var(--b-bg); color: var(--b-fg);
+  }
+  .btn-dl[aria-pressed="true"] {
+    border-color: var(--b-accent); color: var(--b-accent-bright); background: var(--b-accent-tint);
+  }
+
+  @media (max-width: 900px) {
+    .state-threshold { grid-template-columns: 1fr; }
+    .hero-dash { grid-template-columns: 1fr; }
+    .estudio-grid { grid-template-columns: 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+  }
+</style>
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+
+<header class="app-top">
+  <div class="top-inner">
+    <a class="brand" href="/04-landing-estudio-y-despeje.html">
+      <span class="hanko" aria-hidden="true">熒</span>
+      Ignit · Mi Biblioteca
+    </a>
+    <nav class="top-tabs" role="tablist" aria-label="Espacio">
+      <button class="top-tab" role="tab" aria-selected="false" data-scope="device">En este dispositivo <span class="tab-count" id="c-dev">4</span></button>
+      <button class="top-tab" role="tab" aria-selected="true" data-scope="library">Mi biblioteca <span class="tab-count" id="c-lib">13</span></button>
+      <button class="top-tab" role="tab" aria-selected="false" data-scope="catalog">Catálogo <span class="tab-count" id="c-cat">13</span></button>
+      <button class="top-tab" role="tab" aria-selected="false" data-scope="submissions">Mis aportes <span class="tab-count">2</span></button>
+    </nav>
+    <div class="top-actions">
+      <div class="tema-toggle" role="group" aria-label="Paleta">
+        <button type="button" data-pal="noche-azul" aria-pressed="true">Noche azul</button>
+        <button type="button" data-pal="original" aria-pressed="false">Original</button>
+      </div>
+      <button class="btn-primary" type="button">+ Subir libro</button>
+    </div>
+  </div>
+</header>
+
+<main class="shell">
+  <!-- THRESHOLD SELECTOR -->
+  <section class="state-threshold" aria-label="Seleccionar estado de lectura">
+    <button class="state-card" type="button" data-state="estudio" aria-pressed="true">
+      <span>
+        <span class="state-kicker">ESTADO 01 · RIGOR PROFESIONAL</span>
+        <span class="state-title">Estudio y Disciplina</span>
+        <span class="state-sub">Software, leyes, medicina, economía, diseño y ciencias exactas</span>
+      </span>
+      <span class="state-count" id="cnt-estudio">7<small>tomos</small></span>
+    </button>
+
+    <button class="state-card" type="button" data-state="despeje" aria-pressed="false">
+      <span>
+        <span class="state-kicker">ESTADO 02 · PAUSA Y VIGILIA</span>
+        <span class="state-title">Despeje Literario</span>
+        <span class="state-sub">Filosofía, ficción clásica, terror, historia y poesía universal</span>
+      </span>
+      <span class="state-count" id="cnt-despeje">6<small>tomos</small></span>
+    </button>
+  </section>
+
+  <!-- CONTINUITY HERO (CHANGES WITH ACTIVE STATE) -->
+  <section class="hero-dash" aria-label="Continuidad y almacenamiento">
+    <article class="resume-card" id="hero-mount"></article>
+
+    <aside class="storage-card" aria-label="Almacenamiento PWA">
+      <div>
+        <div class="storage-head">
+          <span>almacenamiento local (pwa)</span>
+          <b id="meter-kb">2.4 MB usados</b>
+        </div>
+        <div class="storage-big" id="meter-count">4 libros offline</div>
+        <p class="storage-sub">
+          Tu progreso se guarda de manera independiente para cada disciplina o lectura de ocio sin mezclar marcadores.
+        </p>
+      </div>
+      <div>
+        <div class="prog-bar"><i id="meter-bar" style="width:58%"></i></div>
+      </div>
+    </aside>
+  </section>
+
+  <!-- FILTERS & SEARCH -->
+  <div class="section-bar">
+    <div class="filtros" id="subchips" role="group" aria-label="Subcategorías"></div>
+    <input class="search-input" id="search" type="search" placeholder="Buscar por título, autor o disciplina…" aria-label="Buscar en la estantería" />
+  </div>
+
+  <!-- ACTIVE SHELF MOUNT -->
+  <section aria-label="Estantería activa" id="shelf-mount"></section>
+</main>
+
+<script>
+const BOOKS = [
+  // ESTUDIO: DIVERSAS DISCIPLINAS
+  { id: 1, state: 'estudio', kind: 'tech', label: 'Software / Sistemas', code: 'DEV', title: 'Crafting Interpreters', author: 'Robert Nystrom', pages: 639, kb: 680, pct: 34, offline: true, quote: '«A bytecode virtual machine trades raw simplicity for predictable memory locality and speed.»' },
+  { id: 2, state: 'estudio', kind: 'tech', label: 'Software / Sistemas', code: 'OS', title: 'Operating Systems: Three Easy Pieces', author: 'Remzi & Andrea Arpaci-Dusseau', pages: 712, kb: 820, pct: 18, offline: true, quote: '«Virtualization, concurrency, and persistence form the three pillars of an operating system.»' },
+  { id: 3, state: 'estudio', kind: 'derecho', label: 'Derecho y Leyes', code: 'JUR', title: 'El espíritu de las leyes', author: 'Montesquieu', pages: 520, kb: 490, pct: 50, offline: false, quote: '«Para que no se pueda abusar del poder, es preciso que el poder detenga al poder.»' },
+  { id: 4, state: 'estudio', kind: 'medicina', label: 'Medicina y Salud', code: 'MED', title: 'Principios de Medicina Interna y Fisiología', author: 'Dr. William Osler', pages: 840, kb: 920, pct: 12, offline: true, quote: '«El buen médico trata la enfermedad; el gran médico trata al paciente que tiene la enfermedad.»' },
+  { id: 5, state: 'estudio', kind: 'economia', label: 'Economía y Finanzas', code: 'ECON', title: 'La riqueza de las naciones', author: 'Adam Smith', pages: 680, kb: 610, pct: 0, offline: false, quote: '«No es de la benevolencia del carnicero de donde esperamos nuestra cena, sino de su propio interés.»' },
+  { id: 6, state: 'estudio', kind: 'diseno', label: 'Diseño y Arquitectura', code: 'DSGN', title: 'De Architectura (Los diez libros)', author: 'Vitruvio', pages: 310, kb: 340, pct: 60, offline: false, quote: '«La arquitectura debe proporcionar firmeza, utilidad y belleza armónica.»' },
+  { id: 7, state: 'estudio', kind: 'ciencia', label: 'Ciencias Exactas', code: 'FIS', title: 'Relatividad: la teoría especial y general', author: 'Albert Einstein', pages: 168, kb: 210, pct: 62, offline: false, quote: '«El espacio y el tiempo no son condiciones en las que vivimos, sino modos en los que pensamos.»' },
+
+  // DESPEJE: LITERATURA Y HUMANIDADES
+  { id: 8, state: 'despeje', kind: 'terror_scifi', label: 'Terror y Sci-Fi', title: 'Frankenstein o el moderno Prometeo', author: 'Mary Shelley', pages: 280, kb: 310, pct: 71, offline: true, quote: '«Fue en una lúgubre noche de noviembre cuando contemplé el logro de mis esfuerzos.»' },
+  { id: 9, state: 'despeje', kind: 'filosofia', label: 'Filosofía y Ensayo', title: 'Meditaciones', author: 'Marco Aurelio', pages: 194, kb: 180, pct: 45, offline: true, quote: '«Tienes poder sobre tu mente, no sobre los acontecimientos externos. Date cuenta y hallarás fuerza.»' },
+  { id: 10, state: 'despeje', kind: 'ficcion', label: 'Ficción', title: 'La metamorfosis', author: 'Franz Kafka', pages: 112, kb: 120, pct: 100, offline: false, quote: '«Al despertar Gregorio Samsa una mañana tras un sueño intranquilo, encontróse en su cama convertido en un monstruoso insecto.»' },
+  { id: 11, state: 'despeje', kind: 'terror_scifi', label: 'Terror y Sci-Fi', title: 'El extraño caso del Dr. Jekyll y Mr. Hyde', author: 'Robert Louis Stevenson', pages: 140, kb: 155, pct: 0, offline: false, quote: '«El hombre no es verdaderamente uno, sino verdaderamente dos.»' },
+  { id: 12, state: 'despeje', kind: 'historia', label: 'Historia', title: 'El arte de la guerra', author: 'Sun Tzu', pages: 128, kb: 140, pct: 20, offline: false, quote: '«La suprema excelencia consiste en quebrar la resistencia del enemigo sin luchar.»' },
+  { id: 13, state: 'despeje', kind: 'poesia', label: 'Poesía y Teatro', title: 'Las flores del mal', author: 'Charles Baudelaire', pages: 248, kb: 230, pct: 0, offline: false, quote: '«Allí todo es orden y belleza, lujo, calma y voluptuosidad.»' }
+];
+
+const CHIPS = {
+  estudio: [
+    { value: '*', label: 'Todas las disciplinas' },
+    { value: 'tech', label: 'Software / Sistemas' },
+    { value: 'derecho', label: 'Derecho y Leyes' },
+    { value: 'medicina', label: 'Medicina y Salud' },
+    { value: 'economia', label: 'Economía y Negocios' },
+    { value: 'diseno', label: 'Diseño y Arquitectura' },
+    { value: 'ciencia', label: 'Ciencias Exactas' }
+  ],
+  despeje: [
+    { value: '*', label: 'Todos de despeje' },
+    { value: 'ficcion', label: 'Ficción' },
+    { value: 'terror_scifi', label: 'Terror y Sci-Fi' },
+    { value: 'filosofia', label: 'Filosofía' },
+    { value: 'historia', label: 'Historia' },
+    { value: 'poesia', label: 'Poesía' }
+  ]
+};
+
+let activeState = 'estudio';
+let activeScope = 'library';
+let activeSub = '*';
+let query = '';
+
+function coverSvg(id) {
+  const g = [
+    '<circle cx="90" cy="112" r="44" stroke="var(--b-accent-bright)" stroke-width="1.2"/><path d="M22 38h136M22 186h136" stroke="var(--b-accent)" stroke-width="1"/>',
+    '<rect x="34" y="42" width="112" height="140" stroke="var(--b-accent)" stroke-width="1.2"/><line x1="34" y1="112" x2="146" y2="112" stroke="var(--b-accent-bright)" stroke-width="1"/>',
+    '<path d="M26 178 L90 42 L154 178 Z" stroke="var(--b-accent-bright)" stroke-width="1.2"/>'
+  ];
+  return `<svg viewBox="0 0 180 225" fill="none" aria-hidden="true">${g[id % g.length]}</svg>`;
+}
+
+function render() {
+  const scoped = BOOKS.filter(b => activeScope === 'device' ? b.offline : true);
+  document.getElementById('cnt-estudio').innerHTML = `${scoped.filter(b => b.state === 'estudio').length}<small>tomos</small>`;
+  document.getElementById('cnt-despeje').innerHTML = `${scoped.filter(b => b.state === 'despeje').length}<small>tomos</small>`;
+
+  // Continuity hero
+  const pool = scoped.filter(b => b.state === activeState);
+  const heroBook = pool.find(b => b.pct > 0 && b.pct < 100) || pool[0] || BOOKS[0];
+  const stateBadge = activeState === 'estudio' ? 'RETOMAR ESTUDIO PROFESIONAL' : 'RETOMAR DESPEJE · VIGILIA';
+
+  document.getElementById('hero-mount').innerHTML = `
+    <div class="resume-cover">${coverSvg(heroBook.id)}</div>
+    <div>
+      <div class="kicker">
+        <span>${stateBadge} · ${heroBook.label.toUpperCase()} · ${heroBook.offline ? 'OFFLINE' : 'EN LÍNEA'}</span>
+        <span>último sync: hace 10 min</span>
+      </div>
+      <h1 class="resume-title">${heroBook.title}</h1>
+      <div class="resume-author">${heroBook.author} · ${heroBook.label} · ${heroBook.pages} págs</div>
+      <p class="resume-quote">${heroBook.quote}</p>
+      <div class="resume-bottom">
+        <div class="prog-wrap">
+          <div class="prog-labels"><span>Progreso en esta disciplina</span><b>${heroBook.pct}%</b></div>
+          <div class="prog-bar"><i style="width:${heroBook.pct}%"></i></div>
+        </div>
+        <a class="btn-primary" href="#main-content">Seguir leyendo →</a>
+      </div>
+    </div>
+  `;
+
+  // Subchips
+  document.getElementById('subchips').innerHTML = CHIPS[activeState].map(c => `
+    <button class="chip" type="button" data-sub="${c.value}" aria-pressed="${activeSub === c.value}">${c.label}</button>
+  `).join('');
+
+  // Items
+  const q = query.trim().toLowerCase();
+  const visible = pool
+    .filter(b => activeSub === '*' || b.kind === activeSub)
+    .filter(b => !q || (b.title + ' ' + b.author + ' ' + b.label).toLowerCase().includes(q));
+
+  const mount = document.getElementById('shelf-mount');
+  if (activeState === 'estudio') {
+    mount.innerHTML = `<div class="estudio-grid">${visible.map((b, i) => `
+      <article class="estudio-row">
+        <div class="tech-spine">
+          <span class="code">${b.code}</span>
+          <span class="idx">${String(i + 1).padStart(2, '0')}</span>
+        </div>
+        <div>
+          <div class="tech-meta-top">
+            <span class="tech-tag">${b.label}</span>
+            <span>${b.pages} p · ${b.kb} KB</span>
+          </div>
+          <h3 class="tech-title">${b.title}</h3>
+          <div class="tech-author">${b.author}</div>
+          <div class="tech-prog">
+            <div class="mini-bar"><i style="width:${b.pct}%"></i></div>
+            <span>${b.pct > 0 ? b.pct + '% avanzado' : 'Sin comenzar'}</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
+          <button class="btn-dl" type="button" data-dl="${b.id}" aria-pressed="${b.offline}">${b.offline ? 'offline ✓' : '↓ Bajar'}</button>
+          <a class="btn-primary" href="#main-content" style="padding:6px 10px;font-size:9.5px;">Abrir</a>
+        </div>
+      </article>
+    `).join('')}</div>`;
+  } else {
+    mount.innerHTML = `<div class="despeje-grid">${visible.map((b, i) => `
+      <article class="tomo">
+        <a class="tomo-tapa" href="#main-content">
+          ${coverSvg(b.id)}
+          <div class="tomo-top">
+            <span>${String(i + 1).padStart(2, '0')}</span>
+            <span class="tomo-badge">${b.offline ? 'offline ✓' : 'nube'}</span>
+          </div>
+          <div class="tomo-copy">
+            <div class="tomo-titulo">${b.title}</div>
+            <div class="tomo-autor">${b.author}</div>
+          </div>
+        </a>
+        <div class="tomo-foot">
+          <span class="tomo-meta">${b.label}${b.pct ? ' · ' + b.pct + '%' : ''}</span>
+          <button class="btn-dl" type="button" data-dl="${b.id}" aria-pressed="${b.offline}">${b.offline ? 'Quitar' : '↓ Bajar'}</button>
+        </div>
+      </article>
+    `).join('')}</div>`;
+  }
+
+  const off = BOOKS.filter(b => b.offline);
+  const totalKb = off.reduce((s, b) => s + b.kb, 0);
+  document.getElementById('c-dev').textContent = off.length;
+  document.getElementById('meter-count').textContent = `${off.length} libros offline`;
+  document.getElementById('meter-kb').textContent = totalKb >= 1024 ? `${(totalKb / 1024).toFixed(1)} MB usados` : `${totalKb} KB usados`;
+  document.getElementById('meter-bar').style.width = Math.min(100, Math.round((totalKb / 4200) * 100)) + '%';
+}
+
+document.addEventListener('click', (e) => {
+  const pal = e.target.closest('[data-pal]');
+  if (pal) {
+    document.documentElement.dataset.palette = pal.dataset.pal;
+    document.querySelectorAll('[data-pal]').forEach(b => b.setAttribute('aria-pressed', String(b === pal)));
+    return;
+  }
+  const st = e.target.closest('[data-state]');
+  if (st) {
+    activeState = st.dataset.state;
+    activeSub = '*';
+    document.querySelectorAll('[data-state]').forEach(b => b.setAttribute('aria-pressed', String(b === st)));
+    render();
+    return;
+  }
+  const sc = e.target.closest('[data-scope]');
+  if (sc) {
+    activeScope = sc.dataset.scope;
+    document.querySelectorAll('[data-scope]').forEach(b => b.setAttribute('aria-selected', String(b === sc)));
+    render();
+    return;
+  }
+  const sb = e.target.closest('[data-sub]');
+  if (sb) {
+    activeSub = sb.dataset.sub;
+    render();
+    return;
+  }
+  const dl = e.target.closest('[data-dl]');
+  if (dl) {
+    const b = BOOKS.find(x => x.id === Number(dl.dataset.dl));
+    if (b) { b.offline = !b.offline; render(); }
+  }
+});
+
+document.getElementById('search').addEventListener('input', (e) => { query = e.target.value; render(); });
+render();
+</script>
+</body>
+</html>

@@ -76,6 +76,9 @@ export default function HeroDash(props: HeroDashProps) {
 								<h1 class="resume-title">{continuity().book.title}</h1>
 								<div class="resume-author">
 									{continuity().book.author} · {continuity().book.catLabel}
+									<Show when={continuity().book.pdfPages}>
+										{(pages) => <> · {pages()} págs</>}
+									</Show>
 								</div>
 							</div>
 							<p class="resume-quote">{continuity().quote}</p>
@@ -106,8 +109,8 @@ export default function HeroDash(props: HeroDashProps) {
 					</div>
 					<div class="storage-big">{props.meter.countLabel}</div>
 					<p class="storage-sub">
-						Guardás solo los <code>reading.json</code> que querés llevar sin señal. Tu progreso y
-						subrayados quedan a salvo en tu cuenta.
+						Tu progreso se guarda por separado para cada disciplina y para cada lectura de
+						ocio: los marcadores de Estudio y de Despeje nunca se mezclan.
 					</p>
 				</div>
 				<div>

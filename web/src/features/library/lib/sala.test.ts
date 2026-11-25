@@ -1,16 +1,22 @@
 import { describe, expect, it } from 'vitest';
-import type { Book } from '../../../entities/book/types';
+import { BOOK_KIND_OPTIONS, type Book } from '../../../entities/book/types';
 import type { OfflineBookRecord } from './offlineStore';
 import {
+	SALA_ESTADOS,
+	SALA_ESTADO_KINDS,
 	SALA_TABS,
 	computeStorageMeter,
+	countSalaEstados,
 	deriveAporteRows,
 	filterSalaCatalog,
+	filterSalaEstado,
 	formatRelativeSync,
 	mergeSalaBooks,
 	nextSalaTabId,
 	ownerReviewStage,
 	readLocalReadingSnapshots,
+	salaEstadoChips,
+	salaEstadoOf,
 	salaTabShortLabel,
 	selectContinuityBook,
 	validateBookUpload,
@@ -159,7 +165,7 @@ describe('sala domain helpers', () => {
 
 		const candidate = selectContinuityBook(books, 180_000);
 		expect(candidate?.book.id).toBe(2);
-		expect(candidate?.kickerLeft).toBe('continuar leyendo · disponible offline');
+		expect(candidate?.kickerLeft).toBe('retomar despeje · vigilia · General · offline');
 		expect(candidate?.kickerRight).toBe('último sync: hace 2 min');
 		expect(candidate?.progressLabel).toBe('Pág 44 / 92');
 		expect(candidate?.href).toBe('/lecturas/2');
@@ -211,17 +217,17 @@ describe('sala domain helpers', () => {
 			count: 0,
 			totalKb: 0,
 			badge: '0 KB usados',
-			countLabel: '0 libros en tu dispositivo',
+			countLabel: '0 libros offline',
 			barPercent: 0,
 		});
 		expect(computeStorageMeter([{ kb: 566 }, { kb: 180 }])).toEqual({
 			count: 2,
 			totalKb: 746,
 			badge: '746 KB usados',
-			countLabel: '2 libros en tu dispositivo',
+			countLabel: '2 libros offline',
 			barPercent: 18,
 		});
-		expect(computeStorageMeter([{ kb: 1536 }]).countLabel).toBe('1 libro en tu dispositivo');
+		expect(computeStorageMeter([{ kb: 1536 }]).countLabel).toBe('1 libro offline');
 
 		const books = mergeSalaBooks({
 			ownedBooks: [],
@@ -287,5 +293,87 @@ describe('sala domain helpers', () => {
 			localSnapshots: new Map(),
 		});
 		expect(merged[0]?.published).toBe(false);
+	});
+});
+
+describe('sala estados — Estudio y Disciplina vs. Despeje Literario (S2)', () => {
+	it('partitions the existing book kinds into exactly one estado, without a new taxonomy', () => {
+		expect(SALA_ESTADOS.map((estado) => estado.id)).toEqual(['estudio', 'despeje']);
+		expect(SALA_ESTADOS.map((estado) => estado.title)).toEqual([
+			'Estudio y Disciplina',
+			'Despeje Literario',
+		]);
+
+		const partitioned = BOOK_KIND_OPTIONS.map((option) => option.value).filter(
+			(kind) => SALA_ESTADO_KINDS.estudio.includes(kind) && SALA_ESTADO_KINDS.despeje.includes(kind),
+		);
+		expect(partitioned).toEqual([]);
+		expect([...SALA_ESTADO_KINDS.estudio, ...SALA_ESTADO_KINDS.despeje].sort()).toEqual(
+			BOOK_KIND_OPTIONS.map((option) => option.value).sort(),
+		);
+	});
+
+	it('maps técnico/ciencia to estudio and every literary/general kind to despeje', () => {
+		expect(salaEstadoOf('tecnico')).toBe('estudio');
+		expect(salaEstadoOf('ciencia')).toBe('estudio');
+		for (const kind of ['ficcion', 'terror_scifi', 'filosofia', 'historia', 'poesia', 'no_tecnico']) {
+			expect(salaEstadoOf(kind)).toBe('despeje');
+		}
+		// Unknown kinds fall back through the existing `parseBookKind`.
+		expect(salaEstadoOf('desconocido')).toBe('despeje');
+		expect(salaEstadoOf(null)).toBe('despeje');
+	});
+
+	it('counts the tomos of each estado over the merged sala books', () => {
+		const books = mergeSalaBooks({
+			ownedBooks: [makeBook({ id: 1, title: 'Sistemas', author: 'A', kind: 'tecnico', isOwner: true })],
+			catalogBooks: [
+				makeBook({ id: 2, title: 'Física', author: 'B', kind: 'ciencia' }),
+				makeBook({ id: 3, title: 'Cuentos', author: 'C', kind: 'ficcion' }),
+				makeBook({ id: 4, title: 'Poemas', author: 'D', kind: 'poesia' }),
+			],
+			offlineRecords: [],
+			localSnapshots: new Map(),
+		});
+
+		expect(countSalaEstados(books)).toEqual({ estudio: 2, despeje: 2 });
+		expect(countSalaEstados([])).toEqual({ estudio: 0, despeje: 0 });
+	});
+
+	it('filters the shelf by estado and keeps every book when no estado is selected', () => {
+		const books = mergeSalaBooks({
+			ownedBooks: [],
+			catalogBooks: [
+				makeBook({ id: 1, title: 'Sistemas', author: 'A', kind: 'tecnico' }),
+				makeBook({ id: 2, title: 'Cuentos', author: 'C', kind: 'ficcion' }),
+			],
+			offlineRecords: [],
+			localSnapshots: new Map(),
+		});
+
+		expect(filterSalaEstado(books, 'estudio').map((book) => book.id)).toEqual([1]);
+		expect(filterSalaEstado(books, 'despeje').map((book) => book.id)).toEqual([2]);
+		expect(filterSalaEstado(books, null).map((book) => book.id)).toEqual([1, 2]);
+	});
+
+	it('derives the domain chips from BOOK_KIND_OPTIONS', () => {
+		expect(salaEstadoChips('estudio')).toEqual([
+			{ value: '*', label: 'Todas las disciplinas' },
+			{ value: 'tecnico', label: 'Técnico' },
+			{ value: 'ciencia', label: 'Ciencia' },
+		]);
+		expect(salaEstadoChips('despeje').map((chip) => chip.value)).toEqual([
+			'*',
+			'ficcion',
+			'terror_scifi',
+			'filosofia',
+			'historia',
+			'poesia',
+			'no_tecnico',
+		]);
+		expect(salaEstadoChips(null).map((chip) => chip.value)).toEqual([
+			'*',
+			...BOOK_KIND_OPTIONS.map((option) => option.value),
+		]);
 	});
 });

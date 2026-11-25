@@ -1,5 +1,5 @@
 import { isOpenLicense } from '../../../entities/book/open-licenses';
-import { parseBookKind, type Book, type BookKind } from '../../../entities/book/types';
+import { BOOK_KIND_OPTIONS, parseBookKind, type Book, type BookKind } from '../../../entities/book/types';
 import {
 	bookSizeKb,
 	coverVariantIndex,
@@ -11,6 +11,104 @@ import {
 import type { OfflineBookRecord } from './offlineStore';
 
 export type SalaTabId = 'device' | 'library' | 'catalog' | 'submissions';
+
+/**
+ * The two rooms the shelf is split into (S2, artboard 05 «Mi Biblioteca —
+ * Estudio Profesional y Despeje»): the professional study shelf and the
+ * literary «despeje». They are a *view* over the single `BookKind` taxonomy,
+ * never a second classification. `design/biblioteca-tecnico-literatura/
+ * design.json` fixes the mapping: técnicos = Técnico + Ciencia, literatura =
+ * Ficción, Terror y Sci-Fi, Filosofía y Ensayo, Historia, Poesía y Teatro and
+ * General (`no_tecnico`).
+ */
+export type SalaEstado = 'estudio' | 'despeje';
+
+export interface SalaEstadoMeta {
+	id: SalaEstado;
+	/** Small mono kicker above the room title. */
+	kicker: string;
+	title: string;
+	subtitle: string;
+	/** Continuity kicker of the hero when this room has a reading in progress. */
+	resumeLabel: string;
+	/** Continuity kicker of the hero when this room has nothing started yet. */
+	startLabel: string;
+}
+
+export const SALA_ESTADOS: readonly SalaEstadoMeta[] = [
+	{
+		id: 'estudio',
+		kicker: 'Estado 01 · Rigor profesional',
+		title: 'Estudio y Disciplina',
+		subtitle: 'Manuales, papers y referencia de trabajo: técnico y ciencia exacta.',
+		resumeLabel: 'retomar estudio profesional',
+		startLabel: 'empezar estudio profesional',
+	},
+	{
+		id: 'despeje',
+		kicker: 'Estado 02 · Pausa y vigilia',
+		title: 'Despeje Literario',
+		subtitle: 'Ficción, terror, filosofía, historia, poesía y ensayo.',
+		resumeLabel: 'retomar despeje · vigilia',
+		startLabel: 'empezar despeje · vigilia',
+	},
+];
+
+/** Every existing `BookKind` belongs to exactly one room, in this order. */
+export const SALA_ESTADO_KINDS: Readonly<Record<SalaEstado, readonly BookKind[]>> = {
+	estudio: ['tecnico', 'ciencia'],
+	despeje: ['ficcion', 'terror_scifi', 'filosofia', 'historia', 'poesia', 'no_tecnico'],
+};
+
+/** Room of a book kind; unknown/absent kinds fall back through `parseBookKind`. */
+export function salaEstadoOf(kind: string | null | undefined): SalaEstado {
+	const parsed = parseBookKind(kind);
+	return SALA_ESTADO_KINDS.estudio.includes(parsed) ? 'estudio' : 'despeje';
+}
+
+/** Metadata of a room (never `undefined`, so panels always render). */
+export function salaEstadoMeta(estado: SalaEstado | string | null | undefined): SalaEstadoMeta {
+	return SALA_ESTADOS.find((entry) => entry.id === estado) ?? SALA_ESTADOS[0]!;
+}
+
+/** Real tomo counts of both rooms over the merged sala books. */
+export function countSalaEstados(
+	books: readonly Pick<Book, 'kind'>[],
+): Record<SalaEstado, number> {
+	const counts: Record<SalaEstado, number> = { estudio: 0, despeje: 0 };
+	for (const book of books) {
+		counts[salaEstadoOf(book.kind)] += 1;
+	}
+	return counts;
+}
+
+/**
+ * Room lens of the shelf: `null` (the default) keeps every book visible, so the
+ * existing «Mi biblioteca» listing is unchanged until the user picks a room.
+ */
+export function filterSalaEstado<T extends Pick<Book, 'kind'>>(
+	books: readonly T[],
+	estado: SalaEstado | null,
+): T[] {
+	if (!estado) return [...books];
+	return books.filter((book) => salaEstadoOf(book.kind) === estado);
+}
+
+/**
+ * Domain chips of the shelf bar: «Todas las disciplinas» plus the kinds of the
+ * active room, labels straight from `BOOK_KIND_OPTIONS` (no new taxonomy).
+ */
+export function salaEstadoChips(
+	estado: SalaEstado | null,
+): ReadonlyArray<{ value: BookKind | '*'; label: string }> {
+	const kinds = estado ? SALA_ESTADO_KINDS[estado] : null;
+	return [
+		{ value: '*', label: 'Todas las disciplinas' },
+		...BOOK_KIND_OPTIONS.filter((option) => !kinds || kinds.includes(option.value)).map(
+			(option) => ({ value: option.value, label: option.label }),
+		),
+	];
+}
 
 /**
  * Ordered metadata of the single `role="tablist"` of the sala (S1).
@@ -304,13 +402,13 @@ export function selectContinuityBook(
 
 	const book = scored[0]!;
 	const hasProgress = book.progressPage > 0 || book.progressPct > 0 || book.status === 'reading';
-	const kickerLeft = hasProgress
-		? book.isOffline
-			? 'continuar leyendo · disponible offline'
-			: 'continuar leyendo · en línea'
-		: book.isOffline
-			? 'listo para leer · disponible offline'
-			: 'empezar lectura · en tu biblioteca';
+	// Artboard 05: «RETOMAR ESTUDIO PROFESIONAL · SOFTWARE/SISTEMAS · OFFLINE».
+	// The room comes from the kind, so the hero always names the shelf it resumes.
+	const estadoMeta = salaEstadoMeta(salaEstadoOf(book.kind));
+	const resumeVerb = hasProgress ? estadoMeta.resumeLabel : estadoMeta.startLabel;
+	const kickerLeft = `${resumeVerb} · ${book.catLabel} · ${
+		book.isOffline ? 'offline' : 'en línea'
+	}`;
 
 	const progressLabel =
 		book.progressPage > 0
@@ -398,7 +496,7 @@ export function computeStorageMeter(
 		count,
 		totalKb,
 		badge: `${formatSizeKb(totalKb)} usados`,
-		countLabel: `${count} ${unit} en tu dispositivo`,
+		countLabel: `${count} ${unit} offline`,
 		barPercent,
 	};
 }

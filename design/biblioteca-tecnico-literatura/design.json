@@ -1,0 +1,41 @@
+{
+  "title": "Ignit — Rediseño de /biblioteca: Técnicos vs. Literatura",
+  "brief": "Rediseñar la Sala de lectura (/biblioteca) para dividir claramente los libros técnicos (Técnico, Ciencia) de la literatura (Ficción, Terror y Sci-Fi, Filosofía y Ensayo, Historia, Poesía y Teatro, General), respetando los tokens de design/system.md (noche-azul con contraste interior --b-* y original papel cálido), continuidad de lectura, almacenamiento offline PWA y calma inmersiva.",
+  "artboards": [
+    {
+      "file": "01-dos-alas-arquitectonicas.html",
+      "title": "Dos Alas Arquitectónicas (Split paralelo)",
+      "tradeoff": "Muestra ambos mundos a la vez con densidad diferenciada (fichas técnicas escaneables a la izquierda vs. tapas literarias a la derecha) y foco rápido en un ala; con catálogos grandes requiere expandir un ala o más scroll.",
+      "width": 1440,
+      "height": 1050
+    },
+    {
+      "file": "02-selector-de-modo-de-lectura.html",
+      "title": "Selector de Modo en el Umbral (Estudio vs. Vigilia)",
+      "tradeoff": "Separa el estado mental completo: cambia la tarjeta de continuidad (último técnico vs. última obra literaria) y adapta el layout completo de la sala; oculta el otro mundo hasta cambiar de modo.",
+      "width": 1440,
+      "height": 1050
+    },
+    {
+      "file": "03-estantes-apilados-con-indice.html",
+      "title": "Estantes Apilados con Índice Lateral",
+      "tradeoff": "Escala mejor al crecer las 8 categorías manteniendo siempre visible el árbol completo (Estudio y Técnica vs. Literatura y Humanidades) y el medidor PWA en el rail; cede 248px horizontales en escritorio.",
+      "width": 1440,
+      "height": 1080
+    },
+    {
+      "file": "04-landing-estudio-y-despeje.html",
+      "title": "Landing — Estudio y Despeje",
+      "tradeoff": "Dirección de landing bajo los mismos tokens: una sola línea narrativa con mucho aire, CTA único y menos secciones visibles a la vez; delega la densidad del catálogo a la vista de biblioteca.",
+      "width": 1440,
+      "height": 1050
+    },
+    {
+      "file": "05-biblioteca-estudio-despeje.html",
+      "title": "Mi Biblioteca — Estudio Profesional y Despeje",
+      "tradeoff": "Biblioteca con foco en un bloque por vez y despeje visual total; sacrifica la vista paralela de ambos mundos para reducir ruido.",
+      "width": 1440,
+      "height": 1050
+    }
+  ]
+}
