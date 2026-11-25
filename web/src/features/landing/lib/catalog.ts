@@ -13,13 +13,12 @@ export type SalaId = 'estudio' | 'despeje';
  * The two rooms of the landing («Estudio Profesional» / «Despeje Literario»).
  *
  * They are a *view* over the existing `BookKind` domain — never a second
- * classification: `tecnico`/`ciencia` are studied, every other kind belongs to
- * the literary room. Adding a discipline (derecho, medicina, economía, diseño)
- * would be a `BookKind` change in `entities/book/types.ts` + the API enum, so
- * it stays out of the landing.
+ * classification: `tecnico`/`ciencia` plus the professional disciplines
+ * (derecho, medicina, economía, diseño) are studied; every other kind belongs
+ * to the literary room.
  */
 export const SALA_KINDS: Record<SalaId, readonly BookKind[]> = {
-	estudio: ['tecnico', 'ciencia'],
+	estudio: ['tecnico', 'ciencia', 'derecho', 'medicina', 'economia', 'diseno'],
 	despeje: ['ficcion', 'terror_scifi', 'filosofia', 'historia', 'poesia', 'no_tecnico'],
 };
 

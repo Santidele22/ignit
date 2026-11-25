@@ -3,6 +3,10 @@ export type ReadingStatus = 'reading' | 'finished' | 'queued';
 export type BookKind =
 	| 'tecnico'
 	| 'ciencia'
+	| 'derecho'
+	| 'medicina'
+	| 'economia'
+	| 'diseno'
 	| 'ficcion'
 	| 'terror_scifi'
 	| 'filosofia'
@@ -13,6 +17,10 @@ export type BookKind =
 export const BOOK_KIND_OPTIONS: ReadonlyArray<{ value: BookKind; label: string }> = [
 	{ value: 'tecnico', label: 'Técnico' },
 	{ value: 'ciencia', label: 'Ciencia' },
+	{ value: 'derecho', label: 'Derecho y Leyes' },
+	{ value: 'medicina', label: 'Medicina y Salud' },
+	{ value: 'economia', label: 'Economía y Negocios' },
+	{ value: 'diseno', label: 'Diseño y Arquitectura' },
 	{ value: 'ficcion', label: 'Ficción' },
 	{ value: 'terror_scifi', label: 'Terror y Sci-Fi' },
 	{ value: 'filosofia', label: 'Filosofía y Ensayo' },

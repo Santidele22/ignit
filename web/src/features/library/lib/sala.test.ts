@@ -357,10 +357,15 @@ describe('sala estados — Estudio y Disciplina vs. Despeje Literario (S2)', () 
 	});
 
 	it('derives the domain chips from BOOK_KIND_OPTIONS', () => {
+		// S6 (L7): the estudio chips cover the professional disciplines too.
 		expect(salaEstadoChips('estudio')).toEqual([
 			{ value: '*', label: 'Todas las disciplinas' },
 			{ value: 'tecnico', label: 'Técnico' },
 			{ value: 'ciencia', label: 'Ciencia' },
+			{ value: 'derecho', label: 'Derecho y Leyes' },
+			{ value: 'medicina', label: 'Medicina y Salud' },
+			{ value: 'economia', label: 'Economía y Negocios' },
+			{ value: 'diseno', label: 'Diseño y Arquitectura' },
 		]);
 		expect(salaEstadoChips('despeje').map((chip) => chip.value)).toEqual([
 			'*',

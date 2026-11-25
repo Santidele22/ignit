@@ -40,7 +40,7 @@ export const SALA_ESTADOS: readonly SalaEstadoMeta[] = [
 		id: 'estudio',
 		kicker: 'Estado 01 · Rigor profesional',
 		title: 'Estudio y Disciplina',
-		subtitle: 'Manuales, papers y referencia de trabajo: técnico y ciencia exacta.',
+		subtitle: 'Manuales, papers y referencia de trabajo: técnico, ciencia y disciplinas profesionales.',
 		resumeLabel: 'retomar estudio profesional',
 		startLabel: 'empezar estudio profesional',
 	},
@@ -56,7 +56,7 @@ export const SALA_ESTADOS: readonly SalaEstadoMeta[] = [
 
 /** Every existing `BookKind` belongs to exactly one room, in this order. */
 export const SALA_ESTADO_KINDS: Readonly<Record<SalaEstado, readonly BookKind[]>> = {
-	estudio: ['tecnico', 'ciencia'],
+	estudio: ['tecnico', 'ciencia', 'derecho', 'medicina', 'economia', 'diseno'],
 	despeje: ['ficcion', 'terror_scifi', 'filosofia', 'historia', 'poesia', 'no_tecnico'],
 };
 

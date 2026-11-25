@@ -155,7 +155,15 @@ describe('landing catalog helpers', () => {
 
 describe('landing two rooms — Estudio y Despeje (S1)', () => {
 	it('shelves every real book kind in exactly one room', () => {
-		expect(SALA_KINDS.estudio).toEqual(['tecnico', 'ciencia']);
+		// S6 (L7): the four professional disciplines joined the estudio room.
+		expect(SALA_KINDS.estudio).toEqual([
+			'tecnico',
+			'ciencia',
+			'derecho',
+			'medicina',
+			'economia',
+			'diseno',
+		]);
 		expect(SALA_KINDS.despeje).toEqual([
 			'ficcion',
 			'terror_scifi',

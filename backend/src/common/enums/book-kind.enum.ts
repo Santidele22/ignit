@@ -6,6 +6,10 @@
 export enum BookKind {
   TECNICO = 'tecnico',
   CIENCIA = 'ciencia',
+  DERECHO = 'derecho',
+  MEDICINA = 'medicina',
+  ECONOMIA = 'economia',
+  DISENO = 'diseno',
   FICCION = 'ficcion',
   TERROR_SCIFI = 'terror_scifi',
   FILOSOFIA = 'filosofia',
