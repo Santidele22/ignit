@@ -34,6 +34,7 @@ export type SuggestedBookMetadata = {
 	title: string | null;
 	author: string | null;
 	description: string | null;
+	coverQueries?: string[];
 };
 
 export type CoverSearchCandidate = {
@@ -46,9 +47,17 @@ export function suggestBookMetadata(filename: string): Promise<SuggestedBookMeta
 	return postJsonReturning<SuggestedBookMetadata>('/books/suggest-metadata', { filename });
 }
 
-export function searchBookCovers(title: string, author = ''): Promise<CoverSearchCandidate[]> {
+export function searchBookCovers(
+	title: string,
+	author = '',
+	altQueries: string[] = [],
+): Promise<CoverSearchCandidate[]> {
 	const params = new URLSearchParams({ title });
 	if (author.trim()) params.set('author', author.trim());
+	for (const alt of altQueries) {
+		const cleaned = alt.trim();
+		if (cleaned) params.append('alt', cleaned);
+	}
 	return getJson<CoverSearchCandidate[]>(`/books/cover-search?${params.toString()}`);
 }
 

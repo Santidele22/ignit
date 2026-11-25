@@ -129,8 +129,8 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 			const queryAuthor = (suggested.author ?? author()).trim();
 			if (queryTitle) {
 				setPrefillStage('cover');
-				setPrefillStatus('Buscando portada en Google…');
-				await handleSearchCovers(queryTitle, queryAuthor);
+				setPrefillStatus('Buscando portada…');
+				await handleSearchCovers(queryTitle, queryAuthor, suggested.coverQueries ?? []);
 			}
 		} catch {
 			// Fail-open: deterministic filename hints already populated the form.
@@ -143,11 +143,12 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 	async function handleSearchCovers(
 		customTitle = title().trim(),
 		customAuthor = author().trim(),
+		altQueries: string[] = [],
 	) {
 		if (!customTitle || searchingCovers()) return;
 		setSearchingCovers(true);
 		try {
-			const results = await searchBookCovers(customTitle, customAuthor);
+			const results = await searchBookCovers(customTitle, customAuthor, altQueries);
 			setCoverResults(results);
 			if (!coverUrl().trim() && results[0]?.coverUrl) {
 				setCoverUrl(results[0].coverUrl);

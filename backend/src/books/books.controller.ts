@@ -127,9 +127,17 @@ export class BooksController {
 
   @Get('cover-search')
   @ApiSessionAuth()
-  @ApiOperation({ summary: 'Search Google Books for real book cover images' })
-  coverSearch(@Query('title') title = '', @Query('author') author = '') {
-    return searchGoogleBookCovers(title, author);
+  @ApiOperation({ summary: 'Search book cover images across Google Books, Apple Books and OpenLibrary' })
+  coverSearch(
+    @Query('title') title = '',
+    @Query('author') author = '',
+    @Query('alt') alt?: string | string[],
+  ) {
+    const altQueries = (Array.isArray(alt) ? alt : alt ? [alt] : [])
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .slice(0, 3);
+    return searchGoogleBookCovers(title, author, globalThis.fetch, { altQueries });
   }
 
   @Get(':id')
