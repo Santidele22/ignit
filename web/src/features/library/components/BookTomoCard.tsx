@@ -1,4 +1,5 @@
 import { Show, createSignal } from 'solid-js';
+import { formatLicenseBadge } from '../../../entities/book/open-licenses';
 import { formatSizeKb, type SalaBook } from '../lib/sala';
 import BookCoverSvg from './BookCoverSvg';
 
@@ -33,6 +34,7 @@ export default function BookTomoCard(props: BookTomoCardProps) {
 	};
 
 	const progressSuffix = () => (props.book.progressPct > 0 ? ` · ${props.book.progressPct}%` : '');
+	const licenseBadge = () => formatLicenseBadge(props.book.license);
 
 	const [coverFailed, setCoverFailed] = createSignal(false);
 	const hasFile = () => props.book.hasFile !== false;
@@ -77,6 +79,13 @@ export default function BookTomoCard(props: BookTomoCardProps) {
 						{props.book.catLabel}
 						{progressSuffix()}
 					</span>
+					<Show when={licenseBadge()}>
+						{(badge) => (
+							<span class="lic" title={`Licencia: ${props.book.license ?? badge()}`}>
+								{badge()}
+							</span>
+						)}
+					</Show>
 					<span class="peso">{sizeLabel()}</span>
 				</div>
 				<div class="tomo-actions">

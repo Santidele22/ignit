@@ -1,5 +1,6 @@
-import { ConflictException } from '@nestjs/common';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import type { Repository } from 'typeorm';
+import type { RouteSessionUser } from '../../auth/guards/session-reader.js';
 import { ensureUserExists, type SessionUserIdentity } from '../../users/ensure-user-exists.js';
 import type { User } from '../../users/entities/user.entity.js';
 import type { CreateBookDto } from '../dto/create-book.dto.js';
@@ -9,8 +10,10 @@ import { REVIEW_STATUS_PENDING } from '../entities/book.entity.js';
 import type { ReadingState } from '../entities/reading-state.entity.js';
 import { removeBookReadingArtifacts } from '../reading/book-reading.extractor.js';
 import type { BookStorage } from '../storage/book-storage.js';
+import { isAdminUser } from './book-access.js';
 import { removeBookFirewallReport } from './book-firewall-report.js';
 import { readingJsonKey, readingStateKey } from './book-sidecar-keys.js';
+import { isOpenLicense, OPEN_LICENSE_REQUIRED_MESSAGE } from './open-licenses.js';
 
 const NULLABLE_EDITORIAL_KEYS = [
   'publisher',
@@ -46,8 +49,13 @@ export async function createBookRow(
   booksRepository: Repository<Book>,
   usersRepository: Repository<User>,
   dto: CreateBookDto,
-  owner: SessionUserIdentity,
+  owner: SessionUserIdentity & Partial<Pick<RouteSessionUser, 'role'>>,
 ): Promise<Book> {
+  const normalized = normalizeEditorialFields(dto);
+  if (normalized.published === true && !isOpenLicense(normalized.license)) {
+    throw new BadRequestException(OPEN_LICENSE_REQUIRED_MESSAGE);
+  }
+
   await ensureUserExists(usersRepository, owner);
 
   if (typeof booksRepository.find === 'function') {
@@ -66,11 +74,20 @@ export async function createBookRow(
     }
   }
 
-  const book = booksRepository.create(normalizeEditorialFields(dto));
+  const admin = isAdminUser({ role: owner.role });
+  const book = booksRepository.create(normalized);
   book.ownerId = owner.id;
-  // Every new row starts in the admin review queue (S4); uploads keep it
-  // pending until an admin decides, and the column default backfills old rows.
-  book.reviewStatus = REVIEW_STATUS_PENDING;
+  if (admin && normalized.published === true) {
+    book.published = true;
+    book.reviewStatus = 'approved';
+    book.reviewedBy = owner.id;
+    book.reviewedAt = new Date();
+  } else {
+    // Non-admin uploads always stay private (`published = false`) and pending
+    // until an administrator reviews and approves their open license.
+    book.published = false;
+    book.reviewStatus = REVIEW_STATUS_PENDING;
+  }
 
   return booksRepository.save(book);
 }

@@ -1295,6 +1295,12 @@ html.dark:not([data-palette="noche-azul"]) body.landing-body .landing-page .tomo
 	color: var(--l-accent-bright);
 }
 
+.landing-page .tomo-meta .lic {
+	color: var(--l-muted, var(--l-body));
+	opacity: 0.85;
+	font-size: 9px;
+}
+
 .landing-page .tomo-meta .peso {
 	color: var(--l-ghost);
 }

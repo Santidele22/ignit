@@ -44,11 +44,16 @@ export type BookWriteBody = {
 	ctaUrl?: string | null;
 };
 
+export type LicenseComplianceStatus = 'open' | 'copyrighted' | 'unknown';
+
 export type SuggestedBookMetadata = {
 	title: string | null;
 	author: string | null;
 	description: string | null;
 	coverQueries?: string[];
+	license?: string | null;
+	licenseStatus?: LicenseComplianceStatus;
+	licenseReason?: string | null;
 };
 
 export type CoverSearchCandidate = {

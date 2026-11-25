@@ -1,5 +1,10 @@
 import { Show, createEffect, createSignal, onCleanup } from 'solid-js';
 import { pdfNameHints } from '../lib/upload-hints';
+import {
+	OPEN_LICENSE_OPTIONS,
+	OPEN_LICENSE_REQUIRED_MESSAGE,
+	isOpenLicense,
+} from '../../../entities/book/open-licenses';
 import type { BookKind } from '../../../entities/book/types';
 import CoverPickerModal from '../../book/components/CoverPickerModal';
 import {
@@ -53,11 +58,15 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 	const [illustrator, setIllustrator] = createSignal('');
 	const [isbn, setIsbn] = createSignal('');
 	const [license, setLicense] = createSignal('');
+	const [licenseManual, setLicenseManual] = createSignal(false);
+	const [licenseStatus, setLicenseStatus] = createSignal<'idle' | 'open' | 'copyrighted' | 'unknown'>('idle');
+	const [licenseReason, setLicenseReason] = createSignal('');
 	const [ctaLabel, setCtaLabel] = createSignal('');
 	const [ctaUrl, setCtaUrl] = createSignal('');
 	const [file, setFile] = createSignal<File | null>(null);
 	const [createdRow, setCreatedRow] = createSignal<AdminBookRow | null>(null);
 	const [submittedTitle, setSubmittedTitle] = createSignal<string | null>(null);
+	const [submittedPublic, setSubmittedPublic] = createSignal(false);
 	const [submitting, setSubmitting] = createSignal(false);
 	const [error, setError] = createSignal<string | null>(null);
 
@@ -88,11 +97,15 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 		setIllustrator('');
 		setIsbn('');
 		setLicense('');
+		setLicenseManual(false);
+		setLicenseStatus('idle');
+		setLicenseReason('');
 		setCtaLabel('');
 		setCtaUrl('');
 		setFile(null);
 		setCreatedRow(null);
 		setSubmittedTitle(null);
+		setSubmittedPublic(false);
 		setError(null);
 		if (fileInput) fileInput.value = '';
 	}
@@ -121,6 +134,9 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 		}
 		setFile(next);
 		setError(null);
+		setLicenseStatus('idle');
+		setLicenseReason('');
+		if (!licenseManual()) setLicense('');
 
 		// Prefill from the filename (e.g. `Título – Autor.pdf`) in real time
 		// whenever the user changes the selected PDF, without overwriting fields
@@ -133,12 +149,30 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 
 	async function runSmartPrefill(filename: string) {
 		setPrefillStage('metadata');
-		setPrefillStatus('Rellenando título, autor y descripción con IA…');
+		setPrefillStatus('Rellenando metadatos y verificando licencia con IA…');
 		try {
 			const suggested = await suggestBookMetadata(filename);
 			if (suggested.title && !titleManual()) setTitle(suggested.title);
 			if (suggested.author && !authorManual()) setAuthor(suggested.author);
 			if (suggested.description && !descriptionManual()) setDescription(suggested.description);
+
+			if (suggested.licenseStatus === 'copyrighted') {
+				setLicenseStatus('copyrighted');
+				setLicenseReason(
+					suggested.licenseReason?.trim() ||
+						'Obra con derechos de autor vigentes: solo puede guardarse en tu biblioteca personal.',
+				);
+				setPublished(false);
+				setLicense('');
+			} else if (suggested.licenseStatus === 'open' && suggested.license && isOpenLicense(suggested.license)) {
+				setLicenseStatus('open');
+				setLicenseReason(suggested.licenseReason?.trim() || 'Licencia abierta detectada por IA.');
+				if (!licenseManual()) setLicense(suggested.license);
+			} else {
+				setLicenseStatus('unknown');
+				setLicenseReason(suggested.licenseReason?.trim() || '');
+			}
+
 			const queryTitle = (suggested.title ?? title()).trim();
 			const queryAuthor = (suggested.author ?? author()).trim();
 			if (queryTitle) {
@@ -209,6 +243,20 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 			return;
 		}
 
+		if (licenseStatus() === 'copyrighted' && published()) {
+			setPublished(false);
+			setError(
+				licenseReason() ||
+					'Esta obra tiene derechos de autor vigentes y solo puede guardarse en tu biblioteca personal.',
+			);
+			return;
+		}
+
+		if (published() && !isOpenLicense(license())) {
+			setError(OPEN_LICENSE_REQUIRED_MESSAGE);
+			return;
+		}
+
 		setError(null);
 		setSubmitting(true);
 
@@ -244,8 +292,10 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 
 		if (!selected) {
 			const titleCopy = created.title;
+			const wasPublic = published();
 			resetForm();
 			setSubmittedTitle(titleCopy);
+			setSubmittedPublic(wasPublic);
 			setSubmitting(false);
 			props.onCreated(created, 'created');
 			return;
@@ -254,8 +304,10 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 		try {
 			await uploadBookFile(created.id, selected);
 			const titleCopy = created.title;
+			const wasPublic = published();
 			resetForm();
 			setSubmittedTitle(titleCopy);
+			setSubmittedPublic(wasPublic);
 			props.onCreated(created, 'created');
 		} catch (cause) {
 			const message = cause instanceof Error ? cause.message : 'No se pudo subir el PDF.';
@@ -347,8 +399,18 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 					fallback={
 						<div class="modal-body">
 							<p class="pipe-notice" role="status">
-								<strong>¡Listo!</strong> «{submittedTitle()}» fue enviado al pipeline de revisión.
-								En breve vas a recibir una notificación cuando pase las fases de seguridad y diseño.
+								<Show
+									when={submittedPublic()}
+									fallback={
+										<>
+											<strong>¡Listo!</strong> «{submittedTitle()}» fue guardado en tu{' '}
+											<b>biblioteca privada</b>. Ya podés abrirlo y leerlo en Modo Vigilia.
+										</>
+									}
+								>
+									<strong>¡Listo!</strong> «{submittedTitle()}» fue enviado a revisión administrativa para el
+									catálogo público (licencias abiertas). Mientras tanto ya podés leerlo en tu biblioteca privada.
+								</Show>
 							</p>
 							<div class="modal-foot">
 								<button
@@ -558,17 +620,6 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 										/>
 									</div>
 								</div>
-								<div class="field">
-									<label for="upLicense">Licencia / Derechos</label>
-									<input
-										id="upLicense"
-										type="text"
-										placeholder="Ej. CC BY-NC-SA 4.0 · Autorización editorial"
-										value={license()}
-										disabled={submitting()}
-										onInput={(event) => setLicense(event.currentTarget.value)}
-									/>
-								</div>
 								<div class="modal-grid">
 									<div class="field">
 										<label for="upCtaLabel">Botón externo (texto)</label>
@@ -596,21 +647,84 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 							</div>
 						</details>
 
+						<Show when={licenseStatus() === 'copyrighted'}>
+							<p class="pipe-notice" role="status">
+								<strong>Solo biblioteca personal:</strong> {licenseReason()} No puede postularse al catálogo
+								público, pero podés guardarlo en tu biblioteca privada para leerlo en Modo Vigilia.
+							</p>
+						</Show>
+
+						<Show when={licenseStatus() === 'open' && licenseReason()}>
+							<p class="pipe-notice" role="status">
+								<strong>Licencia abierta detectada:</strong> {licenseReason()}
+							</p>
+						</Show>
+
 						<label class="field checkbox-field">
 							<input
 								id="upPublish"
 								type="checkbox"
-								checked={published()}
-								disabled={submitting()}
+								checked={licenseStatus() !== 'copyrighted' && published()}
+								disabled={submitting() || licenseStatus() === 'copyrighted'}
 								onChange={(event) => setPublished(event.currentTarget.checked)}
 							/>
-							<span class="checkbox-label">Publicar en el catálogo público</span>
+							<span class="checkbox-label">
+								{licenseStatus() === 'copyrighted'
+									? 'Catálogo público deshabilitado (solo biblioteca personal)'
+									: 'Solicitar publicación en el catálogo público (solo licencias abiertas)'}
+							</span>
 						</label>
 
+						<Show when={licenseStatus() !== 'copyrighted'}>
+							<div class="field">
+								<label for="upLicense">
+									Licencia abierta {published() ? '(obligatoria para el catálogo público)' : '(opcional)'}
+								</label>
+								<select
+									id="upLicense"
+									value={license()}
+									required={published()}
+									disabled={submitting()}
+									onChange={(event) => {
+										setLicenseManual(true);
+										setLicense(event.currentTarget.value);
+									}}
+								>
+									<option value="">Sin especificar (solo biblioteca privada)</option>
+									{OPEN_LICENSE_OPTIONS.map((option) => (
+										<option value={option} selected={license() === option}>
+											{option}
+										</option>
+									))}
+									<Show
+										when={
+											license() &&
+											!(OPEN_LICENSE_OPTIONS as readonly string[]).includes(license())
+										}
+									>
+										<option value={license()} selected>
+											{license()}
+										</option>
+									</Show>
+								</select>
+							</div>
+						</Show>
+
 						<p class="pipe-notice">
-							Al subirlo queda en <b>standby</b> dentro de tu biblioteca, sin publicar. Cuando el PDF está
-							limpio pasa a <b>tested</b> (lectura en Vigilia) y recién ahí lo publicás en el{' '}
-							<b>catálogo público</b> desde Editar.
+							<Show
+								when={published()}
+								fallback={
+									<>
+										Tu PDF queda en tu <b>biblioteca privada</b> para leerlo en Modo Vigilia (solo vos podés
+										verlo). El catálogo público admite únicamente obras de <b>dominio público o licencias
+										abiertas</b>.
+									</>
+								}
+							>
+								Tu libro queda en <b>revisión administrativa</b> antes de publicarse en el catálogo público:
+								verificamos seguridad, formato en Vigilia y que cuente con una <b>licencia abierta o dominio
+								público</b>.
+							</Show>
 						</p>
 
 						<Show when={error()}>
@@ -624,7 +738,11 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 							Cancelar
 						</button>
 						<button class="btn-primary" type="submit" disabled={submitting()}>
-							{submitting() ? 'Enviando…' : published() ? 'Publicar libro' : 'Enviar a standby'}
+							{submitting()
+								? 'Enviando…'
+								: published()
+									? 'Enviar a revisión pública'
+									: 'Guardar en mi biblioteca'}
 						</button>
 					</div>
 					<Show when={prefillStatus()}>

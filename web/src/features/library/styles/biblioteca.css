@@ -1162,6 +1162,12 @@ body.biblioteca-body .tomo-meta .cat {
 	color: var(--b-accent-bright);
 }
 
+body.biblioteca-body .tomo-meta .lic {
+	color: var(--b-body);
+	opacity: 0.85;
+	font-size: 9.5px;
+}
+
 body.biblioteca-body .tomo-meta .peso {
 	color: var(--b-ghost);
 }

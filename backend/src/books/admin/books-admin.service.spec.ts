@@ -234,14 +234,35 @@ describe('BooksAdminService', () => {
       expect(reviewed).toMatchObject({ reviewStatus: 'approved', reviewedBy: 'admin-1' });
     });
 
-    it('publishes only when the explicit publish flag is sent', async () => {
-      const book = bookRow({ published: false });
+    it('publishes only when the explicit publish flag is sent and the book has an open license', async () => {
+      const book = bookRow({ published: false, license: 'Dominio público' });
       findOne.mockResolvedValue(book);
 
       await service.review(7, { decision: 'approved', publish: true }, 'admin-1');
 
       expect(book.reviewStatus).toBe('approved');
       expect(book.published).toBe(true);
+    });
+
+    it('rejects publishing on approval when the book lacks an open license', async () => {
+      const book = bookRow({ published: false, license: null });
+      findOne.mockResolvedValue(book);
+
+      await expect(
+        service.review(7, { decision: 'approved', publish: true }, 'admin-1'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(book.published).toBe(false);
+      expect(save).not.toHaveBeenCalled();
+    });
+
+    it('rejects approving an already-published book that lacks an open license', async () => {
+      const book = bookRow({ published: true, reviewStatus: 'pending', license: null });
+      findOne.mockResolvedValue(book);
+
+      await expect(
+        service.review(7, { decision: 'approved' }, 'admin-1'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(save).not.toHaveBeenCalled();
     });
 
     it('rejects with the note, unpublishing whatever was published before', async () => {

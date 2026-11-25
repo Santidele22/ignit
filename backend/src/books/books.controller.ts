@@ -104,6 +104,7 @@ export class BooksController {
     } else {
       where = {
         published: true,
+        reviewStatus: 'approved',
         ...(query.kind ? { kind: query.kind } : {}),
       };
     }

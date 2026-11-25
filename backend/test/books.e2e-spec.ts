@@ -132,12 +132,36 @@ describe('Ignit Books Multi-User (e2e)', () => {
     expect(privA.body.ownerId).toBe('user-a');
     expect(privA.body.isOwner).toBe(true);
 
-    const pubA = await request(server())
+    // Requesting public publication without an open license fails with 400
+    await request(server())
       .post('/books')
       .set('Cookie', USER_A_COOKIE)
       .send({ ...ddia, kind: 'tecnico', published: true })
+      .expect(400);
+
+    // Non-admin with an open license enters pending review (published stays false until admin approves)
+    const pubA = await request(server())
+      .post('/books')
+      .set('Cookie', USER_A_COOKIE)
+      .send({ ...ddia, kind: 'tecnico', license: 'CC BY 4.0', published: true })
       .expect(201);
     expect(pubA.body.ownerId).toBe('user-a');
+    expect(pubA.body.published).toBe(false);
+    expect(pubA.body.reviewStatus).toBe('pending');
+
+    // Non-admin cannot self-publish via PATCH before admin approval
+    await request(server())
+      .patch(`/books/${pubA.body.id}`)
+      .set('Cookie', USER_A_COOKIE)
+      .send({ published: true })
+      .expect(403);
+
+    // Admin approves & publishes the open-license book
+    const admin = await signInAdmin();
+    await admin
+      .post(`/admin/books/${pubA.body.id}/review`)
+      .send({ decision: 'approved', publish: true })
+      .expect(201);
 
     // User B creates one private book
     const privB = await request(server())
@@ -175,7 +199,12 @@ describe('Ignit Books Multi-User (e2e)', () => {
     const pubA = await request(server())
       .post('/books')
       .set('Cookie', USER_A_COOKIE)
-      .send({ ...ddia, published: true })
+      .send({ ...ddia, license: 'Dominio público', published: false })
+      .expect(201);
+    const adminForApprove = await signInAdmin();
+    await adminForApprove
+      .post(`/admin/books/${pubA.body.id}/review`)
+      .send({ decision: 'approved', publish: true })
       .expect(201);
 
     // Private book returns 404 to anonymous and User B across all routes
@@ -237,7 +266,7 @@ describe('Ignit Books Multi-User (e2e)', () => {
     const pubA = await request(server())
       .post('/books')
       .set('Cookie', USER_A_COOKIE)
-      .send({ ...ddia, published: true })
+      .send({ ...ddia, license: 'Dominio público', published: false })
       .expect(201);
     const id = pubA.body.id;
 
@@ -245,6 +274,12 @@ describe('Ignit Books Multi-User (e2e)', () => {
       .post(`/books/${id}/file`)
       .set('Cookie', USER_A_COOKIE)
       .attach('file', textPdfBuffer, { filename: 'ddia.pdf', contentType: 'application/pdf' })
+      .expect(201);
+
+    const adminForApprove = await signInAdmin();
+    await adminForApprove
+      .post(`/admin/books/${id}/review`)
+      .send({ decision: 'approved', publish: true })
       .expect(201);
 
     // Anonymous reader can open the Vigilia reading text of a published book
@@ -305,9 +340,12 @@ describe('Ignit Books Multi-User (e2e)', () => {
     const admin = await signInAdmin();
     const tech = await admin
       .post('/books')
-      .send({ ...cleanCode, kind: 'tecnico', published: true })
+      .send({ ...cleanCode, kind: 'tecnico', license: 'CC BY 4.0', published: true })
       .expect(201);
-    await admin.post('/books').send({ ...ddia, kind: 'no_tecnico', published: true }).expect(201);
+    await admin
+      .post('/books')
+      .send({ ...ddia, kind: 'no_tecnico', license: 'Dominio público', published: true })
+      .expect(201);
 
     const page = await request(server())
       .get('/books?published=true&kind=tecnico&limit=4&offset=0')
@@ -332,7 +370,10 @@ describe('Ignit Books Multi-User (e2e)', () => {
 
   it('answers 404 when the stored file is missing on disk', async () => {
     const admin = await signInAdmin();
-    const created = await admin.post('/books').send({ ...cleanCode, published: true }).expect(201);
+    const created = await admin
+      .post('/books')
+      .send({ ...cleanCode, license: 'CC BY 4.0', published: true })
+      .expect(201);
     const books = app.get(DataSource).getRepository(Book);
     await books.save(books.create({ id: created.body.id, filePath: 'uploads/books/missing-000.pdf' }));
 

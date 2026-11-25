@@ -30,10 +30,11 @@ export function isBookOwner(
 }
 
 export function canReadBook(
-  book: Pick<Book, 'published' | 'ownerId'>,
+  book: Pick<Book, 'published' | 'ownerId'> & Partial<Pick<Book, 'reviewStatus'>>,
   user: RouteSessionUser | null | undefined,
 ): boolean {
-  return book.published === true || isBookOwner(book, user) || isAdminUser(user);
+  const isPubliclyApproved = book.published === true && book.reviewStatus === 'approved';
+  return isPubliclyApproved || isBookOwner(book, user) || isAdminUser(user);
 }
 
 export function requireSessionUser(
@@ -50,7 +51,7 @@ export function requireSessionUser(
  * books belonging to other users (answers 404).
  */
 export function assertCanReadBook(
-  book: Pick<Book, 'id' | 'published' | 'ownerId'>,
+  book: Pick<Book, 'id' | 'published' | 'ownerId'> & Partial<Pick<Book, 'reviewStatus'>>,
   user: RouteSessionUser | null | undefined,
 ): void {
   if (!canReadBook(book, user)) {
@@ -63,7 +64,7 @@ export function assertCanReadBook(
  * existence leak) and 403 on another user's published book.
  */
 export function assertCanManageBook(
-  book: Pick<Book, 'id' | 'published' | 'ownerId'>,
+  book: Pick<Book, 'id' | 'published' | 'ownerId'> & Partial<Pick<Book, 'reviewStatus'>>,
   user: RouteSessionUser | null | undefined,
 ): void {
   if (!canReadBook(book, user)) {

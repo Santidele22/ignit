@@ -169,7 +169,7 @@ describe('Books with BOOKS_STORAGE=s3 (e2e, mocked S3)', () => {
       .post(`/books/${id}/file`)
       .attach('file', pdfBuffer, { filename: 'x.pdf', contentType: 'application/pdf' })
       .expect(201);
-    await browser.patch(`/books/${id}`).send({ published: true }).expect(200);
+    await browser.patch(`/books/${id}`).send({ license: 'CC BY 4.0', published: true }).expect(200);
 
     await request(server()).get(`/books/${id}/download`).expect(401);
     await request(server())
@@ -196,7 +196,10 @@ describe('Books with BOOKS_STORAGE=s3 (e2e, mocked S3)', () => {
   it('keeps the row untouched and answers 502 when the storage upload fails', async () => {
     aws.send.mockRejectedValue(new Error('S3 unavailable'));
     const browser = await signIn();
-    const created = await browser.post('/books').send({ ...cleanCode, published: true }).expect(201);
+    const created = await browser
+      .post('/books')
+      .send({ ...cleanCode, license: 'CC BY 4.0', published: true })
+      .expect(201);
     const id = created.body.id;
 
     await browser

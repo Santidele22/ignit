@@ -1,4 +1,5 @@
 import { Show, createEffect, createSignal, onCleanup } from 'solid-js';
+import { OPEN_LICENSE_OPTIONS } from '../../../entities/book/open-licenses';
 import type { Book } from '../../../entities/book/types';
 import CoverPickerModal from '../../book/components/CoverPickerModal';
 import { deleteBook, updateBook, uploadBookFile } from '../../book/api/books-admin';
@@ -29,6 +30,7 @@ export interface EditBookResult {
 
 export interface EditBookModalProps {
 	book: Book | null;
+	isAdmin?: boolean;
 	onClose: () => void;
 	onSaved: (result: EditBookResult) => void;
 	onDeleted: (result: EditBookResult) => void;
@@ -441,15 +443,33 @@ export default function EditBookModal(props: EditBookModalProps) {
 									</div>
 								</div>
 								<div class="field">
-									<label for="editBookLicense">Licencia / Derechos</label>
-									<input
+									<label for="editBookLicense">
+										Licencia abierta {form().published ? '(obligatoria para catálogo público)' : '(opcional)'}
+									</label>
+									<select
 										id="editBookLicense"
-										type="text"
-										placeholder="Ej. CC BY-NC-SA 4.0 · Autorización editorial"
 										value={form().license ?? ''}
+										required={form().published}
 										disabled={saving()}
-										onInput={(event) => update('license', event.currentTarget.value)}
-									/>
+										onChange={(event) => update('license', event.currentTarget.value)}
+									>
+										<option value="">Sin especificar (solo biblioteca privada)</option>
+										{OPEN_LICENSE_OPTIONS.map((option) => (
+											<option value={option} selected={form().license === option}>
+												{option}
+											</option>
+										))}
+										<Show
+											when={
+												form().license &&
+												!(OPEN_LICENSE_OPTIONS as readonly string[]).includes(form().license ?? '')
+											}
+										>
+											<option value={form().license} selected>
+												{form().license}
+											</option>
+										</Show>
+									</select>
 								</div>
 								<div class="modal-grid">
 									<div class="field">
@@ -478,16 +498,28 @@ export default function EditBookModal(props: EditBookModalProps) {
 							</div>
 						</details>
 
-						<label class="field checkbox-field">
-							<input
-								id="editBookPublished"
-								type="checkbox"
-								checked={form().published}
-								disabled={saving()}
-								onChange={(event) => update('published', event.currentTarget.checked)}
-							/>
-							<span class="checkbox-label">Publicado en el catálogo</span>
-						</label>
+						<Show
+							when={props.isAdmin === true || props.book?.published === true}
+							fallback={
+								<p class="pipe-notice">
+									Este libro está en tu <b>biblioteca privada</b>. Para figurar en el catálogo público elegí una
+									licencia abierta y aguardá la aprobación administrativa.
+								</p>
+							}
+						>
+							<label class="field checkbox-field">
+								<input
+									id="editBookPublished"
+									type="checkbox"
+									checked={form().published}
+									disabled={saving()}
+									onChange={(event) => update('published', event.currentTarget.checked)}
+								/>
+								<span class="checkbox-label">
+									Publicado en el catálogo público (requiere licencia abierta y aprobación)
+								</span>
+							</label>
+						</Show>
 
 						<div
 							class="drop-pdf"

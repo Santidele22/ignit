@@ -1,4 +1,5 @@
 import { For, Show, createSignal, onCleanup, onMount } from 'solid-js';
+import { isOpenLicense } from '../../../entities/book/open-licenses';
 import { signOutCleanly } from '../../auth/api/authActions';
 import { BookClutterPanel } from './BookClutterPanel';
 import { FirewallPipeline } from './FirewallPipeline';
@@ -513,13 +514,25 @@ export default function AdminQueueApp(props: AdminQueueAppProps) {
 
 											<Show when={mode() === 'approve'}>
 												<div class="arm-panel" role="group" aria-label={`Confirmar aprobación de «${book.title}»`}>
-													<label class="arm-check">
+													<label
+														class="arm-check"
+														title={
+															isOpenLicense(book.license)
+																? 'Publicar en el catálogo público'
+																: 'Requiere licencia abierta o dominio público para publicar'
+														}
+													>
 														<input
 															type="checkbox"
-															checked={publishOnApprove()}
+															checked={isOpenLicense(book.license) && publishOnApprove()}
+															disabled={!isOpenLicense(book.license)}
 															onChange={(event) => setPublishOnApprove(event.currentTarget.checked)}
 														/>
-														<span>publicar al aprobar</span>
+														<span>
+															{isOpenLicense(book.license)
+																? 'publicar al aprobar'
+																: 'sin licencia abierta (solo privado)'}
+														</span>
 													</label>
 													<button
 														ref={(element) => {

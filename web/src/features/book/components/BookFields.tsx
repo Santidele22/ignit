@@ -1,7 +1,7 @@
 import { AdminField } from '../../../shared/ui/admin/AdminField';
 import { AdminSelectField } from '../../../shared/ui/admin/AdminSelectField';
 import { adminHintClass } from '../../../shared/ui/admin/styles';
-import { BOOK_KIND_OPTIONS, BOOK_STATUS_OPTIONS } from '../bookForm';
+import { BOOK_KIND_OPTIONS, BOOK_STATUS_OPTIONS, OPEN_LICENSE_SELECT_OPTIONS } from '../bookForm';
 import type { BookFormState } from '../bookForm';
 
 export type BookFieldsProps = {
@@ -70,6 +70,21 @@ export function BookFields(props: BookFieldsProps) {
 				/>
 			</div>
 			<div class="sm:col-span-2">
+				<AdminSelectField
+					id={`${props.prefix}-license`}
+					label="LICENCIA ABIERTA"
+					value={props.form.license ?? ''}
+					options={
+						props.form.license && !OPEN_LICENSE_SELECT_OPTIONS.some((o) => o.value === props.form.license)
+							? [...OPEN_LICENSE_SELECT_OPTIONS, { value: props.form.license, label: props.form.license }]
+							: OPEN_LICENSE_SELECT_OPTIONS
+					}
+					hint="Obligatoria para el catálogo público (dominio público, Creative Commons, Open Source o documentación libre)."
+					disabled={props.disabled}
+					onInput={(value) => props.onInput('license', value)}
+				/>
+			</div>
+			<div class="sm:col-span-2">
 				<label class="flex w-fit items-center gap-3">
 					<input
 						type="checkbox"
@@ -79,11 +94,12 @@ export function BookFields(props: BookFieldsProps) {
 						class="size-4 rounded-sm border border-border bg-background accent-aka disabled:cursor-not-allowed disabled:opacity-60"
 					/>
 					<span class="text-[11px] font-medium tracking-[0.2em] text-muted-foreground">
-						PUBLICAR EN EL CATÁLOGO DE IGNIT
+						PUBLICAR EN EL CATÁLOGO PÚBLICO (SOLO LICENCIAS ABIERTAS)
 					</span>
 				</label>
 				<p class={adminHintClass}>
-					Si lo dejás sin marcar, solo vos podés verlo y leerlo. Al publicarlo aparece en Explorar.
+					Si lo dejás sin marcar, queda en tu biblioteca privada para leer en Modo Vigilia. Para salir en el catálogo
+					público requiere licencia abierta y aprobación administrativa.
 				</p>
 			</div>
 		</div>

@@ -32,7 +32,12 @@ describe('BookOwnerGuard', () => {
   });
 
   it('throws 403 on a published book belonging to another user', async () => {
-    findOne.mockResolvedValue({ id: 9, ownerId: 'owner-1', published: true } as Book);
+    findOne.mockResolvedValue({
+      id: 9,
+      ownerId: 'owner-1',
+      published: true,
+      reviewStatus: 'approved',
+    } as Book);
 
     await expect(
       guard.canActivate(contextWith('9', { id: 'other-user', role: 'user' })),

@@ -1,4 +1,4 @@
-import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { FindOptionsWhere, Repository } from 'typeorm';
 import type { RouteSessionUser } from '../auth/guards/session-reader.js';
@@ -11,7 +11,7 @@ import type { CreateBookDto } from './dto/create-book.dto.js';
 import type { BookMetricEvent } from './dto/record-book-metric.dto.js';
 import type { UpdateBookDto } from './dto/update-book.dto.js';
 import type { UpdateReadingStateDto } from './dto/update-reading-state.dto.js';
-import { Book } from './entities/book.entity.js';
+import { Book, REVIEW_STATUS_PENDING } from './entities/book.entity.js';
 import { DownloadEvent } from './entities/download-event.entity.js';
 import { ReadingState } from './entities/reading-state.entity.js';
 import {
@@ -22,6 +22,11 @@ import {
   requireSessionUser,
 } from './lib/book-access.js';
 import { createBookRow, removeBookRow, updateBookRow } from './lib/book-columns.js';
+import {
+  ADMIN_APPROVAL_REQUIRED_MESSAGE,
+  isOpenLicense,
+  OPEN_LICENSE_REQUIRED_MESSAGE,
+} from './lib/open-licenses.js';
 import { downloadDescriptor } from './lib/book-download.js';
 import { attachBookFile, type UploadedPdf } from './lib/book-file.js';
 import { findBookOrFail, requireStoredFile } from './lib/book-lookup.js';
@@ -85,7 +90,10 @@ export class BooksService {
     return book;
   }
 
-  createForUser(dto: CreateBookDto, owner: SessionUserIdentity): Promise<Book> {
+  createForUser(
+    dto: CreateBookDto,
+    owner: SessionUserIdentity & Partial<Pick<RouteSessionUser, 'role'>>,
+  ): Promise<Book> {
     return createBookRow(this.booksRepository, this.usersRepository, dto, owner);
   }
 
@@ -96,11 +104,31 @@ export class BooksService {
   ): Promise<Book> {
     const book = await this.findOne(id);
     assertCanManageBook(book, user);
-    if (dto.published === true && book.reviewStatus === 'rejected' && !isAdminUser(user)) {
-      throw new ForbiddenException(
-        'Este libro fue retirado por administración y solo un administrador puede volver a publicarlo',
-      );
+    const admin = isAdminUser(user);
+
+    if (dto.published === true && !admin) {
+      if (book.reviewStatus === 'rejected') {
+        throw new ForbiddenException(
+          'Este libro fue retirado por administración y solo un administrador puede volver a publicarlo',
+        );
+      }
+      if (book.published !== true) {
+        throw new ForbiddenException(ADMIN_APPROVAL_REQUIRED_MESSAGE);
+      }
     }
+
+    const nextPublished = dto.published !== undefined ? dto.published : book.published;
+    const nextLicense = dto.license !== undefined ? dto.license : book.license;
+    if (nextPublished === true && !isOpenLicense(nextLicense)) {
+      throw new BadRequestException(OPEN_LICENSE_REQUIRED_MESSAGE);
+    }
+
+    if (admin && dto.published === true && book.reviewStatus !== 'approved') {
+      book.reviewStatus = 'approved';
+      book.reviewedBy = user?.id ?? null;
+      book.reviewedAt = new Date();
+    }
+
     return updateBookRow(this.booksRepository, book, dto);
   }
 
@@ -122,6 +150,12 @@ export class BooksService {
   ): Promise<Book> {
     const book = await this.findOne(id);
     assertCanManageBook(book, user);
+    // Prevent post-approval PDF bait-and-switch: replacing the PDF as a non-admin
+    // returns the book to private pending review until an admin re-approves it.
+    if (!isAdminUser(user) && (book.published === true || book.reviewStatus === 'approved')) {
+      book.published = false;
+      book.reviewStatus = REVIEW_STATUS_PENDING;
+    }
     return attachBookFile(this.booksRepository, this.bookStorage, book, file);
   }
 

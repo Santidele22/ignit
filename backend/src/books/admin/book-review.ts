@@ -6,6 +6,7 @@ import {
   type Book,
   type BookReviewStatus,
 } from '../entities/book.entity.js';
+import { isOpenLicense, OPEN_LICENSE_REQUIRED_MESSAGE } from '../lib/open-licenses.js';
 import { REVIEW_DECISIONS, type ReviewBookDto } from './dto/review-book.dto.js';
 import type { UnpublishBookDto } from './dto/unpublish-book.dto.js';
 
@@ -30,6 +31,12 @@ export function applyReviewDecision(
 ): Book {
   if (!REVIEW_DECISIONS.includes(dto.decision)) {
     throw new BadRequestException(INVALID_REVIEW_DECISION_MESSAGE);
+  }
+
+  const willBePublished =
+    dto.decision === 'approved' && (dto.publish === true || book.published === true);
+  if (willBePublished && !isOpenLicense(book.license)) {
+    throw new BadRequestException(OPEN_LICENSE_REQUIRED_MESSAGE);
   }
 
   const note = dto.note?.trim();

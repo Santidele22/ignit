@@ -1,3 +1,8 @@
+import {
+	OPEN_LICENSE_OPTIONS,
+	OPEN_LICENSE_REQUIRED_MESSAGE,
+	isOpenLicense,
+} from '../../entities/book/open-licenses';
 import type { BookKind, ReadingStatus } from '../../entities/book/types';
 import type { AdminBookRow, BookWriteBody } from './api/books-admin';
 
@@ -47,6 +52,11 @@ export const BOOK_STATUS_OPTIONS: { value: ReadingStatus; label: string }[] = [
 export const BOOK_KIND_OPTIONS: { value: BookKind; label: string }[] = [
 	{ value: 'tecnico', label: 'Técnico' },
 	{ value: 'no_tecnico', label: 'No técnico' },
+];
+
+export const OPEN_LICENSE_SELECT_OPTIONS: { value: string; label: string }[] = [
+	{ value: '', label: 'Sin especificar (solo biblioteca privada)' },
+	...OPEN_LICENSE_OPTIONS.map((license) => ({ value: license, label: license })),
 ];
 
 const STATUS_KEYS: string[] = BOOK_STATUS_OPTIONS.map((option) => option.value);
@@ -116,6 +126,9 @@ export function validateBookForm(form: BookFormState): string | null {
 	if (!form.title.trim()) return 'El libro necesita un título.';
 	if (!form.author.trim()) return 'El libro necesita un autor.';
 	if (!form.description.trim()) return 'El libro necesita una descripción.';
+	if (form.published && !isOpenLicense(form.license)) {
+		return OPEN_LICENSE_REQUIRED_MESSAGE;
+	}
 	const ctaUrl = form.ctaUrl?.trim();
 	if (ctaUrl && !/^https?:\/\//i.test(ctaUrl)) {
 		return 'El enlace externo debe comenzar con http:// o https://.';

@@ -11,6 +11,7 @@
  * (`#catSearch`, `.chip[data-filtro]`, `.tomo`, `.btn-dl`, `#dlCount`,
  * `#dlBar`, `#catEmptySearch`); por eso no hay `<script is:inline>`.
  */
+import { formatLicenseBadge } from '../../../entities/book/open-licenses';
 import type { Book, BookKind } from '../../../entities/book/types';
 import PaginationControls from '../../../shared/ui/PaginationControls.astro';
 import {
@@ -63,8 +64,8 @@ const indexLabel = (position: number) => String(position).padStart(2, '0');
 			<div>
 				<h2>Elegí qué descargar, <span class="azu">no instales todo.</span></h2>
 				<p class="lead">
-					Cada libro publicado ya está limpio para Vigilia. Podés leer online sin cuenta o descargar solo los que
-					llevás encima — livianos, en tu dispositivo.
+					El catálogo público reúne exclusivamente obras en dominio público y licencias abiertas (Creative Commons,
+					documentación técnica open source y libros libres), listas para leer en Vigilia o descargar offline.
 				</p>
 			</div>
 			<div class="device-meter" aria-live="polite">
@@ -149,6 +150,7 @@ const indexLabel = (position: number) => String(position).padStart(2, '0');
 						{items.map((book, index) => {
 							const sizeKb = bookSizeKb(book);
 							const offline = initialOfflineIds.has(book.id);
+							const licenseBadge = formatLicenseBadge(book.license);
 							return (
 								<article
 									class="tomo"
@@ -176,6 +178,11 @@ const indexLabel = (position: number) => String(position).padStart(2, '0');
 									<div class="tomo-foot">
 										<div class="tomo-meta">
 											<span class="cat">{kindLabel(book.kind)}</span>
+											{licenseBadge && (
+												<span class="lic" title={`Licencia: ${book.license ?? licenseBadge}`}>
+													{licenseBadge}
+												</span>
+											)}
 											<span class="peso">{formatSizeKb(sizeKb)}</span>
 										</div>
 										<button class="btn-dl" type="button" aria-pressed={offline ? 'true' : 'false'}>{

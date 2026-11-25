@@ -526,6 +526,7 @@ export default function BibliotecaApp(props: BibliotecaAppProps) {
 
 			<EditBookModal
 				book={editingBook()}
+				isAdmin={props.isAdmin === true}
 				onClose={() => setEditingBook(null)}
 				onSaved={(result) => handleEditSaved(result)}
 				onDeleted={(result) => void handleEditDeleted(result)}

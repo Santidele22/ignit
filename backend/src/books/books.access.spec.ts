@@ -1,5 +1,10 @@
 import 'reflect-metadata';
-import { ForbiddenException, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import type { Repository } from 'typeorm';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BookKind } from '../common/enums/book-kind.enum.js';
@@ -21,6 +26,7 @@ function bookRow(overrides: Partial<Book> = {}): Book {
     status: ReadingStatus.QUEUED,
     kind: BookKind.NO_TECNICO,
     published: false,
+    reviewStatus: overrides.published === true ? 'approved' : 'pending',
     ownerId: 'user-a',
     filePath: 'dune.pdf',
     originalName: 'dune.pdf',
@@ -317,6 +323,7 @@ describe('BooksService multi-user isolation and reading state', () => {
         ownerId: 'user-a',
         published: false,
         reviewStatus: 'rejected',
+        license: 'CC BY 4.0',
       }),
     );
 
@@ -330,5 +337,102 @@ describe('BooksService multi-user isolation and reading state', () => {
       { id: 'admin-1', role: 'admin' },
     );
     expect(republishedByAdmin.published).toBe(true);
+    expect(republishedByAdmin.reviewStatus).toBe('approved');
+  });
+
+  it('enforces open license and admin approval for public catalog while keeping private books unrestricted', async () => {
+    // Private book without license succeeds
+    const privateBook = await service.createForUser(
+      {
+        title: 'Apuntes personales',
+        author: 'Yo',
+        description: 'Lectura privada.',
+        status: ReadingStatus.QUEUED,
+        published: false,
+      },
+      { id: 'user-a', role: 'user' },
+    );
+    expect(privateBook.published).toBe(false);
+    expect(privateBook.license ?? null).toBeNull();
+
+    // Requesting public catalog without an open license fails with 400
+    await expect(
+      service.createForUser(
+        {
+          title: 'Novela con copyright',
+          author: 'Autor',
+          description: 'Sin licencia abierta.',
+          status: ReadingStatus.QUEUED,
+          published: true,
+          license: 'Todos los derechos reservados',
+        },
+        { id: 'user-a', role: 'user' },
+      ),
+    ).rejects.toThrow(BadRequestException);
+
+    // Non-admin requesting publication with an open license stays private + pending admin review
+    const pendingPublic = await service.createForUser(
+      {
+        title: 'Libro libre',
+        author: 'Comunidad',
+        description: 'Manual CC BY.',
+        status: ReadingStatus.QUEUED,
+        published: true,
+        license: 'CC BY 4.0',
+      },
+      { id: 'user-a', role: 'user' },
+    );
+    expect(pendingPublic.published).toBe(false);
+    expect(pendingPublic.reviewStatus).toBe('pending');
+
+    // Non-admin cannot self-publish via PATCH while pending
+    await expect(
+      service.updateForUser(pendingPublic.id, { published: true }, { id: 'user-a', role: 'user' }),
+    ).rejects.toThrow(ForbiddenException);
+
+    // Admin can publish an open-license book and clearing its license afterwards is rejected
+    const publishedByAdmin = await service.updateForUser(
+      pendingPublic.id,
+      { published: true },
+      { id: 'admin-1', role: 'admin' },
+    );
+    expect(publishedByAdmin.published).toBe(true);
+    expect(publishedByAdmin.reviewStatus).toBe('approved');
+
+    await expect(
+      service.updateForUser(pendingPublic.id, { license: '' }, { id: 'admin-1', role: 'admin' }),
+    ).rejects.toThrow(BadRequestException);
+
+    // Unapproved published row cannot be read by anonymous or non-owners (404)
+    books.push(
+      bookRow({
+        id: 99,
+        ownerId: 'user-a',
+        published: true,
+        reviewStatus: 'pending',
+        license: 'CC BY 4.0',
+      }),
+    );
+    await expect(service.findOneForReader(99, null)).rejects.toThrow(NotFoundException);
+    await expect(service.findOneForReader(99, { id: 'user-b', role: 'user' })).rejects.toThrow(
+      NotFoundException,
+    );
+    await expect(service.findOneForReader(99, { id: 'user-a', role: 'user' })).resolves.toMatchObject({
+      id: 99,
+    });
+
+    // Non-admin cannot self-publish even if reviewStatus is 'approved' (must be published by admin)
+    books.push(
+      bookRow({
+        id: 100,
+        ownerId: 'user-a',
+        published: false,
+        reviewStatus: 'approved',
+        license: 'CC BY 4.0',
+      }),
+    );
+    await expect(
+      service.updateForUser(100, { published: true }, { id: 'user-a', role: 'user' }),
+    ).rejects.toThrow(ForbiddenException);
   });
 });

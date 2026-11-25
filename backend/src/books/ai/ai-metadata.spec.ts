@@ -6,9 +6,17 @@ import {
 import { searchGoogleBookCovers } from './cover-search.service.js';
 
 describe('suggestMetadataFromFilename', () => {
-  it('returns parsed title, author, description and coverQueries from LLM JSON and fails open when unconfigured', async () => {
+  it('returns parsed title, author, description, coverQueries and open license verdict from LLM JSON and fails open when unconfigured', async () => {
     const noEnv = await suggestMetadataFromFilename('el-elogio-de-la-sombra.pdf', { env: {} });
-    expect(noEnv).toEqual({ title: null, author: null, description: null, coverQueries: [] });
+    expect(noEnv).toEqual({
+      title: null,
+      author: null,
+      description: null,
+      coverQueries: [],
+      license: null,
+      licenseStatus: 'unknown',
+      licenseReason: null,
+    });
 
     const fetchMock = vi.fn(async () => ({
       ok: true,
@@ -17,7 +25,7 @@ describe('suggestMetadataFromFilename', () => {
           {
             message: {
               content:
-                '{"title":"La máquina se detiene","author":"E. M. Forster","description":"Relato distópico sobre una humanidad dependiente de una máquina.","coverQueries":["La máquina se detiene E. M. Forster","The Machine Stops E. M. Forster"]}',
+                '{"title":"La máquina se detiene","author":"E. M. Forster","description":"Relato distópico sobre una humanidad dependiente de una máquina.","coverQueries":["La máquina se detiene E. M. Forster","The Machine Stops E. M. Forster"],"license":"Dominio público","licenseStatus":"open","licenseReason":"Obra publicada en 1909 en dominio público."}',
             },
           },
         ],
@@ -33,7 +41,55 @@ describe('suggestMetadataFromFilename', () => {
       author: 'E. M. Forster',
       description: 'Relato distópico sobre una humanidad dependiente de una máquina.',
       coverQueries: ['La máquina se detiene E. M. Forster', 'The Machine Stops E. M. Forster'],
+      license: 'Dominio público',
+      licenseStatus: 'open',
+      licenseReason: 'Obra publicada en 1909 en dominio público.',
     });
+  });
+
+  it('marks copyrighted books as personal-only and strips non-open license strings', async () => {
+    const copyrightedFetch = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        choices: [
+          {
+            message: {
+              content:
+                '{"title":"Harry Potter","author":"J. K. Rowling","description":"Novela de fantasía.","coverQueries":["Harry Potter J. K. Rowling"],"license":"Todos los derechos reservados","licenseStatus":"copyrighted","licenseReason":"Obra comercial con derechos de autor vigentes."}',
+            },
+          },
+        ],
+      }),
+    }));
+
+    const copyrighted = await suggestMetadataFromFilename('harry-potter.pdf', {
+      env: { LLM_BASE_URL: 'https://api.nan.builders/v1', LLM_API_KEY: 'test-key' },
+      fetchImpl: copyrightedFetch as unknown as typeof fetch,
+    });
+    expect(copyrighted.licenseStatus).toBe('copyrighted');
+    expect(copyrighted.license).toBeNull();
+    expect(copyrighted.licenseReason).toContain('derechos de autor');
+
+    // Defense-in-depth: if the LLM claims "open" with a non-open license string, downgrade to unknown
+    const spoofedFetch = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        choices: [
+          {
+            message: {
+              content:
+                '{"title":"Libro","author":"Autor","description":"Desc","coverQueries":[],"license":"Autorización editorial","licenseStatus":"open","licenseReason":"Permiso"}',
+            },
+          },
+        ],
+      }),
+    }));
+    const spoofed = await suggestMetadataFromFilename('libro.pdf', {
+      env: { LLM_BASE_URL: 'https://api.nan.builders/v1', LLM_API_KEY: 'test-key' },
+      fetchImpl: spoofedFetch as unknown as typeof fetch,
+    });
+    expect(spoofed.licenseStatus).toBe('unknown');
+    expect(spoofed.license).toBeNull();
   });
 });
 

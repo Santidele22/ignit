@@ -2,7 +2,7 @@
 import BaseLayout from '../app/layouts/BaseLayout.astro';
 import { SITE_LEGAL_EMAIL, SITE_NAME } from '../app/config/site';
 
-const lastUpdated = '24 de noviembre de 2026';
+const lastUpdated = '25 de noviembre de 2026';
 ---
 
 <BaseLayout
@@ -43,17 +43,38 @@ const lastUpdated = '24 de noviembre de 2026';
 
 			<section class="space-y-3">
 				<h2 class="font-mincho text-xl font-semibold text-foreground">
-					3. Contenido subido por usuarios y derechos de autor
+					3. Catálogo público de licencias abiertas y biblioteca privada
 				</h2>
 				<p>
-					Cada persona usuaria es la única y exclusiva responsable de los archivos PDF, textos, portadas y metadatos que
-					cargue en {SITE_NAME}. Al subir o solicitar la publicación de un archivo, declarás y garantizás que:
+					{SITE_NAME} distingue estrictamente dos espacios:
 				</p>
 				<ul class="list-disc space-y-2 pl-6 text-foreground/85">
 					<li>
-						Sos titular de los derechos de autor de la obra, contás con autorización o licencia expresa del titular, o
-						la obra (incluyendo su traducción y edición) se encuentra verificablemente en dominio público o bajo una
-						licencia libre compatible (por ejemplo, Creative Commons).
+						<strong>Catálogo público:</strong> aloja exclusivamente obras en <strong>dominio público</strong> o bajo
+						<strong>licencias abiertas</strong> (Creative Commons, documentación técnica open source, libros de
+						programación libres y licencias equivalentes). No se alojan en el catálogo público obras con derechos de
+						autor vigentes sin licencia abierta, y toda publicación requiere validación previa del equipo de
+						administración.
+					</li>
+					<li>
+						<strong>Biblioteca privada:</strong> cada persona usuaria puede subir sus propios documentos PDF de uso
+						personal para leerlos en modo Vigilia de forma estrictamente privada (inaccesibles para terceros).
+					</li>
+				</ul>
+				<p>
+					Cada persona usuaria es la única y exclusiva responsable de los archivos PDF, textos, portadas y metadatos que
+					cargue en {SITE_NAME}. Al subir un archivo o solicitar su publicación en el catálogo público, declarás y
+					garantizás que:
+				</p>
+				<ul class="list-disc space-y-2 pl-6 text-foreground/85">
+					<li>
+						Para el <strong>catálogo público</strong>: la obra (incluyendo su traducción y edición) se encuentra
+						verificablemente en dominio público o bajo la licencia abierta declarada (por ejemplo, Creative Commons,
+						MIT, Apache, GPL o GFDL).
+					</li>
+					<li>
+						Para tu <strong>biblioteca privada</strong>: contás con acceso legítimo al archivo para tu lectura personal
+						y no lo distribuirás públicamente a través de la plataforma.
 					</li>
 					<li>
 						El material no infringe la Ley 11.723 de Propiedad Intelectual (Argentina), la Digital Millennium Copyright

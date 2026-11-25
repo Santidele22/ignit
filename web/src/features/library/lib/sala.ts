@@ -1,3 +1,4 @@
+import { isOpenLicense } from '../../../entities/book/open-licenses';
 import type { Book, BookKind } from '../../../entities/book/types';
 import {
 	bookSizeKb,
@@ -230,7 +231,9 @@ export function mergeSalaBooks(input: MergeSalaBooksInput): SalaBook[] {
 				: 0;
 		const progressPage = snap ? snap.page : 0;
 		const isUnapproved = book.reviewStatus === 'pending' || book.reviewStatus === 'rejected';
-		const inLibrary = !isUnapproved && Boolean(book.isOwner || isOffline || snap);
+		// Owner's own books (including private personal PDFs) always stay visible
+		// in "Mi biblioteca" and HeroDash continuity for Modo Vigilia reading.
+		const inLibrary = Boolean(book.isOwner || (!isUnapproved && (isOffline || snap)));
 		const sizeKb = offline ? offline.kb : bookSizeKb(book);
 
 		return {
@@ -349,12 +352,15 @@ export function deriveAporteRows(books: readonly SalaBook[]): AporteRow[] {
 			}
 
 			if (book.hasFile) {
+				const openLicense = isOpenLicense(book.license);
 				return {
 					book,
 					stage: 'tested',
 					stageIndex: 3,
-					statusTag: 'EN REVISIÓN',
-					note: 'PDF cargado y listo en tu biblioteca privada. Podés abrir la vista previa en Vigilia o publicarlo desde Editar.',
+					statusTag: openLicense ? 'EN REVISIÓN' : 'PRIVADO',
+					note: openLicense
+						? 'PDF cargado en tu biblioteca privada. Postulado al catálogo público: pendiente de aprobación administrativa.'
+						: 'PDF cargado y listo en tu biblioteca privada para leer en Modo Vigilia (solo visible para vos).',
 					metaLine,
 					previewHref: `/lecturas/${book.id}`,
 				};

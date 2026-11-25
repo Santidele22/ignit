@@ -24,6 +24,7 @@ function bookRow(overrides: Partial<Book> = {}): Book {
     fileSize: null,
     mimeType: null,
     published: false,
+    reviewStatus: overrides.published === true ? 'approved' : 'pending',
     ownerId: 'dev-test-user',
     ...overrides,
   } as Book;
