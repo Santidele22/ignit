@@ -567,6 +567,91 @@ body.admin-body .clutter-preview iframe {
 	border: 0;
 }
 
+body.admin-body .chunk-editor {
+	margin: 12px 0;
+	padding: 12px;
+	border: 1px solid var(--b-border);
+	background: color-mix(in oklab, var(--b-bg) 70%, transparent);
+}
+
+body.admin-body .chunk-editor-filters {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 10px;
+}
+
+body.admin-body .chunk-filter-input,
+body.admin-body .chunk-filter-page,
+body.admin-body .chunk-select {
+	background: var(--b-bg);
+	color: var(--b-fg);
+	border: 1px solid var(--b-border);
+	padding: 4px 8px;
+	font-size: 12px;
+	font-family: var(--b-sans);
+}
+
+body.admin-body .chunk-filter-input {
+	flex: 1 1 180px;
+	min-width: 140px;
+}
+
+body.admin-body .chunk-filter-page {
+	width: 72px;
+}
+
+body.admin-body .chunk-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	max-height: 420px;
+	overflow-y: auto;
+}
+
+body.admin-body .chunk-row {
+	padding: 8px 10px;
+	border: 1px solid var(--b-border);
+	background: var(--b-bg);
+}
+
+body.admin-body .chunk-row[data-dropped="true"] {
+	opacity: 0.45;
+	text-decoration: line-through;
+}
+
+body.admin-body .chunk-controls {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 4px;
+}
+
+body.admin-body .chunk-drop-btn {
+	margin-left: auto;
+}
+
+body.admin-body .chunk-text {
+	margin: 0;
+	font-size: 12px;
+	line-height: 1.5;
+	color: var(--b-body);
+}
+
+body.admin-body .chunk-pagination {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin-top: 10px;
+}
+
 body.admin-body .row-ai[data-tone="ok"] {
 	border-color: color-mix(in oklab, var(--b-ok) 55%, var(--b-border));
 	color: var(--b-ok);

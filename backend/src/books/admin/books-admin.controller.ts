@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   ParseIntPipe,
+  Patch,
   Post,
   Query,
   Req,
@@ -157,5 +158,54 @@ export class BooksAdminController {
       id,
       Array.isArray(body?.chunkIds) ? body.chunkIds : [],
     );
+  }
+
+  @Post(':id/reextract')
+  @ApiOperation({
+    summary: 'Re-extract reading.json from the stored PDF and re-run LLM refiner (admin only)',
+    description:
+      'Downloads the stored PDF, runs the latest deterministic extractor, saves `reading.deterministic.json`, and runs the LLM structural refiner.',
+  })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiCreatedResponse({ description: 'Re-extraction and refinement summary' })
+  @ApiNotFoundResponse({ description: 'Book not found or PDF missing' })
+  reextract(@Param('id', ParseIntPipe) id: number) {
+    return this.booksAdminService.reextractReading(id);
+  }
+
+  @Get(':id/chunks')
+  @ApiOperation({
+    summary: 'List reading.json chunks for manual structural editing (admin only)',
+  })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiOkResponse({ description: 'Paginated/filtered list of reading chunks' })
+  @ApiNotFoundResponse({ description: 'Book not found or no extracted reading.json' })
+  chunks(
+    @Param('id', ParseIntPipe) id: number,
+    @Query('page') page?: string,
+    @Query('q') q?: string,
+    @Query('offset') offset?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.booksAdminService.getReadingChunks(id, {
+      page: page ? Number(page) : undefined,
+      q,
+      offset: offset ? Number(offset) : undefined,
+      limit: limit ? Number(limit) : undefined,
+    });
+  }
+
+  @Patch(':id/chunks')
+  @ApiOperation({
+    summary: 'Apply manual structural patches (reclassify, drop, merge) to reading.json (admin only)',
+  })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiOkResponse({ description: 'Summary of manual structural patches applied' })
+  @ApiNotFoundResponse({ description: 'Book not found or no extracted reading.json' })
+  patchChunks(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { patches?: unknown[] },
+  ) {
+    return this.booksAdminService.patchReadingChunks(id, body?.patches ?? []);
   }
 }

@@ -161,6 +161,18 @@ describe('heading helpers', () => {
 					page: 5,
 					text: 'ANDREW S. TANENBAUM Vrije Universiteit Amsterdam, Holanda',
 				}),
+				makeChunk({
+					id: 'p0005.0100',
+					type: 'heading',
+					page: 5,
+					text: 'Diseño, diagramación y portada Vanessa Blanco',
+				}),
+				makeChunk({
+					id: 'p0005.0200',
+					type: 'heading',
+					page: 5,
+					text: 'Créditos Editoriales',
+				}),
 				makeChunk({ id: 'p0020.0000', type: 'para', page: 20, text: 'Primer párrafo real del libro.' }),
 			],
 			200,
@@ -184,7 +196,11 @@ describe('heading helpers', () => {
 			kind: 'meta',
 			chunkId: 'p0005.0000',
 			page: 5,
-			text: 'ANDREW S. TANENBAUM Vrije Universiteit Amsterdam, Holanda',
+			text: [
+				'ANDREW S. TANENBAUM Vrije Universiteit Amsterdam, Holanda',
+				'Diseño, diagramación y portada Vanessa Blanco',
+				'Créditos Editoriales',
+			].join('\n'),
 		});
 		expect(prepared.items[2]).toMatchObject({ kind: 'para', text: 'Primer párrafo real del libro.' });
 	});

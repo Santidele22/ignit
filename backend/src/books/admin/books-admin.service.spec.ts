@@ -326,4 +326,74 @@ describe('BooksAdminService', () => {
       );
     });
   });
+
+  describe('reading chunks editor', () => {
+    it('lists filtered chunks and applies manual reclassify/drop patches without AI length limits', async () => {
+      const book = bookRow();
+      findOne.mockResolvedValue(book);
+      const readingDoc = {
+        bookId: '7',
+        pdfPages: 10,
+        ocrPending: false,
+        extractorVersion: 1,
+        chunks: [
+          {
+            id: 'p0001.0000',
+            type: 'heading',
+            level: 2,
+            page: 1,
+            offset: 0,
+            text: 'E2 a E3',
+            mood: 'espera',
+            cues: [],
+          },
+          {
+            id: 'p0001.0010',
+            type: 'para',
+            page: 1,
+            offset: 10,
+            text: 'Créditos Editoriales '.repeat(15).trim(),
+            mood: 'espera',
+            cues: [],
+          },
+          {
+            id: 'p0002.0000',
+            type: 'para',
+            page: 2,
+            offset: 0,
+            text: 'Capítulo I: La estrategia.',
+            mood: 'espera',
+            cues: [],
+          },
+        ],
+      };
+      const putJson = vi.fn(async () => undefined);
+      getJson = vi.fn(async (key: string) =>
+        key.endsWith('reading.json') ? readingDoc : null,
+      );
+      bookStorage = { strategy: 's3', getJson, putJson } as unknown as BookStorage;
+      service = new BooksAdminService(
+        { find, count, findOne, save } as unknown as Repository<Book>,
+        bookStorage,
+      );
+
+      const list = await service.getReadingChunks(7, { page: 1 });
+      expect(list.totalChunks).toBe(3);
+      expect(list.filteredTotal).toBe(2);
+      expect(list.chunks.map((c) => c.id)).toEqual(['p0001.0000', 'p0001.0010']);
+
+      const patched = await service.patchReadingChunks(7, [
+        { op: 'drop', id: 'p0001.0000' },
+        { op: 'reclassify', id: 'p0001.0010', type: 'meta' },
+      ]);
+      expect(patched).toMatchObject({
+        bookId: 7,
+        applied: true,
+        dropped: 1,
+        reclassified: 1,
+        totalChunks: 2,
+      });
+      expect(putJson).toHaveBeenCalled();
+    });
+  });
 });

@@ -36,10 +36,17 @@ export function parseRefinerPatches(payload: unknown): RefinerPatch[] {
   if (!content) return [];
 
   const obj = parseJsonObject(content);
-  if (!obj || !Array.isArray(obj.patches)) return [];
+  if (!obj) return [];
+
+  return validateRefinerPatches(obj.patches);
+}
+
+/** Validates an untrusted patch array (from LLM output or manual admin edit). */
+export function validateRefinerPatches(rawPatches: unknown): RefinerPatch[] {
+  if (!Array.isArray(rawPatches)) return [];
 
   const patches: RefinerPatch[] = [];
-  for (const item of obj.patches) {
+  for (const item of rawPatches) {
     if (typeof item !== 'object' || item === null) continue;
     const rec = item as Record<string, unknown>;
     const op = rec.op;
@@ -92,7 +99,9 @@ export function applyRefinementPatches(
   document: BookReadingDocument,
   patches: RefinerPatch[],
   model?: string,
+  options: { enforceSafetyLimits?: boolean } = {},
 ): RefinementResult {
+  const enforceSafetyLimits = options.enforceSafetyLimits !== false;
   if (patches.length === 0 || document.chunks.length === 0) {
     return {
       document,
@@ -128,11 +137,11 @@ export function applyRefinementPatches(
     const current = src[i];
 
     const dropReason = dropById.get(current.id);
-    if (
+    const canDrop =
       dropReason !== undefined &&
-      current.text.length <= MAX_DROPPABLE_TEXT_LENGTH &&
-      dropped < maxDrops
-    ) {
+      (!enforceSafetyLimits ||
+        (current.text.length <= MAX_DROPPABLE_TEXT_LENGTH && dropped < maxDrops));
+    if (canDrop) {
       dropped += 1;
       clutter.push({
         id: current.id,

@@ -1,4 +1,4 @@
-import { getJson, postJsonReturning } from '../../../shared/api/authorizedHttp';
+import { getJson, patchJson, postJsonReturning } from '../../../shared/api/authorizedHttp';
 import type { FirewallReport } from './admin-firewall';
 import type { AdminQueueBook, AdminQueuePage } from './admin-queue';
 
@@ -126,4 +126,68 @@ export function rerunBookRefinement(id: number): Promise<RefineSummaryResponse> 
 /** `POST /admin/books/:id/refine/revert` — restores deterministic baseline. */
 export function revertBookRefinement(id: number): Promise<{ bookId: number; reverted: boolean }> {
 	return postJsonReturning(`/admin/books/${id}/refine/revert`, {});
+}
+
+/** `POST /admin/books/:id/reextract` — re-extracts from stored PDF + re-runs LLM refiner. */
+export function reextractBookReading(
+	id: number,
+): Promise<RefineSummaryResponse & { totalChunks: number }> {
+	return postJsonReturning(`/admin/books/${id}/reextract`, {});
+}
+
+export type AdminChunkType =
+	| 'para'
+	| 'heading'
+	| 'verse'
+	| 'toc'
+	| 'quote'
+	| 'list'
+	| 'dedication'
+	| 'meta'
+	| 'caption'
+	| 'code';
+
+export type AdminReadingChunk = {
+	id: string;
+	page: number;
+	type: AdminChunkType;
+	level?: 1 | 2 | 3;
+	align?: 'left' | 'center' | 'right';
+	text: string;
+};
+
+export type AdminReadingChunksResponse = {
+	bookId: number;
+	refinedByAi: boolean;
+	totalChunks: number;
+	filteredTotal: number;
+	chunks: AdminReadingChunk[];
+};
+
+export type AdminChunkPatch =
+	| { op: 'reclassify'; id: string; type: AdminChunkType; level?: 1 | 2 | 3 }
+	| { op: 'drop'; id: string; reason?: string }
+	| { op: 'merge'; id: string };
+
+/** `GET /admin/books/:id/chunks` — lists reading.json chunks for manual editing. */
+export function fetchBookChunks(
+	id: number,
+	query: { page?: number; q?: string; offset?: number; limit?: number } = {},
+): Promise<AdminReadingChunksResponse> {
+	const params = new URLSearchParams();
+	if (typeof query.page === 'number' && Number.isFinite(query.page)) {
+		params.set('page', String(query.page));
+	}
+	if (query.q && query.q.trim()) params.set('q', query.q.trim());
+	if (typeof query.offset === 'number') params.set('offset', String(query.offset));
+	if (typeof query.limit === 'number') params.set('limit', String(query.limit));
+	const qs = params.toString();
+	return getJson<AdminReadingChunksResponse>(
+		`/admin/books/${id}/chunks${qs ? `?${qs}` : ''}`,
+	);
+}
+
+/** `PATCH /admin/books/:id/chunks` — applies manual structural patches to reading.json. */
+export function patchBookChunks(id: number, patches: AdminChunkPatch[]): Promise<void> {
+	return patchJson(`/admin/books/${id}/chunks`, { patches });
 }

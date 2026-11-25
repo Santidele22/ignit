@@ -44,9 +44,22 @@ export const PRINT_RUN_RE = /^\d{2}(?:\s+\d{2}){2,12}$/;
 export const EDITION_LINE_RE =
   /^(?:\d+[ªaºo]?\s+edici[oó]n|(?:primera|segunda|tercera|cuarta|quinta|sexta|s[eé]ptima|octava|novena|d[eé]cima)\s+edici[oó]n|(?:first|second|third|fourth|fifth|sixth)\s+edition)\.?$/i;
 export const CREDIT_ROLE_RE =
-  /^(?:traducci[oó]n|revisi[oó]n\s+t[eé]cnica|revisi[oó]n|edici[oó]n\s+t[eé]cnica|edici[oó]n\s+en\s+(?:espa[ñn]ol|ingl[eé]s)|coordinaci[oó]n|supervisi[oó]n|direcci[oó]n|compilaci[oó]n|prefacio\s+a\s+la\s+edici[oó]n|para\s+mayor\s+informaci[oó]n\s+visite|datos\s+de\s+catalogaci[oó]n|authorized\s+translation|traducci[oó]n\s+autorizada)\b/i;
+  /^(?:traducci[oó]n|revisi[oó]n\s+t[eé]cnica|revisi[oó]n|edici[oó]n\s+t[eé]cnica|edici[oó]n\s+en\s+(?:espa[ñn]ol|ingl[eé]s)|coordinaci[oó]n|coordinador[ae]?\s+general|supervisi[oó]n|direcci[oó]n|compilaci[oó]n|prefacio\s+a\s+la\s+edici[oó]n|para\s+mayor\s+informaci[oó]n\s+visite|datos\s+de\s+catalogaci[oó]n|authorized\s+translation|traducci[oó]n\s+autorizada|cr[eé]ditos\s+editoriales|autoridades\s+de\b|rector\b|vicerrector\b|responsable\s+de\s+esta\s+publicaci[oó]n|dise[ñn]o,\s*diagramaci[oó]n|fondo\s+editorial\b|p[aá]gina\s+web\b|twitter\b|blog\b|fanpage\b)/i;
 export const DEDICATION_PREFIX_RE =
   /^(?:Para\s+[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]{1,30}|[Aa]\s+la\s+memoria\s+de\b|[Aa]\s+mi\s+|[Dd]edicado\s+a\b|[Ii]n\s+memory\s+of\b|[Tt]o\s+my\b)/;
+
+const INDESIGN_PLACEHOLDER_TOKEN_RE =
+  /\b(?:evelia|porem|faccus|enturias|cumqui|perovit|lantiasped|tecaero|necabo|rporibus|ipietur|quiat|omnist|expligenesti|niendaes|corempo|repture|simenis|illatem|poreriamene|consers|percidem|debisquos|repratatem|quisint|volenita|moluptus|molupta|explaut|volorpo|invelles|sitiae|rernatur|doluptat|officab|nihilic|vellabo)\b/gi;
+const LOREM_IPSUM_RE = /\b(?:lorem\s+ipsum|consectetur\s+adipiscing\s+elit)\b/i;
+const LAYOUT_SLOT_MARKER_RE = /^E\d{1,2}\s+a\s+E\d{1,2}$/i;
+
+export function isPlaceholderGibberish(text: string): boolean {
+  const trimmed = text.trim();
+  if (!trimmed) return false;
+  if (LOREM_IPSUM_RE.test(trimmed)) return true;
+  const matches = trimmed.match(INDESIGN_PLACEHOLDER_TOKEN_RE);
+  return Boolean(matches && matches.length >= 2);
+}
 
 export function normalizeEdgeKey(text: string): string {
   return text
@@ -160,6 +173,7 @@ export function stripInlineArtifacts(text: string): string {
 export function isExtractionNoiseText(text: string, pageNum?: number, totalPages?: number): boolean {
   const trimmed = text.trim();
   if (!trimmed) return true;
+  if (isPlaceholderGibberish(trimmed)) return true;
   if (STANDALONE_PAGE_NUMBER_RE.test(trimmed)) return true;
   if (DOMAIN_PAGE_WATERMARK_EXACT_RE.test(trimmed)) return true;
   if (EBOOK_PROMO_PHRASES_RE.test(trimmed) && trimmed.length <= 280) return true;
@@ -177,6 +191,7 @@ export function isExtractionNoiseText(text: string, pageNum?: number, totalPages
   }
 
   if (isEdgeMatter) {
+    if (LAYOUT_SLOT_MARKER_RE.test(trimmed)) return true;
     if (RIPPER_DATE_SIG_RE.test(trimmed)) return true;
     if (trimmed.length <= 320 && FRONTMATTER_LEGAL_RE.test(trimmed)) return true;
   }

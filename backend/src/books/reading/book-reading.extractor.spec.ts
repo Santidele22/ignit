@@ -388,5 +388,22 @@ describe('book-reading.extractor', () => {
     expect(blocks[1].text).toContain('\n    int elemento;\n');
     expect(classifyChunkType(blocks[2].text, 2)).toBe('para');
   });
+
+  it('drops InDesign pseudo-Latin placeholder text and layout slot markers while preserving real prose', () => {
+    const page = [
+      'E2 a E3',
+      '',
+      'Evel evelia porem nem et faccus sa enturias con none cumqui cones perovit lantiasped qui vendita tecaero',
+      '',
+      'Omnist expligenesti niendaes aliti corempo repture nes eque ariae simenis illatem poreriamene am con consers',
+      '',
+      'El arte de la guerra es de vital importancia para el Estado.',
+    ].join('\n');
+
+    const blocks = splitPageIntoParagraphs(page, { pageNum: 1, totalPages: 40 });
+    expect(blocks.map((b) => b.text)).toEqual([
+      'El arte de la guerra es de vital importancia para el Estado.',
+    ]);
+  });
 });
 

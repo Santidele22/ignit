@@ -236,4 +236,17 @@ describe('display item helpers', () => {
 			text: '  int x = 1;\n    return x;',
 		});
 	});
+
+	it('does not assign dropcap to a lowercase continuation fragment at the start of the book', () => {
+		const prepared = prepareBookDisplayItems(
+			[
+				makeChunk({ id: 'p0001.0000', type: 'para', page: 1, text: 'necabo rporibus ipietur sum.' }),
+				makeChunk({ id: 'p0002.0000', type: 'para', page: 2, text: 'El arte de la guerra es vital.' }),
+			],
+			100,
+		);
+
+		expect(prepared.items[0]).toMatchObject({ kind: 'para', isFirstPara: false });
+		expect(prepared.items[1]).toMatchObject({ kind: 'para', isFirstPara: true });
+	});
 });

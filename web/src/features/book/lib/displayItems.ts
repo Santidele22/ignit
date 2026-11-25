@@ -260,8 +260,10 @@ export function prepareBookDisplayItems(
 
 		const isVerse = chunk.type === 'verse';
 		const chapter = !isVerse ? extractLeadingChapterMarker(chunk.text) : null;
-		const isFirstPara = !firstParaAssigned && !isVerse;
-		if (!isVerse) {
+		const paraText = chapter ? chapter.rest : chunk.text;
+		const canDropcap = /^[A-ZÁÉÍÓÚÜÑ«"“¡¿—-]/.test(paraText.trim());
+		const isFirstPara = !firstParaAssigned && !isVerse && canDropcap;
+		if (!isVerse && canDropcap) {
 			firstParaAssigned = true;
 		}
 		const runs = chunk.runs && chunk.runs.length > 0 ? chunk.runs : undefined;

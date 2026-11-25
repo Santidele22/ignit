@@ -98,7 +98,7 @@ const PRINT_RUN_LINE_RE = /^(?:\d{1,3}\s+){2,}\d{1,3}$/;
 const EDITION_LINE_RE =
 	/^(?:\d{1,2}\s*[ªº]|primera|segunda|tercera|cuarta|quinta|sexta|s[ée]ptima|octava|novena|d[ée]cima)(?:\s+edici[óo]n)?(?:\s*[.:,–—-]\s*.{0,40})?$/i;
 const CREDITS_LINE_RE =
-	/^(?:traducci[óo]n|revisi[óo]n\s+t[ée]cnica|correcci[óo]n(?:\s+(?:de\s+estilo|ortogr[áa]fica))?|adaptaci[óo]n|edici[óo]n\s+al\s+cuidado\s+de|dise[ñn]o\s+de\s+(?:cubierta|portada)|ilustraci[óo]n\s+de\s+(?:cubierta|portada))(?:\s*[.:,–—-]\s*.{0,40})?$/i;
+	/^(?:traducci[óo]n|revisi[óo]n\s+t[ée]cnica|correcci[óo]n(?:\s+(?:de\s+estilo|ortogr[áa]fica))?|adaptaci[óo]n|edici[óo]n\s+al\s+cuidado\s+de|dise[ñn]o(?:\s+de\s+(?:cubierta|portada)|,\s*diagramaci[óo]n(?:\s+y\s+(?:portada|cubierta))?)|ilustraci[óo]n\s+de\s+(?:cubierta|portada)|cr[eé]ditos\s+editoriales|autoridades\s+de\b|rector\b|vicerrector\b|coordinador[ae]?\s+general\b|responsable\s+de\s+esta\s+publicaci[oó]n\b|fondo\s+editorial\b|p[aá]gina\s+web\b|twitter\b|blog\b|fanpage\b)(?:\s*[.:,–—-]?\s*.{0,60})?$/i;
 const INFO_LINE_RE = /^para\s+mayor\s+informaci[óo]n\b/i;
 const DEDICATION_LINE_RE =
 	/^(?:Para|PARA)\s+[A-ZÁÉÍÓÚÜÑ]|^(?:A\s+la\s+memoria\s+de|En\s+memoria\s+de|Dedicatoria)\b/;
