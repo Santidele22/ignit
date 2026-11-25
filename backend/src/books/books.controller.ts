@@ -127,7 +127,7 @@ export class BooksController {
 
   @Get('cover-search')
   @ApiSessionAuth()
-  @ApiOperation({ summary: 'Search book cover images across Google Books, Apple Books and OpenLibrary' })
+  @ApiOperation({ summary: 'Search book cover images across Google Books, OpenLibrary and Wikimedia Commons' })
   coverSearch(
     @Query('title') title = '',
     @Query('author') author = '',

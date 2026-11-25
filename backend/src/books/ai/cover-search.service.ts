@@ -44,9 +44,9 @@ const STOP_WORDS = new Set([
 ]);
 
 /**
- * Searches Google Books, Apple Books (iTunes zero-quota catalog), and OpenLibrary
- * for real book cover images matching `title` + `author` (plus optional LLM-suggested
- * alternative queries and a zero-result LLM query-expansion fallback).
+ * Searches Google Books (when configured), OpenLibrary, and Wikimedia Commons
+ * (open-licensed / public-domain bitmaps) for book cover images matching `title` + `author`,
+ * plus optional LLM-suggested alternative queries and a zero-result LLM fallback.
  * Fail-open: returns `[]` on error or timeout.
  */
 export async function searchGoogleBookCovers(
@@ -141,12 +141,12 @@ async function queryAllCatalogs(
   fallbackTitle: string,
   fetchImpl: typeof fetch,
 ): Promise<CoverSearchCandidate[]> {
-  const [google, apple, openLibrary] = await Promise.all([
+  const [google, openLibrary, wikimedia] = await Promise.all([
     queryGoogleVolumes(query, fallbackTitle, fetchImpl),
-    queryAppleBooksCovers(query, fallbackTitle, fetchImpl),
     queryOpenLibraryCovers(query, fallbackTitle, fetchImpl),
+    queryWikimediaCommonsCovers(query, fallbackTitle, fetchImpl),
   ]);
-  return [...google, ...apple, ...openLibrary];
+  return [...google, ...openLibrary, ...wikimedia];
 }
 
 function tokenize(text: string): string[] {
@@ -182,39 +182,65 @@ function scoreCandidate(candidate: CoverSearchCandidate, queryTokenSets: string[
   return bestScore;
 }
 
-async function queryAppleBooksCovers(
+const WIKIMEDIA_USER_AGENT = 'IgnitLibrary/1.0 (https://ignit.ezedelebecq22.workers.dev)';
+const ALLOWED_WIKIMEDIA_MIMES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+
+async function queryWikimediaCommonsCovers(
   query: string,
   fallbackTitle: string,
   fetchImpl: typeof fetch,
 ): Promise<CoverSearchCandidate[]> {
-  const url = `https://itunes.apple.com/search?media=ebook&limit=8&term=${encodeURIComponent(query)}`;
+  const search = `${query} filetype:bitmap`;
+  const url = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=${encodeURIComponent(search)}&gsrlimit=6&prop=imageinfo&iiprop=url|mime&iiurlwidth=600&format=json`;
   try {
     const response = await fetchImpl(url, {
-      headers: { accept: 'application/json' },
+      headers: {
+        accept: 'application/json',
+        'user-agent': WIKIMEDIA_USER_AGENT,
+      },
       signal: AbortSignal.timeout(COVER_SEARCH_TIMEOUT_MS),
     });
     if (!response.ok) return [];
     const data = (await response.json()) as {
-      results?: Array<{
-        trackName?: unknown;
-        artistName?: unknown;
-        artworkUrl100?: unknown;
-      }>;
+      query?: {
+        pages?: Record<
+          string,
+          {
+            title?: unknown;
+            imageinfo?: Array<{
+              mime?: unknown;
+              thumburl?: unknown;
+              url?: unknown;
+            }>;
+          }
+        >;
+      };
     };
-    if (!Array.isArray(data.results)) return [];
+    const pages = data.query?.pages;
+    if (!pages || typeof pages !== 'object') return [];
 
     const results: CoverSearchCandidate[] = [];
-    for (const item of data.results) {
-      if (typeof item.artworkUrl100 !== 'string' || !item.artworkUrl100.trim()) {
+    for (const page of Object.values(pages)) {
+      const info = Array.isArray(page.imageinfo) ? page.imageinfo[0] : undefined;
+      if (!info || typeof info.mime !== 'string' || !ALLOWED_WIKIMEDIA_MIMES.has(info.mime)) {
         continue;
       }
-      const coverUrl = item.artworkUrl100
-        .replace(/^http:\/\//i, 'https://')
-        .replace(/100x100bb/i, '600x600bb');
+      const rawUrl =
+        typeof info.thumburl === 'string' && info.thumburl.trim()
+          ? info.thumburl.trim()
+          : typeof info.url === 'string' && info.url.trim()
+            ? info.url.trim()
+            : null;
+      if (!rawUrl || !rawUrl.startsWith('https://')) continue;
+
+      const rawTitle =
+        typeof page.title === 'string'
+          ? page.title.replace(/^File:/i, '').replace(/\.[a-z0-9]{2,5}$/i, '').trim()
+          : '';
       results.push({
-        title: typeof item.trackName === 'string' ? item.trackName : fallbackTitle,
-        authors: typeof item.artistName === 'string' && item.artistName.trim() ? [item.artistName.trim()] : [],
-        coverUrl,
+        title: rawTitle || fallbackTitle,
+        authors: ['Wikimedia Commons'],
+        coverUrl: rawUrl,
       });
     }
     return results;

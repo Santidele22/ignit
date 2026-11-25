@@ -63,7 +63,7 @@ describe('suggestCoverSearchQueries', () => {
 });
 
 describe('searchGoogleBookCovers', () => {
-  it('merges Google Books, Apple Books (upscaled to 600x600bb) and OpenLibrary covers', async () => {
+  it('merges Google Books, OpenLibrary and Wikimedia Commons bitmap covers (ignoring non-image files)', async () => {
     const fetchMock = vi.fn(async (url: string) => {
       if (url.includes('openlibrary.org')) {
         return {
@@ -73,17 +73,32 @@ describe('searchGoogleBookCovers', () => {
           }),
         };
       }
-      if (url.includes('itunes.apple.com')) {
+      if (url.includes('commons.wikimedia.org')) {
         return {
           ok: true,
           json: async () => ({
-            results: [
-              {
-                trackName: 'La máquina se detiene',
-                artistName: 'E. M. Forster',
-                artworkUrl100: 'https://is1-ssl.mzstatic.com/image/thumb/abc/100x100bb.jpg',
+            query: {
+              pages: {
+                '1': {
+                  title: 'File:La máquina se detiene 1909.jpg',
+                  imageinfo: [
+                    {
+                      mime: 'image/jpeg',
+                      thumburl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/forster.jpg/600px-forster.jpg',
+                    },
+                  ],
+                },
+                '2': {
+                  title: 'File:La máquina se detiene audio.ogg',
+                  imageinfo: [
+                    {
+                      mime: 'application/ogg',
+                      thumburl: 'https://commons.wikimedia.org/w/resources/assets/file-type-icons/fileicon-ogg.png',
+                    },
+                  ],
+                },
               },
-            ],
+            },
           }),
         };
       }
@@ -120,12 +135,12 @@ describe('searchGoogleBookCovers', () => {
       {
         title: 'La máquina se detiene',
         authors: ['E. M. Forster'],
-        coverUrl: 'https://is1-ssl.mzstatic.com/image/thumb/abc/600x600bb.jpg',
+        coverUrl: 'https://covers.openlibrary.org/b/id/999-L.jpg',
       },
       {
-        title: 'La máquina se detiene',
-        authors: ['E. M. Forster'],
-        coverUrl: 'https://covers.openlibrary.org/b/id/999-L.jpg',
+        title: 'La máquina se detiene 1909',
+        authors: ['Wikimedia Commons'],
+        coverUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/forster.jpg/600px-forster.jpg',
       },
     ]);
   });

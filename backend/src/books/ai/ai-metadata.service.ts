@@ -15,13 +15,13 @@ const METADATA_SYSTEM_PROMPT = [
   'Sos un asistente bibliográfico rápido para una biblioteca digital en español (Ignit).',
   'Dado el nombre de archivo de un PDF, inferí los metadatos del libro si lo reconocés o limpiá el título/autor del nombre.',
   'Para `author`, usá el nombre con el que se publica habitualmente el autor (ej. "E. M. Forster", "J. R. R. Tolkien", "Jorge Luis Borges"), no nombres legales poco usados.',
-  'Para `coverQueries`, devolvé 2 o 3 consultas cortas y efectivas para encontrar la portada en catálogos de libros (OpenLibrary, Apple Books, Google Books): primero título en español + autor habitual, y si la obra fue traducida incluí también el título original en su idioma original + autor (ej. ["La máquina se detiene E. M. Forster", "The Machine Stops E. M. Forster"]).',
+  'Para `coverQueries`, devolvé 2 o 3 consultas cortas y efectivas para encontrar la portada en catálogos de libros (OpenLibrary, Wikimedia Commons, Google Books): primero título en español + autor habitual, y si la obra fue traducida incluí también el título original en su idioma original + autor (ej. ["La máquina se detiene E. M. Forster", "The Machine Stops E. M. Forster"]).',
   'Respondé SOLO con JSON válido, sin markdown ni comentarios:',
   '{"title":"título limpio o vacío","author":"nombre editorial habitual del autor o vacío","description":"sinopsis breve de 1 o 2 oraciones en español sobre la obra o vacío","coverQueries":["consulta 1","consulta 2"]}',
 ].join('\n');
 
 const COVER_QUERY_EXPAND_PROMPT = [
-  'Sos un asistente bibliográfico para buscar portadas de libros en OpenLibrary, Apple Books y Google Books.',
+  'Sos un asistente bibliográfico para buscar portadas de libros en OpenLibrary, Wikimedia Commons y Google Books.',
   'Dada una búsqueda de libro que no devolvió portadas, devolvé 2 o 3 consultas cortas alternativas de alto recall: título original en su idioma original + nombre editorial habitual del autor (ej. "The Machine Stops E. M. Forster") y variante corta título + apellido del autor.',
   'Respondé SOLO con JSON válido, sin markdown ni comentarios:',
   '{"queries":["consulta 1","consulta 2"]}',

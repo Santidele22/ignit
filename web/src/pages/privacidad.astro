@@ -1,0 +1,105 @@
+---
+import BaseLayout from '../app/layouts/BaseLayout.astro';
+import { SITE_LEGAL_EMAIL, SITE_NAME } from '../app/config/site';
+
+const lastUpdated = '24 de noviembre de 2026';
+---
+
+<BaseLayout
+	title={`Política de Privacidad — ${SITE_NAME}`}
+	description="Qué datos personales recolecta Ignit, dónde se almacenan, con qué finalidad y cómo ejercer tus derechos de acceso y eliminación (Ley 25.326 / GDPR)."
+>
+	<article class="mx-auto max-w-3xl px-5 py-12 sm:px-8 sm:py-16">
+		<header class="border-b border-border pb-8">
+			<p class="font-mono text-[11px] uppercase tracking-[0.22em] text-aka">Marco legal · 02</p>
+			<h1 class="mt-3 font-mincho text-3xl font-semibold tracking-tight sm:text-4xl">
+				Política de Privacidad
+			</h1>
+			<p class="mt-3 text-sm text-muted-foreground">
+				Última actualización: {lastUpdated}
+			</p>
+		</header>
+
+		<div class="mt-10 space-y-8 text-[15px] leading-relaxed text-foreground/90">
+			<section class="space-y-3">
+				<h2 class="font-mincho text-xl font-semibold text-foreground">1. Datos personales que recolectamos</h2>
+				<p>En {SITE_NAME} recolectamos únicamente los datos necesarios para operar tu biblioteca y sincronizar tu lectura:</p>
+				<ul class="list-disc space-y-2 pl-6 text-foreground/85">
+					<li>
+						<strong>Datos de cuenta:</strong> nombre, correo electrónico y credenciales de autenticación gestionadas de
+						forma cifrada.
+					</li>
+					<li>
+						<strong>Biblioteca y lectura:</strong> archivos PDF y metadatos que subas voluntariamente, progreso de
+						lectura (posición/capítulo), estado de lectura y preferencias visuales (paleta y tipografía).
+					</li>
+					<li>
+						<strong>Datos técnicos mínimos:</strong> cookies de sesión estrictamente necesarias y registros técnicos
+						básicos de seguridad y prevención de abuso. No utilizamos rastreadores publicitarios ni vendemos tus datos.
+					</li>
+				</ul>
+			</section>
+
+			<section class="space-y-3">
+				<h2 class="font-mincho text-xl font-semibold text-foreground">2. Finalidad del tratamiento</h2>
+				<p>
+					Utilizamos tus datos exclusivamente para autenticar tu sesión, procesar los documentos que subís para
+					mostrarlos en el lector Vigilia, sincronizar tu avance entre dispositivos, habilitar la lectura sin conexión y
+					garantizar la seguridad técnica de la plataforma.
+				</p>
+			</section>
+
+			<section class="space-y-3">
+				<h2 class="font-mincho text-xl font-semibold text-foreground">3. Infraestructura y proveedores</h2>
+				<p>
+					Para operar el servicio nos apoyamos en proveedores de infraestructura en la nube que procesan datos bajo sus
+					propios estándares de seguridad:
+				</p>
+				<ul class="list-disc space-y-2 pl-6 text-foreground/85">
+					<li><strong>Cloudflare Workers &amp; KV:</strong> entrega web, caché de contenido y sesiones.</li>
+					<li><strong>Neon (PostgreSQL &amp; Neon Auth):</strong> autenticación y almacenamiento de base de datos.</li>
+					<li><strong>Render:</strong> ejecución de la API y almacenamiento de archivos del servicio.</li>
+					<li>
+						<strong>Almacenamiento local del navegador:</strong> las descargas offline y preferencias locales se guardan
+						en tu propio dispositivo mediante <code class="font-mono text-xs">IndexedDB</code> y{' '}
+						<code class="font-mono text-xs">localStorage</code>. Podés borrarlos en cualquier momento desde la sección
+						de almacenamiento de la app o la configuración de tu navegador.
+					</li>
+				</ul>
+			</section>
+
+			<section class="space-y-3">
+				<h2 class="font-mincho text-xl font-semibold text-foreground">
+					4. Tus derechos y eliminación de cuenta (Ley 25.326 / GDPR)
+				</h2>
+				<p>
+					De acuerdo con la Ley 25.326 de Protección de Datos Personales (Argentina) y el Reglamento General de
+					Protección de Datos (GDPR, para personas residentes en la Unión Europea), tenés derecho a solicitar el acceso,
+					rectificación, actualización o <strong>eliminación total de tu cuenta, tus archivos y tus datos personales</strong>.
+				</p>
+				<p>
+					Para ejercer cualquiera de estos derechos o solicitar la baja definitiva de tu cuenta, escribinos desde tu
+					correo registrado a{' '}
+					<a href={`mailto:${SITE_LEGAL_EMAIL}?subject=${encodeURIComponent('[Privacidad] Solicitud sobre mis datos personales')}`} class="font-mono text-sm text-aka underline underline-offset-4">
+						{SITE_LEGAL_EMAIL}
+					</a>. Responderemos y procesaremos tu pedido en un plazo máximo de 10 días corridos.
+				</p>
+				<p class="rounded-md border border-border bg-card p-4 text-xs leading-relaxed text-muted-foreground">
+					En cumplimiento de la normativa argentina (Resolución AAIP 14/2018): la Agencia de Acceso a la Información
+					Pública, en su carácter de Órgano de Control de la Ley N.º 25.326, tiene la atribución de atender las
+					denuncias y reclamos que interpongan quienes resulten afectados en sus derechos por incumplimiento de las
+					normas vigentes en materia de protección de datos personales.
+				</p>
+			</section>
+
+			<section class="space-y-3">
+				<h2 class="font-mincho text-xl font-semibold text-foreground">5. Conservación y cambios</h2>
+				<p>
+					Conservamos tus datos mientras mantengas tu cuenta activa o mientras sea necesario para brindarte el servicio.
+					Al eliminar tu cuenta, borraremos tus registros de usuario, tu progreso de lectura y los archivos asociados de
+					nuestros servidores activos.
+				</p>
+			</section>
+		</div>
+	</article>
+</BaseLayout>

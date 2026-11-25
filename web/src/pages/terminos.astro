@@ -1,0 +1,125 @@
+---
+import BaseLayout from '../app/layouts/BaseLayout.astro';
+import { SITE_LEGAL_EMAIL, SITE_NAME } from '../app/config/site';
+
+const lastUpdated = '24 de noviembre de 2026';
+---
+
+<BaseLayout
+	title={`Términos y Condiciones — ${SITE_NAME}`}
+	description="Condiciones de uso, responsabilidad sobre archivos subidos, propiedad intelectual y limitación de responsabilidad de Ignit."
+>
+	<article class="mx-auto max-w-3xl px-5 py-12 sm:px-8 sm:py-16">
+		<header class="border-b border-border pb-8">
+			<p class="font-mono text-[11px] uppercase tracking-[0.22em] text-aka">Marco legal · 01</p>
+			<h1 class="mt-3 font-mincho text-3xl font-semibold tracking-tight sm:text-4xl">
+				Términos y Condiciones de Uso
+			</h1>
+			<p class="mt-3 text-sm text-muted-foreground">
+				Última actualización: {lastUpdated}
+			</p>
+		</header>
+
+		<div class="mt-10 space-y-8 text-[15px] leading-relaxed text-foreground/90">
+			<section class="space-y-3">
+				<h2 class="font-mincho text-xl font-semibold text-foreground">1. Objeto y aceptación</h2>
+				<p>
+					{SITE_NAME} es una aplicación web y PWA de lectura digital («modo Vigilia») que permite a las personas
+					usuarias organizar documentos PDF, leer sin conexión y sincronizar su progreso de lectura entre dispositivos.
+					Al acceder, registrarte o utilizar {SITE_NAME}, aceptás estos Términos y Condiciones y nuestra{' '}
+					<a href="/privacidad" class="text-aka underline underline-offset-4">Política de Privacidad</a>.
+				</p>
+			</section>
+
+			<section class="space-y-3">
+				<h2 class="font-mincho text-xl font-semibold text-foreground">2. Cuenta y uso permitido</h2>
+				<p>
+					Para crear una cuenta debés proporcionar un correo electrónico válido y mantener la confidencialidad de tus
+					credenciales. Sos responsable de toda actividad realizada desde tu cuenta. Queda prohibido utilizar la
+					plataforma para distribuir software malicioso, eludir controles de seguridad, realizar scraping abusivo o
+					infringir derechos de terceros.
+				</p>
+			</section>
+
+			<section class="space-y-3">
+				<h2 class="font-mincho text-xl font-semibold text-foreground">
+					3. Contenido subido por usuarios y derechos de autor
+				</h2>
+				<p>
+					Cada persona usuaria es la única y exclusiva responsable de los archivos PDF, textos, portadas y metadatos que
+					cargue en {SITE_NAME}. Al subir o solicitar la publicación de un archivo, declarás y garantizás que:
+				</p>
+				<ul class="list-disc space-y-2 pl-6 text-foreground/85">
+					<li>
+						Sos titular de los derechos de autor de la obra, contás con autorización o licencia expresa del titular, o
+						la obra (incluyendo su traducción y edición) se encuentra verificablemente en dominio público o bajo una
+						licencia libre compatible (por ejemplo, Creative Commons).
+					</li>
+					<li>
+						El material no infringe la Ley 11.723 de Propiedad Intelectual (Argentina), la Digital Millennium Copyright
+						Act (DMCA) ni normativa equivalente aplicable en tu jurisdicción.
+					</li>
+					<li>
+						Mantendrás indemne a {SITE_NAME} y a sus operadores frente a cualquier reclamo, sanción o gasto derivado del
+						incumplimiento de estas garantías.
+					</li>
+				</ul>
+			</section>
+
+			<section class="space-y-3">
+				<h2 class="font-mincho text-xl font-semibold text-foreground">
+					4. Procesamiento técnico, moderación y retiro
+				</h2>
+				<p>
+					Para ofrecer la experiencia de lectura en modo Vigilia, {SITE_NAME} ejecuta controles técnicos automatizados
+					de seguridad sobre los archivos PDF y extrae su estructura de lectura. Nos reservamos el derecho de rechazar,
+					ocultar o eliminar en cualquier momento y sin previo aviso cualquier contenido que presente riesgos técnicos,
+					incumpla estos términos o reciba un reporte válido de infracción de derechos de autor.
+				</p>
+				<p>
+					Si sos titular de derechos o representante autorizado y creés que algún contenido vulnera tu propiedad
+					intelectual, podés solicitar su retiro inmediato a través de nuestro{' '}
+					<a href="/dmca" class="text-aka underline underline-offset-4">
+						canal de Derechos de Autor y Notice &amp; Takedown (DMCA)
+					</a>.
+				</p>
+			</section>
+
+			<section class="space-y-3">
+				<h2 class="font-mincho text-xl font-semibold text-foreground">
+					5. Disponibilidad y almacenamiento offline (IndexedDB)
+				</h2>
+				<p>
+					{SITE_NAME} se ofrece «tal cual» y «según disponibilidad». La lectura sin conexión depende del almacenamiento
+					local del navegador (<code class="font-mono text-xs">IndexedDB</code> y Service Worker), el cual puede ser
+					limpiado por el sistema operativo, el navegador o al borrar datos del sitio. Te recomendamos conservar copias
+					de resguardo de tus archivos originales. No garantizamos disponibilidad ininterrumpida ni asumimos
+					responsabilidad por pérdida de datos locales o fallas de terceros proveedores de infraestructura.
+				</p>
+			</section>
+
+			<section class="space-y-3">
+				<h2 class="font-mincho text-xl font-semibold text-foreground">6. Propiedad intelectual de la plataforma</h2>
+				<p>
+					El código, la interfaz, las tapas editoriales generadas por la plataforma y los elementos visuales propios de
+					{SITE_NAME} pertenecen a sus respectivos autores y no pueden reproducirse comercialmente sin autorización.
+				</p>
+			</section>
+
+			<section class="space-y-3">
+				<h2 class="font-mincho text-xl font-semibold text-foreground">7. Modificaciones, ley aplicable y contacto</h2>
+				<p>
+					Podemos actualizar estos Términos cuando evolucionen las funcionalidades o exigencias legales del servicio.
+					Estos términos se rigen por las leyes de la República Argentina, sin perjuicio de las normas imperativas de
+					protección al consumidor o propiedad intelectual que correspondan según el proveedor de infraestructura.
+				</p>
+				<p>
+					Para consultas legales o sobre tu cuenta escribinos a{' '}
+					<a href={`mailto:${SITE_LEGAL_EMAIL}`} class="font-mono text-sm text-aka underline underline-offset-4">
+						{SITE_LEGAL_EMAIL}
+					</a>.
+				</p>
+			</section>
+		</div>
+	</article>
+</BaseLayout>

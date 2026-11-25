@@ -1,0 +1,103 @@
+---
+import BaseLayout from '../app/layouts/BaseLayout.astro';
+import { SITE_LEGAL_EMAIL, SITE_NAME } from '../app/config/site';
+
+const mailSubject = '[DMCA / Retiro] Solicitud de retiro por derechos de autor';
+const mailBody = [
+	'Hola equipo de Ignit,',
+	'',
+	'Solicito el retiro de contenido por presunta infracción de derechos de autor:',
+	'',
+	'1. Obra protegida (título, autor y titular de derechos):',
+	'2. URL exacta en Ignit:',
+	'3. Nombre completo y carácter (autor, editorial o representante autorizado):',
+	'4. Correo y teléfono de contacto:',
+	'',
+	'Declaro de buena fe que el uso del material reclamado no cuenta con autorización del titular de los derechos, su agente ni la ley, y que la información provista en esta notificación es exacta.',
+].join('\n');
+
+const mailtoHref = `mailto:${SITE_LEGAL_EMAIL}?subject=${encodeURIComponent(mailSubject)}&body=${encodeURIComponent(mailBody)}`;
+---
+
+<BaseLayout
+	title={`Derechos de autor y DMCA — ${SITE_NAME}`}
+	description="Canal de reporte y retiro rápido (Notice & Takedown) por derechos de autor conforme a la Ley 11.723 y DMCA."
+>
+	<article class="mx-auto max-w-3xl px-5 py-12 sm:px-8 sm:py-16">
+		<header class="border-b border-border pb-8">
+			<p class="font-mono text-[11px] uppercase tracking-[0.22em] text-aka">Marco legal · 03</p>
+			<h1 class="mt-3 font-mincho text-3xl font-semibold tracking-tight sm:text-4xl">
+				Derechos de Autor y Canal de Retiro (DMCA)
+			</h1>
+			<p class="mt-3 text-sm leading-relaxed text-muted-foreground">
+				Procedimiento de notificación y retiro ágil (<em>Notice &amp; Takedown</em>) conforme a la Ley 11.723
+				(Argentina) y la Digital Millennium Copyright Act (17 U.S.C. § 512).
+			</p>
+		</header>
+
+		<div class="mt-10 space-y-8 text-[15px] leading-relaxed text-foreground/90">
+			<section class="space-y-3">
+				<h2 class="font-mincho text-xl font-semibold text-foreground">1. Retiro rápido ante notificación válida</h2>
+				<p>
+					{SITE_NAME} respeta los derechos de propiedad intelectual de autores, traductores y editoriales. Si detectás
+					que un libro, traducción, texto o portada alojado o referenciado en la plataforma vulnera derechos de autor de
+					los cuales sos titular o representante autorizado, notificanos por correo y procederemos a deshabilitar o
+					retirar el contenido de manera prioritaria (objetivo: dentro de las 24–48 horas hábiles).
+				</p>
+			</section>
+
+			<section class="space-y-3">
+				<h2 class="font-mincho text-xl font-semibold text-foreground">2. Qué debe incluir tu notificación</h2>
+				<p>Para procesar el retiro sin demoras, enviá un correo con la siguiente información:</p>
+				<ol class="list-decimal space-y-2 pl-6 text-foreground/85">
+					<li>Identificación clara de la obra protegida (título, autor y, si corresponde, edición o traducción).</li>
+					<li>URL exacta dentro de {SITE_NAME} donde figura el material a retirar.</li>
+					<li>Tu nombre completo, vínculo con el titular de los derechos (autor, editorial o representante) y datos de contacto.</li>
+					<li>
+						Declaración de buena fe indicando que el uso denunciado no está autorizado por el titular de los derechos, su
+						representante ni la ley.
+					</li>
+					<li>
+						Declaración de que la información de la notificación es exacta y que estás autorizado/a a actuar en nombre
+						del titular.
+					</li>
+				</ol>
+			</section>
+
+			<section class="rounded-lg border border-border bg-card p-6 space-y-4">
+				<p class="font-mono text-[11px] uppercase tracking-[0.2em] text-aka">Canal directo de reportes</p>
+				<p class="text-sm text-muted-foreground">
+					Enviá tu solicitud directamente a{' '}
+					<a href={mailtoHref} class="font-mono text-foreground underline decoration-aka underline-offset-4">
+						{SITE_LEGAL_EMAIL}
+					</a>{' '}
+					o abrí el correo prellenado con la plantilla de notificación:
+				</p>
+				<div class="flex flex-wrap gap-3 pt-1">
+					<a
+						href={mailtoHref}
+						class="inline-flex h-10 items-center justify-center rounded-sm bg-foreground px-5 text-xs font-medium uppercase tracking-[0.14em] text-background transition-colors hover:bg-aka hover:text-aka-foreground"
+					>
+						Enviar solicitud de retiro
+					</a>
+					<a
+						href="/terminos"
+						class="inline-flex h-10 items-center justify-center rounded-sm border border-border px-4 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
+					>
+						Ver Términos
+					</a>
+				</div>
+			</section>
+
+			<section class="space-y-3">
+				<h2 class="font-mincho text-xl font-semibold text-foreground">3. Reincidencia y contra-notificación</h2>
+				<p>
+					Las cuentas que reiteradamente suban material protegido sin autorización podrán ser suspendidas o cerradas de
+					forma permanente. Si considerás que un archivo propio o en dominio público fue retirado por error, podés
+					enviar una contra-notificación fundamentada al mismo correo adjuntando respaldo de licencia o estado de dominio
+					público.
+				</p>
+			</section>
+		</div>
+	</article>
+</BaseLayout>
