@@ -19,6 +19,16 @@ export type AdminQueueBook = {
 	title: string;
 	author: string;
 	kind: BookKind;
+	publisher?: string | null;
+	translator?: string | null;
+	illustrator?: string | null;
+	isbn?: string | null;
+	license?: string | null;
+	ctaLabel?: string | null;
+	ctaUrl?: string | null;
+	readsStartedCount?: number;
+	offlineDownloadsCount?: number;
+	ctaClicksCount?: number;
 	ownerId: string;
 	ownerEmail: string | null;
 	fileSize: string | null;

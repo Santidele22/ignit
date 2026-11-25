@@ -1,6 +1,7 @@
 import type {
 	Book,
 	BookKind,
+	BookMetricEvent,
 	BookReadingDocument,
 	BookReadingState,
 	ReadingStatus,
@@ -32,12 +33,31 @@ type ApiBook = {
 	published?: boolean | null;
 	reviewStatus?: 'pending' | 'approved' | 'rejected' | null;
 	coverUrl?: string | null;
+	publisher?: string | null;
+	translator?: string | null;
+	illustrator?: string | null;
+	isbn?: string | null;
+	license?: string | null;
+	ctaLabel?: string | null;
+	ctaUrl?: string | null;
 	originalName?: string | null;
 	fileSize?: string | null;
 	mimeType?: string | null;
 	filePath?: string | null;
 	isOwner?: boolean;
 };
+
+export function safeExternalUrl(raw: string | null | undefined): string | undefined {
+	if (!raw) return undefined;
+	const trimmed = raw.trim();
+	if (!/^https?:\/\//i.test(trimmed)) return undefined;
+	try {
+		const parsed = new URL(trimmed);
+		return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? parsed.toString() : undefined;
+	} catch {
+		return undefined;
+	}
+}
 
 function parseOptionalFileSize(raw: string | null | undefined): number | undefined {
 	if (!raw) return undefined;
@@ -66,6 +86,13 @@ function mapBook(book: ApiBook): Book {
 		published: book.published === true,
 		...(book.reviewStatus ? { reviewStatus: book.reviewStatus } : {}),
 		...(book.coverUrl ? { coverUrl: book.coverUrl } : {}),
+		...(book.publisher ? { publisher: book.publisher } : {}),
+		...(book.translator ? { translator: book.translator } : {}),
+		...(book.illustrator ? { illustrator: book.illustrator } : {}),
+		...(book.isbn ? { isbn: book.isbn } : {}),
+		...(book.license ? { license: book.license } : {}),
+		...(book.ctaLabel ? { ctaLabel: book.ctaLabel } : {}),
+		...(safeExternalUrl(book.ctaUrl) ? { ctaUrl: safeExternalUrl(book.ctaUrl) } : {}),
 		hasFile: Boolean(book.filePath || book.originalName),
 		...(fileSizeBytes !== undefined ? { fileSizeBytes } : {}),
 		...(typeof book.isOwner === 'boolean' ? { isOwner: book.isOwner } : {}),
@@ -173,4 +200,21 @@ export async function saveBookReadingState(
 	state: Partial<BookReadingState>,
 ): Promise<void> {
 	await authorizedPutJson(`/books/${id}/reading-state`, state);
+}
+
+/**
+ * Fire-and-forget per-book metric ping (`read_started`, `offline_download`,
+ * `cta_click`). Uses `keepalive: true` so outbound CTA clicks still deliver
+ * even when the browser navigates away.
+ */
+export function recordBookMetric(id: number, event: BookMetricEvent): void {
+	if (!Number.isInteger(id) || id <= 0 || typeof fetch !== 'function') return;
+	const base = (import.meta.env.PUBLIC_API_BASE_URL || '/api').replace(/\/+$/, '');
+	void fetch(`${base}/books/${id}/metrics`, {
+		method: 'POST',
+		credentials: 'include',
+		keepalive: true,
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ event }),
+	}).catch(() => undefined);
 }

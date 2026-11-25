@@ -18,6 +18,9 @@ const MODERATION_ONLY_KEYS = [
   'aiQuality',
   'aiNotes',
   'aiStatus',
+  'readsStartedCount',
+  'offlineDownloadsCount',
+  'ctaClicksCount',
 ] as const;
 
 type ModerationOnlyKey = (typeof MODERATION_ONLY_KEYS)[number];

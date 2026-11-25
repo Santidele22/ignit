@@ -20,11 +20,13 @@ import { BOOK_STORAGE } from '../storage/book-storage.js';
 import type { BookStorage } from '../storage/book-storage.js';
 import {
   applyReviewDecision,
+  applyUnpublish,
   presentAdminBook,
   type AdminBookView,
 } from './book-review.js';
 import type { AdminBooksQueryDto } from './dto/admin-books-query.dto.js';
 import type { ReviewBookDto } from './dto/review-book.dto.js';
+import type { UnpublishBookDto } from './dto/unpublish-book.dto.js';
 
 /**
  * Admin review surface (S4): the paginated upload queue and the one decision
@@ -42,8 +44,16 @@ export class BooksAdminService {
 
   /** One page of the queue, newest rows last, with the owner email joined in. */
   async list(query: AdminBooksQueryDto): Promise<PagedResult<AdminBookView>> {
+    const where: Partial<Pick<Book, 'reviewStatus' | 'published'>> = {};
+    if (query.review) {
+      where.reviewStatus = query.review;
+    }
+    if (query.published !== undefined) {
+      where.published = query.published;
+    }
+
     const page = await paginate(this.booksRepository, query, {
-      where: query.review ? { reviewStatus: query.review } : {},
+      where,
       order: { id: 'ASC' },
       relations: { owner: true },
     });
@@ -59,6 +69,18 @@ export class BooksAdminService {
   ): Promise<AdminBookView> {
     const book = await findBookOrFail(this.booksRepository, id);
     applyReviewDecision(book, dto, reviewerId);
+
+    return presentAdminBook(await this.booksRepository.save(book));
+  }
+
+  /** Immediately unpublishes a book from the public catalog (takedown). */
+  async unpublish(
+    id: number,
+    dto: UnpublishBookDto,
+    reviewerId: string,
+  ): Promise<AdminBookView> {
+    const book = await findBookOrFail(this.booksRepository, id);
+    applyUnpublish(book, dto, reviewerId);
 
     return presentAdminBook(await this.booksRepository.save(book));
   }

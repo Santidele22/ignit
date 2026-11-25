@@ -12,6 +12,13 @@ export type BookFormState = {
 	review: string;
 	published: boolean;
 	coverUrl?: string;
+	publisher?: string;
+	translator?: string;
+	illustrator?: string;
+	isbn?: string;
+	license?: string;
+	ctaLabel?: string;
+	ctaUrl?: string;
 };
 
 export const EMPTY_BOOK_FORM: BookFormState = {
@@ -22,6 +29,13 @@ export const EMPTY_BOOK_FORM: BookFormState = {
 	kind: 'no_tecnico',
 	review: '',
 	published: false,
+	publisher: '',
+	translator: '',
+	illustrator: '',
+	isbn: '',
+	license: '',
+	ctaLabel: '',
+	ctaUrl: '',
 };
 
 export const BOOK_STATUS_OPTIONS: { value: ReadingStatus; label: string }[] = [
@@ -59,12 +73,22 @@ export function bookToForm(row: AdminBookRow): BookFormState {
 		review: row.review ?? '',
 		published: row.published === true,
 		...(row.coverUrl ? { coverUrl: row.coverUrl } : {}),
+		...(row.publisher ? { publisher: row.publisher } : {}),
+		...(row.translator ? { translator: row.translator } : {}),
+		...(row.illustrator ? { illustrator: row.illustrator } : {}),
+		...(row.isbn ? { isbn: row.isbn } : {}),
+		...(row.license ? { license: row.license } : {}),
+		...(row.ctaLabel ? { ctaLabel: row.ctaLabel } : {}),
+		...(row.ctaUrl ? { ctaUrl: row.ctaUrl } : {}),
 	};
 }
 
 /** Maps form state into the API write payload. */
 export function bookFormToBody(form: BookFormState): BookWriteBody {
 	const cleanCover = form.coverUrl?.trim();
+	const optionalText = (value: string | undefined): string | null | undefined =>
+		value === undefined ? undefined : value.trim() || null;
+
 	return {
 		title: form.title.trim(),
 		author: form.author.trim(),
@@ -77,6 +101,13 @@ export function bookFormToBody(form: BookFormState): BookWriteBody {
 		// cleared one (`''` after `Quitar`) writes `null` so editing can undo a
 		// previously stored cover instead of silently keeping it.
 		...(form.coverUrl === undefined ? {} : { coverUrl: cleanCover || null }),
+		...(form.publisher === undefined ? {} : { publisher: optionalText(form.publisher) }),
+		...(form.translator === undefined ? {} : { translator: optionalText(form.translator) }),
+		...(form.illustrator === undefined ? {} : { illustrator: optionalText(form.illustrator) }),
+		...(form.isbn === undefined ? {} : { isbn: optionalText(form.isbn) }),
+		...(form.license === undefined ? {} : { license: optionalText(form.license) }),
+		...(form.ctaLabel === undefined ? {} : { ctaLabel: optionalText(form.ctaLabel) }),
+		...(form.ctaUrl === undefined ? {} : { ctaUrl: optionalText(form.ctaUrl) }),
 	};
 }
 
@@ -85,6 +116,10 @@ export function validateBookForm(form: BookFormState): string | null {
 	if (!form.title.trim()) return 'El libro necesita un título.';
 	if (!form.author.trim()) return 'El libro necesita un autor.';
 	if (!form.description.trim()) return 'El libro necesita una descripción.';
+	const ctaUrl = form.ctaUrl?.trim();
+	if (ctaUrl && !/^https?:\/\//i.test(ctaUrl)) {
+		return 'El enlace externo debe comenzar con http:// o https://.';
+	}
 
 	return null;
 }

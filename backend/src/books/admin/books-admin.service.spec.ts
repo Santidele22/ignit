@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import type { Repository } from 'typeorm';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Book } from '../entities/book.entity.js';
 import type { BookStorage } from '../storage/book-storage.js';
 import type { User } from '../../users/entities/user.entity.js';
@@ -33,6 +33,9 @@ function bookRow(overrides: Partial<Book> = {}): Book {
     aiQuality: null,
     aiNotes: null,
     aiStatus: 'skipped',
+    readsStartedCount: 0,
+    offlineDownloadsCount: 0,
+    ctaClicksCount: 0,
     createdAt: new Date('2024-01-01T00:00:00.000Z'),
     ...overrides,
   } as Book;
@@ -73,10 +76,6 @@ describe('BooksAdminService', () => {
   describe('firewall (pipeline report endpoint)', () => {
     it('answers the stored pipeline report of one book', async () => {
       findOne = vi.fn(async () => bookRow());
-      service = new BooksAdminService(
-        { find, count, findOne, save } as unknown as Repository<Book>,
-        bookStorage,
-      );
       const report = {
         schemaVersion: 1,
         safe: true,
@@ -179,6 +178,44 @@ describe('BooksAdminService', () => {
       expect(page.offset).toBe(0);
       expect(page.limit).toBe(20);
     });
+
+    it('filters by published state and exposes editorial and metric counters', async () => {
+      find.mockResolvedValue([
+        bookRow({
+          published: true,
+          publisher: 'Editorial Chica',
+          license: 'CC BY 4.0',
+          ctaLabel: 'Comprar físico',
+          ctaUrl: 'https://editorial.test/libro',
+          readsStartedCount: 14,
+          offlineDownloadsCount: 5,
+          ctaClicksCount: 3,
+        }),
+      ]);
+      count.mockResolvedValue(1);
+
+      const page = await service.list(
+        plainToInstance(AdminBooksQueryDto, { published: 'true' }),
+      );
+
+      expect(find).toHaveBeenCalledWith({
+        where: { published: true },
+        order: { id: 'ASC' },
+        relations: { owner: true },
+        skip: 0,
+        take: 20,
+      });
+      expect(page.items[0]).toMatchObject({
+        published: true,
+        publisher: 'Editorial Chica',
+        license: 'CC BY 4.0',
+        ctaLabel: 'Comprar físico',
+        ctaUrl: 'https://editorial.test/libro',
+        readsStartedCount: 14,
+        offlineDownloadsCount: 5,
+        ctaClicksCount: 3,
+      });
+    });
   });
 
   describe('review', () => {
@@ -242,6 +279,30 @@ describe('BooksAdminService', () => {
       await expect(
         service.review(99, { decision: 'approved' }, 'admin-1'),
       ).rejects.toBeInstanceOf(NotFoundException);
+    });
+  });
+
+  describe('unpublish', () => {
+    it('immediately unpublishes a book and records reviewer and optional takedown note', async () => {
+      const book = bookRow({ published: true, reviewStatus: 'approved' });
+      findOne.mockResolvedValue(book);
+
+      const result = await service.unpublish(7, { note: '  Pedido de editorial  ' }, 'admin-1');
+
+      expect(book.published).toBe(false);
+      expect(book.reviewedBy).toBe('admin-1');
+      expect(book.reviewedAt).toBeInstanceOf(Date);
+      expect(book.reviewNote).toBe('Pedido de editorial');
+      expect(save).toHaveBeenCalledWith(book);
+      expect(result.published).toBe(false);
+    });
+
+    it('answers 404 when the book does not exist', async () => {
+      findOne.mockResolvedValue(null);
+
+      await expect(service.unpublish(404, {}, 'admin-1')).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
     });
   });
 });

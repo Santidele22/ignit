@@ -22,25 +22,41 @@ export type AdminQueueQuery = {
 	page?: number;
 	pageSize?: number;
 	review?: 'pending' | 'approved' | 'rejected';
+	published?: boolean;
 };
 
 /** Rows per page of the queue; the backend clamps to the shared window. */
 export const ADMIN_QUEUE_PAGE_SIZE = 20;
 
-/** `GET /admin/books` — one page of the pending review queue. */
+/** `GET /admin/books` — one page of the review queue or published catalog. */
 export function fetchAdminQueue(query: AdminQueueQuery = {}): Promise<AdminQueuePage> {
 	const page = Math.max(1, Math.trunc(query.page ?? 1));
 	const pageSize = Math.max(1, Math.trunc(query.pageSize ?? ADMIN_QUEUE_PAGE_SIZE));
-	const review = query.review ?? 'pending';
+	const params = new URLSearchParams();
+	if (query.published !== undefined) {
+		params.set('published', String(query.published));
+		if (query.review) params.set('review', query.review);
+	} else {
+		params.set('review', query.review ?? 'pending');
+	}
+	params.set('page', String(page));
+	params.set('pageSize', String(pageSize));
 
-	return getJson<AdminQueuePage>(
-		`/admin/books?review=${encodeURIComponent(review)}&page=${page}&pageSize=${pageSize}`,
-	);
+	return getJson<AdminQueuePage>(`/admin/books?${params.toString()}`);
 }
 
 /** `POST /admin/books/:id/review` — records the decision, answers the new row. */
 export function submitAdminReview(id: number, body: ReviewRequestBody): Promise<AdminQueueBook> {
 	return postJsonReturning<AdminQueueBook>(`/admin/books/${id}/review`, body);
+}
+
+/** `POST /admin/books/:id/unpublish` — immediately removes a book from the public catalog. */
+export function unpublishAdminBook(id: number, note?: string): Promise<AdminQueueBook> {
+	const trimmed = note?.trim();
+	return postJsonReturning<AdminQueueBook>(
+		`/admin/books/${id}/unpublish`,
+		trimmed ? { note: trimmed } : {},
+	);
 }
 
 /** `GET /admin/books/:id/firewall` — stored pipeline report of one upload. */

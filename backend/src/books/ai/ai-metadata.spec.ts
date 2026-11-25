@@ -63,13 +63,45 @@ describe('suggestCoverSearchQueries', () => {
 });
 
 describe('searchGoogleBookCovers', () => {
-  it('merges Google Books, OpenLibrary and Wikimedia Commons bitmap covers (ignoring non-image files)', async () => {
+  it('merges Google Books, OpenLibrary, Internet Archive, Gutendex and Wikimedia Commons covers (ignoring non-image files)', async () => {
     const fetchMock = vi.fn(async (url: string) => {
       if (url.includes('openlibrary.org')) {
         return {
           ok: true,
           json: async () => ({
             docs: [{ title: 'La máquina se detiene', author_name: ['E. M. Forster'], cover_i: 999 }],
+          }),
+        };
+      }
+      if (url.includes('archive.org')) {
+        return {
+          ok: true,
+          json: async () => ({
+            response: {
+              docs: [
+                {
+                  identifier: 'lamaquinasedetiene1909',
+                  title: 'La máquina se detiene',
+                  creator: 'E. M. Forster',
+                },
+              ],
+            },
+          }),
+        };
+      }
+      if (url.includes('gutendex.com')) {
+        return {
+          ok: true,
+          json: async () => ({
+            results: [
+              {
+                title: 'La máquina se detiene',
+                authors: [{ name: 'Forster, E. M.' }],
+                formats: {
+                  'image/jpeg': 'https://www.gutenberg.org/cache/epub/72890/pg72890.cover.medium.jpg',
+                },
+              },
+            ],
           }),
         };
       }
@@ -136,6 +168,16 @@ describe('searchGoogleBookCovers', () => {
         title: 'La máquina se detiene',
         authors: ['E. M. Forster'],
         coverUrl: 'https://covers.openlibrary.org/b/id/999-L.jpg',
+      },
+      {
+        title: 'La máquina se detiene',
+        authors: ['E. M. Forster'],
+        coverUrl: 'https://archive.org/services/img/lamaquinasedetiene1909',
+      },
+      {
+        title: 'La máquina se detiene',
+        authors: ['Forster, E. M.'],
+        coverUrl: 'https://www.gutenberg.org/cache/epub/72890/pg72890.cover.medium.jpg',
       },
       {
         title: 'La máquina se detiene 1909',

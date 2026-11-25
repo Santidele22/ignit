@@ -187,7 +187,7 @@ describe('BooksService storage interplay', () => {
     expect(deleteBook).toHaveBeenCalledWith(7);
   });
 
-  it('keeps prepareDownload returning the stored reference for the storage layer', async () => {
+  it('keeps prepareDownload returning the stored reference for admins', async () => {
     findOneBook.mockResolvedValue(
       bookRow({
         published: true,
@@ -197,14 +197,19 @@ describe('BooksService storage interplay', () => {
       }),
     );
 
-    const info = await service.prepareDownload(7, '127.0.0.1');
+    const info = await service.prepareDownload(7, '127.0.0.1', {
+      id: 'admin-1',
+      email: 'admin@ignit.local',
+      name: 'Admin',
+      role: 'admin',
+    });
 
     expect(info).toEqual({
       filePath: '1730000000000-deadbeefcafe.pdf',
       originalName: 'clean-code.pdf',
       mimeType: 'application/pdf',
     });
-    expect(saveEvent).toHaveBeenCalledTimes(1);
+    expect(saveEvent).not.toHaveBeenCalled();
   });
 
   describe('findAllPage', () => {

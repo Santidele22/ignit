@@ -161,7 +161,7 @@ describe('Books with BOOKS_STORAGE=s3 (e2e, mocked S3)', () => {
     expect(leftovers.filter((name) => name.endsWith('.pdf'))).toEqual([]);
   });
 
-  it('redirects downloads of published books to the short-lived presigned URL', async () => {
+  it('redirects admin downloads of published books to the short-lived presigned URL and blocks non-admins', async () => {
     const browser = await signIn();
     const created = await browser.post('/books').send(cleanCode).expect(201);
     const id = created.body.id;
@@ -171,7 +171,13 @@ describe('Books with BOOKS_STORAGE=s3 (e2e, mocked S3)', () => {
       .expect(201);
     await browser.patch(`/books/${id}`).send({ published: true }).expect(200);
 
-    const res = await request(server())
+    await request(server()).get(`/books/${id}/download`).expect(401);
+    await request(server())
+      .get(`/books/${id}/download`)
+      .set('Cookie', `${DEV_SESSION_COOKIE}=${NON_ADMIN_TOKEN}`)
+      .expect(403);
+
+    const res = await browser
       .get(`/books/${id}/download`)
       .redirects(0)
       .expect(302);

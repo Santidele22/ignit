@@ -1,6 +1,6 @@
 import { For, Show, createEffect, createMemo, createSignal, onCleanup, onMount } from 'solid-js';
 import type { Book } from '../../../entities/book/types';
-import { fetchBookClientReading, fetchBooks } from '../../book/api/books';
+import { fetchBookClientReading, fetchBooks, recordBookMetric, safeExternalUrl } from '../../book/api/books';
 import { fetchMyBooks } from '../../book/api/books-admin';
 import type { AdminBookRow } from '../../book/api/books-admin';
 import { bookStatusLabel } from '../../book/bookForm';
@@ -26,6 +26,7 @@ import {
 } from '../lib/sala';
 import { registerServiceWorker } from '../../pwa/registerSW';
 import AportesList from './AportesList';
+import BookFichaModal from './BookFichaModal';
 import BookTomoCard from './BookTomoCard';
 import EditBookModal, { type EditBookResult } from './EditBookModal';
 import HeroDash from './HeroDash';
@@ -45,8 +46,11 @@ import UploadBookModal, { type UploadOutcome } from './UploadBookModal';
 export interface BibliotecaAppProps {
 	userId: string;
 	userLabel: string;
+	isAdmin?: boolean;
 	initialOwnedBooks: Book[];
 	initialCatalogBooks: Book[];
+	ssrOwnedLoaded?: boolean;
+	ssrCatalogLoaded?: boolean;
 }
 
 const CATALOG_CHIPS: ReadonlyArray<{ value: CatalogKindFilter; label: string }> = [
@@ -71,6 +75,14 @@ function rowToBook(row: AdminBookRow): Book {
 		kind,
 		...(row.review ? { review: row.review } : {}),
 		published: row.published === true,
+		...(row.coverUrl ? { coverUrl: row.coverUrl } : {}),
+		...(row.publisher ? { publisher: row.publisher } : {}),
+		...(row.translator ? { translator: row.translator } : {}),
+		...(row.illustrator ? { illustrator: row.illustrator } : {}),
+		...(row.isbn ? { isbn: row.isbn } : {}),
+		...(row.license ? { license: row.license } : {}),
+		...(row.ctaLabel ? { ctaLabel: row.ctaLabel } : {}),
+		...(safeExternalUrl(row.ctaUrl) ? { ctaUrl: safeExternalUrl(row.ctaUrl) } : {}),
 		hasFile: Boolean(row.filePath || row.originalName),
 		...(fileSizeBytes !== undefined ? { fileSizeBytes } : {}),
 		isOwner: true,
@@ -99,6 +111,7 @@ export default function BibliotecaApp(props: BibliotecaAppProps) {
 	const [clearingCache, setClearingCache] = createSignal(false);
 	const [uploadOpen, setUploadOpen] = createSignal(false);
 	const [editingBook, setEditingBook] = createSignal<Book | null>(null);
+	const [fichaBook, setFichaBook] = createSignal<Book | null>(null);
 	const [liveMessage, setLiveMessage] = createSignal('');
 	const [actionError, setActionError] = createSignal<string | null>(null);
 
@@ -168,8 +181,10 @@ export default function BibliotecaApp(props: BibliotecaAppProps) {
 			}
 		}
 
+		const needsOwnedRefresh = !(props.ssrOwnedLoaded ?? props.initialOwnedBooks.length > 0);
+		const needsCatalogRefresh = !(props.ssrCatalogLoaded ?? props.initialCatalogBooks.length > 0);
 		if (
-			(props.initialOwnedBooks.length === 0 || props.initialCatalogBooks.length === 0) &&
+			(needsOwnedRefresh || needsCatalogRefresh) &&
 			(typeof navigator === 'undefined' || navigator.onLine !== false)
 		) {
 			await refreshLists();
@@ -196,6 +211,7 @@ export default function BibliotecaApp(props: BibliotecaAppProps) {
 
 			const reading = await fetchBookClientReading(book.id, true);
 			const record = await putOfflineBook({ book, reading });
+			recordBookMetric(book.id, 'offline_download');
 			setOfflineRecords((current) => [
 				record,
 				...current.filter((entry) => entry.bookId !== record.bookId),
@@ -304,6 +320,7 @@ export default function BibliotecaApp(props: BibliotecaAppProps) {
 				counts={counts()}
 				isOffline={isOffline()}
 				userLabel={props.userLabel}
+				isAdmin={props.isAdmin === true}
 				onTabChange={(tab) => setActiveTab(tab)}
 				onToggleOffline={() => {
 					if (navigatorOffline()) {
@@ -369,6 +386,7 @@ export default function BibliotecaApp(props: BibliotecaAppProps) {
 										busy={busyBookIds().has(book.id)}
 										onToggleOffline={(target) => void handleToggleOffline(target)}
 										onEdit={(target) => setEditingBook(target)}
+										onOpenFicha={(target) => setFichaBook(target)}
 									/>
 								)}
 							</For>
@@ -409,6 +427,7 @@ export default function BibliotecaApp(props: BibliotecaAppProps) {
 										busy={busyBookIds().has(book.id)}
 										onToggleOffline={(target) => void handleToggleOffline(target)}
 										onEdit={(target) => setEditingBook(target)}
+										onOpenFicha={(target) => setFichaBook(target)}
 									/>
 								)}
 							</For>
@@ -469,6 +488,7 @@ export default function BibliotecaApp(props: BibliotecaAppProps) {
 										busy={busyBookIds().has(book.id)}
 										onToggleOffline={(target) => void handleToggleOffline(target)}
 										onEdit={(target) => setEditingBook(target)}
+										onOpenFicha={(target) => setFichaBook(target)}
 									/>
 								)}
 							</For>
@@ -509,6 +529,11 @@ export default function BibliotecaApp(props: BibliotecaAppProps) {
 				onClose={() => setEditingBook(null)}
 				onSaved={(result) => handleEditSaved(result)}
 				onDeleted={(result) => void handleEditDeleted(result)}
+			/>
+
+			<BookFichaModal
+				book={fichaBook()}
+				onClose={() => setFichaBook(null)}
 			/>
 		</div>
 	);

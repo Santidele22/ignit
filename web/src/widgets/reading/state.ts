@@ -9,7 +9,6 @@ const userId = body.dataset.userId || 'anon';
 const bookId = Number(body.dataset.bookId || 0);
 const bookTitle = body.dataset.bookTitle || '';
 const bookAuthor = body.dataset.bookAuthor || '';
-const downloadUrl = body.dataset.downloadUrl || `/api/books/${bookId}/download`;
 let pdfPages = Math.max(1, Number(body.dataset.pdfPages || 1));
 let parsedInitial: Partial<BookReadingState> = {};
 try {
@@ -59,5 +58,4 @@ export {
 	bookId,
 	bookTitle,
 	bookAuthor,
-	downloadUrl,
 };

@@ -977,3 +977,73 @@ body.admin-body .style-never ul {
 	display: grid;
 	gap: 2px;
 }
+
+
+/* ------------------------------------------- Tabs, editorial y métricas --- */
+
+body.admin-body .admin-tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-top: 16px;
+}
+
+body.admin-body .admin-tab {
+	font-family: var(--b-mono);
+	font-size: 10px;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	padding: 10px 14px;
+	min-height: 44px;
+	background: var(--b-panel);
+	border: 1px solid var(--b-border);
+	color: var(--b-faint);
+	cursor: pointer;
+}
+
+body.admin-body .admin-tab:hover {
+	color: var(--b-fg);
+	border-color: var(--b-border-strong);
+}
+
+body.admin-body .admin-tab[data-active="true"] {
+	border-color: var(--b-accent);
+	color: var(--b-accent-bright);
+	background: var(--b-panel-2);
+	font-weight: 700;
+}
+
+body.admin-body .row-editorial {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px 14px;
+	margin: 6px 0 0;
+	font-family: var(--b-mono);
+	font-size: 10.5px;
+	color: var(--b-faint);
+}
+
+body.admin-body .row-metrics {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-top: 10px;
+}
+
+body.admin-body .metric-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 9px;
+	border: 1px solid var(--b-border);
+	background: var(--b-panel-2);
+	font-family: var(--b-mono);
+	font-size: 10px;
+	letter-spacing: 0.08em;
+	color: var(--b-faint);
+}
+
+body.admin-body .metric-pill strong {
+	color: var(--b-fg);
+	font-weight: 700;
+}

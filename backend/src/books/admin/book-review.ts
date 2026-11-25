@@ -7,6 +7,7 @@ import {
   type BookReviewStatus,
 } from '../entities/book.entity.js';
 import { REVIEW_DECISIONS, type ReviewBookDto } from './dto/review-book.dto.js';
+import type { UnpublishBookDto } from './dto/unpublish-book.dto.js';
 
 /** Message of the `400` a decision outside `approved`/`rejected` gets. */
 export const INVALID_REVIEW_DECISION_MESSAGE =
@@ -47,12 +48,43 @@ export function applyReviewDecision(
   return book;
 }
 
+/**
+ * Immediately removes a book from the public catalog (`published = false`) for
+ * rapid publisher/copyright takedowns, recording who executed the action.
+ */
+export function applyUnpublish(
+  book: Book,
+  dto: UnpublishBookDto,
+  reviewerId: string,
+  now: Date = new Date(),
+): Book {
+  const note = dto.note?.trim();
+  book.published = false;
+  book.reviewStatus = 'rejected';
+  book.reviewedBy = reviewerId;
+  book.reviewedAt = now;
+  if (note && note.length > 0) {
+    book.reviewNote = note;
+  }
+  return book;
+}
+
 /** What the admin dashboard needs about one book, and nothing else. */
 export type AdminBookView = {
   id: number;
   title: string;
   author: string;
   kind: BookKind;
+  publisher: string | null;
+  translator: string | null;
+  illustrator: string | null;
+  isbn: string | null;
+  license: string | null;
+  ctaLabel: string | null;
+  ctaUrl: string | null;
+  readsStartedCount: number;
+  offlineDownloadsCount: number;
+  ctaClicksCount: number;
   ownerId: string;
   ownerEmail: string | null;
   fileSize: string | null;
@@ -80,6 +112,16 @@ export function presentAdminBook(book: Book): AdminBookView {
     title: book.title,
     author: book.author,
     kind: book.kind,
+    publisher: book.publisher ?? null,
+    translator: book.translator ?? null,
+    illustrator: book.illustrator ?? null,
+    isbn: book.isbn ?? null,
+    license: book.license ?? null,
+    ctaLabel: book.ctaLabel ?? null,
+    ctaUrl: book.ctaUrl ?? null,
+    readsStartedCount: Number(book.readsStartedCount ?? 0),
+    offlineDownloadsCount: Number(book.offlineDownloadsCount ?? 0),
+    ctaClicksCount: Number(book.ctaClicksCount ?? 0),
     ownerId: book.ownerId,
     ownerEmail: book.owner?.email ?? null,
     fileSize: book.fileSize ?? null,

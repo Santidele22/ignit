@@ -11,6 +11,13 @@ export type AdminBookRow = {
 	review?: string | null;
 	published?: boolean | null;
 	coverUrl?: string | null;
+	publisher?: string | null;
+	translator?: string | null;
+	illustrator?: string | null;
+	isbn?: string | null;
+	license?: string | null;
+	ctaLabel?: string | null;
+	ctaUrl?: string | null;
 	originalName?: string | null;
 	fileSize?: string | null;
 	mimeType?: string | null;
@@ -28,6 +35,13 @@ export type BookWriteBody = {
 	review: string | null;
 	published: boolean;
 	coverUrl?: string | null;
+	publisher?: string | null;
+	translator?: string | null;
+	illustrator?: string | null;
+	isbn?: string | null;
+	license?: string | null;
+	ctaLabel?: string | null;
+	ctaUrl?: string | null;
 };
 
 export type SuggestedBookMetadata = {

@@ -1,5 +1,14 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength,
+  ValidateIf,
+} from 'class-validator';
 import { ReadingStatus } from '../../common/enums/reading-status.enum.js';
 import { BookKind } from '../../common/enums/book-kind.enum.js';
 
@@ -47,4 +56,47 @@ export class CreateBookDto {
   @IsString()
   @MaxLength(2048)
   coverUrl?: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true, example: 'Editorial Independiente' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  publisher?: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  translator?: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  illustrator?: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true, example: '978-987-1234-56-7' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  isbn?: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true, example: 'CC BY-NC-SA 4.0' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  license?: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true, example: 'Comprar libro físico' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  ctaLabel?: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true, example: 'https://editorial.com/libro' })
+  @ValidateIf((_, value) => value !== null && value !== undefined && value !== '')
+  @IsString()
+  @MaxLength(2048)
+  @Matches(/^https?:\/\//i, { message: 'ctaUrl debe comenzar con http:// o https://' })
+  ctaUrl?: string | null;
 }

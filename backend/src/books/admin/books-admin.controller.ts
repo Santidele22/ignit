@@ -24,6 +24,7 @@ import { requireSessionUser } from '../lib/book-access.js';
 import { BooksAdminService } from './books-admin.service.js';
 import { AdminBooksQueryDto } from './dto/admin-books-query.dto.js';
 import { ReviewBookDto } from './dto/review-book.dto.js';
+import { UnpublishBookDto } from './dto/unpublish-book.dto.js';
 
 /**
  * Admin-only review surface over uploaded PDFs (S4).
@@ -69,6 +70,24 @@ export class BooksAdminController {
   ) {
     const user = requireSessionUser(req.user);
     return this.booksAdminService.review(id, reviewBookDto, user.id);
+  }
+
+  @Post(':id/unpublish')
+  @ApiOperation({
+    summary: 'Immediately unpublish a book from the public catalog (admin only)',
+    description:
+      'Sets `published = false` immediately so publishers or copyright holders can have titles taken down on demand.',
+  })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiCreatedResponse({ description: 'Updated book with published=false' })
+  @ApiNotFoundResponse({ description: 'Book not found' })
+  unpublish(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() unpublishBookDto: UnpublishBookDto,
+    @Req() req: { user?: RouteSessionUser | null },
+  ) {
+    const user = requireSessionUser(req.user);
+    return this.booksAdminService.unpublish(id, unpublishBookDto ?? {}, user.id);
   }
 
   @Get(':id/firewall')

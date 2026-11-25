@@ -1,5 +1,6 @@
 import { syncInitialRailWords } from './annotations';
 import { initDecks } from './decks';
+import { initFicha } from './ficha';
 import { initKeyboard } from './input';
 import { initReading } from './loadReading';
 import { initMarkActions } from './markActions';
@@ -20,6 +21,7 @@ export function initReader(): void {
 	syncInitialRailWords();
 	initReading();
 	initDecks();
+	initFicha();
 	initTimer();
 	initZen();
 	initKeyboard();

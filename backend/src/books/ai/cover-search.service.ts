@@ -44,8 +44,9 @@ const STOP_WORDS = new Set([
 ]);
 
 /**
- * Searches Google Books (when configured), OpenLibrary, and Wikimedia Commons
- * (open-licensed / public-domain bitmaps) for book cover images matching `title` + `author`,
+ * Searches Google Books (when configured), OpenLibrary, Internet Archive,
+ * Project Gutenberg (Gutendex), and Wikimedia Commons (open-licensed /
+ * public-domain bitmaps) for book cover images matching `title` + `author`,
  * plus optional LLM-suggested alternative queries and a zero-result LLM fallback.
  * Fail-open: returns `[]` on error or timeout.
  */
@@ -141,12 +142,14 @@ async function queryAllCatalogs(
   fallbackTitle: string,
   fetchImpl: typeof fetch,
 ): Promise<CoverSearchCandidate[]> {
-  const [google, openLibrary, wikimedia] = await Promise.all([
+  const [google, openLibrary, internetArchive, gutendex, wikimedia] = await Promise.all([
     queryGoogleVolumes(query, fallbackTitle, fetchImpl),
     queryOpenLibraryCovers(query, fallbackTitle, fetchImpl),
+    queryInternetArchiveCovers(query, fallbackTitle, fetchImpl),
+    queryGutendexCovers(query, fallbackTitle, fetchImpl),
     queryWikimediaCommonsCovers(query, fallbackTitle, fetchImpl),
   ]);
-  return [...google, ...openLibrary, ...wikimedia];
+  return [...google, ...openLibrary, ...internetArchive, ...gutendex, ...wikimedia];
 }
 
 function tokenize(text: string): string[] {
@@ -241,6 +244,95 @@ async function queryWikimediaCommonsCovers(
         title: rawTitle || fallbackTitle,
         authors: ['Wikimedia Commons'],
         coverUrl: rawUrl,
+      });
+    }
+    return results;
+  } catch {
+    return [];
+  }
+}
+
+async function queryInternetArchiveCovers(
+  query: string,
+  fallbackTitle: string,
+  fetchImpl: typeof fetch,
+): Promise<CoverSearchCandidate[]> {
+  const search = `${query} AND mediatype:texts`;
+  const url = `https://archive.org/advancedsearch.php?q=${encodeURIComponent(search)}&fl[]=identifier&fl[]=title&fl[]=creator&rows=6&output=json`;
+  try {
+    const response = await fetchImpl(url, {
+      headers: { accept: 'application/json' },
+      signal: AbortSignal.timeout(COVER_SEARCH_TIMEOUT_MS),
+    });
+    if (!response.ok) return [];
+    const data = (await response.json()) as {
+      response?: {
+        docs?: Array<{
+          identifier?: unknown;
+          title?: unknown;
+          creator?: unknown;
+        }>;
+      };
+    };
+    const docs = data.response?.docs;
+    if (!Array.isArray(docs)) return [];
+
+    const results: CoverSearchCandidate[] = [];
+    for (const doc of docs) {
+      if (typeof doc.identifier !== 'string' || !doc.identifier.trim()) continue;
+      const id = doc.identifier.trim();
+      const authors = Array.isArray(doc.creator)
+        ? doc.creator.filter((c): c is string => typeof c === 'string' && c.trim().length > 0)
+        : typeof doc.creator === 'string' && doc.creator.trim().length > 0
+          ? [doc.creator.trim()]
+          : [];
+      results.push({
+        title: typeof doc.title === 'string' && doc.title.trim() ? doc.title.trim() : fallbackTitle,
+        authors,
+        coverUrl: `https://archive.org/services/img/${encodeURIComponent(id)}`,
+      });
+    }
+    return results;
+  } catch {
+    return [];
+  }
+}
+
+async function queryGutendexCovers(
+  query: string,
+  fallbackTitle: string,
+  fetchImpl: typeof fetch,
+): Promise<CoverSearchCandidate[]> {
+  const url = `https://gutendex.com/books/?search=${encodeURIComponent(query)}`;
+  try {
+    const response = await fetchImpl(url, {
+      headers: { accept: 'application/json' },
+      signal: AbortSignal.timeout(COVER_SEARCH_TIMEOUT_MS),
+    });
+    if (!response.ok) return [];
+    const data = (await response.json()) as {
+      results?: Array<{
+        title?: unknown;
+        authors?: Array<{ name?: unknown }>;
+        formats?: Record<string, unknown>;
+      }>;
+    };
+    if (!Array.isArray(data.results)) return [];
+
+    const results: CoverSearchCandidate[] = [];
+    for (const item of data.results.slice(0, 6)) {
+      const rawCover = item.formats?.['image/jpeg'];
+      if (typeof rawCover !== 'string' || !/^https?:\/\//i.test(rawCover.trim())) continue;
+      const coverUrl = rawCover.trim().replace(/^http:\/\//i, 'https://');
+      const authors = Array.isArray(item.authors)
+        ? item.authors
+            .map((a) => (typeof a?.name === 'string' ? a.name.trim() : ''))
+            .filter((name) => name.length > 0)
+        : [];
+      results.push({
+        title: typeof item.title === 'string' && item.title.trim() ? item.title.trim() : fallbackTitle,
+        authors,
+        coverUrl,
       });
     }
     return results;

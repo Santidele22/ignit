@@ -2,6 +2,8 @@ export type ReadingStatus = 'reading' | 'finished' | 'queued';
 
 export type BookKind = 'tecnico' | 'no_tecnico';
 
+export type BookMetricEvent = 'read_started' | 'offline_download' | 'cta_click';
+
 export type Book = {
 	id: number;
 	title: string;
@@ -14,6 +16,13 @@ export type Book = {
 	published: boolean;
 	reviewStatus?: 'pending' | 'approved' | 'rejected' | null;
 	coverUrl?: string | null;
+	publisher?: string | null;
+	translator?: string | null;
+	illustrator?: string | null;
+	isbn?: string | null;
+	license?: string | null;
+	ctaLabel?: string | null;
+	ctaUrl?: string | null;
 	hasFile?: boolean;
 	fileSizeBytes?: number;
 	isOwner?: boolean;

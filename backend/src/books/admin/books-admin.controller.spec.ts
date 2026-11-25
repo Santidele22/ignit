@@ -39,11 +39,13 @@ describe('BooksAdminController', () => {
   let app: INestApplication<App>;
   let list: ReturnType<typeof vi.fn>;
   let review: ReturnType<typeof vi.fn>;
+  let unpublish: ReturnType<typeof vi.fn>;
   let firewall: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
     list = vi.fn(async () => ({ items: [], total: 0, offset: 0, limit: 20 }));
     review = vi.fn(async () => ({ id: 7, reviewStatus: 'approved' }));
+    unpublish = vi.fn(async () => ({ id: 7, published: false }));
     firewall = vi.fn(async (id: number) => {
       if (id !== 7) {
         throw new NotFoundException('Este libro no tiene reporte de firewall');
@@ -54,7 +56,7 @@ describe('BooksAdminController', () => {
     const moduleRef = await Test.createTestingModule({
       controllers: [BooksAdminController],
       providers: [
-        { provide: BooksAdminService, useValue: { list, review, firewall } },
+        { provide: BooksAdminService, useValue: { list, review, unpublish, firewall } },
         { provide: SESSION_READER, useValue: new HeaderSessionReader() },
         { provide: APP_GUARD, useClass: RouteAuthGuard },
         { provide: APP_GUARD, useClass: RouteRolesGuard },
@@ -149,6 +151,22 @@ describe('BooksAdminController', () => {
     expect(list).not.toHaveBeenCalled();
   });
 
+  it('accepts published=true|false filter and rejects invalid published values with 400', async () => {
+    await request(server())
+      .get('/admin/books?published=true')
+      .set('x-test-role', 'admin')
+      .expect(200);
+    const query = list.mock.calls[0]?.[0] as { published?: boolean };
+    expect(query.published).toBe(true);
+
+    list.mockClear();
+    await request(server())
+      .get('/admin/books?published=bogus')
+      .set('x-test-role', 'admin')
+      .expect(400);
+    expect(list).not.toHaveBeenCalled();
+  });
+
   it('reviews as the session user', async () => {
     await request(server())
       .post('/admin/books/7/review')
@@ -166,5 +184,22 @@ describe('BooksAdminController', () => {
       .send({ decision: 'maybe' })
       .expect(400);
     expect(review).not.toHaveBeenCalled();
+  });
+
+  it('guards unpublish and immediately unpublishes for admins', async () => {
+    await request(server()).post('/admin/books/7/unpublish').expect(401);
+    await request(server())
+      .post('/admin/books/7/unpublish')
+      .set('x-test-role', 'user')
+      .expect(403);
+    expect(unpublish).not.toHaveBeenCalled();
+
+    const ok = await request(server())
+      .post('/admin/books/7/unpublish')
+      .set('x-test-role', 'admin')
+      .send({ note: 'Retiro editorial' })
+      .expect(201);
+    expect(ok.body).toEqual({ id: 7, published: false });
+    expect(unpublish).toHaveBeenCalledWith(7, { note: 'Retiro editorial' }, 'admin-1');
   });
 });

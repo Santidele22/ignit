@@ -11,6 +11,7 @@ import { LOGIN_PATH } from '../../features/auth/paths';
 import {
 	fetchBookById,
 	fetchBookReadingState,
+	safeExternalUrl,
 } from '../../features/book/api/books';
 import ReaderAtmosphere from '../../features/book/reader/ReaderAtmosphere.astro';
 import ReaderDecks from '../../features/book/reader/ReaderDecks.astro';
@@ -53,7 +54,6 @@ const initialPct =
 		? Math.min(100, Math.max(0, Math.round(initialState.progress.pct)))
 		: 0;
 const initialWords = initialState?.words ?? [];
-const downloadUrl = `/api/books/${bookId}/download`;
 
 const isOwnerLibrary = Boolean(session.authenticated && book?.isOwner);
 const backHref = isOwnerLibrary ? '/biblioteca' : '/';
@@ -61,6 +61,8 @@ const backLabel = isOwnerLibrary ? '← mi biblioteca' : '← explorar';
 const footerBackLabel = isOwnerLibrary ? 'Volver a mi biblioteca' : 'Volver al catálogo';
 const loginHref = `${LOGIN_PATH}?redirect=${encodeURIComponent(Astro.url.pathname + Astro.url.search)}`;
 const userId = session.authenticated ? (session.user.id ?? session.user.email) : 'anon';
+
+const safeCtaUrl = safeExternalUrl(book?.ctaUrl) ?? null;
 
 const pageTitle = book
 	? `${book.title} — Vigilia de lectura — ${SITE_NAME}`
@@ -104,7 +106,6 @@ const pageDescription = book
 	data-book-status={initialState?.status ?? (session.authenticated && book?.isOwner ? book.status : 'queued')}
 	data-book-title={book?.title ?? ''}
 	data-book-author={book?.author ?? ''}
-	data-download-url={downloadUrl}
 	data-pdf-pages={String(initialPage)}
 	data-initial-state={JSON.stringify(
 		initialState ?? {
@@ -128,7 +129,38 @@ const pageDescription = book
 		backLabel={backLabel}
 		canSync={session.authenticated}
 		loginHref={loginHref}
+		hasFicha={Boolean(book)}
+		ctaLabel={book?.ctaLabel ?? null}
+		ctaUrl={safeCtaUrl}
 	/>
+
+	{book && (
+		<aside class="ficha-deck" id="fichaDeck" aria-label="Ficha del libro" hidden>
+			<div class="deck-head">
+				<span>Ficha del libro</span>
+				<button type="button" id="fichaClose">Cerrar ✕</button>
+			</div>
+			<dl class="ficha-deck-dl">
+				<div class="ficha-deck-row"><dt>Autor</dt><dd>{book.author}</dd></div>
+				{book.publisher && <div class="ficha-deck-row"><dt>Editorial</dt><dd>{book.publisher}</dd></div>}
+				{book.translator && <div class="ficha-deck-row"><dt>Traductor</dt><dd>{book.translator}</dd></div>}
+				{book.illustrator && <div class="ficha-deck-row"><dt>Ilustrador</dt><dd>{book.illustrator}</dd></div>}
+				{book.isbn && <div class="ficha-deck-row"><dt>ISBN</dt><dd>{book.isbn}</dd></div>}
+				{book.license && <div class="ficha-deck-row"><dt>Licencia</dt><dd>{book.license}</dd></div>}
+			</dl>
+			{safeCtaUrl && (
+				<a
+					class="ficha-deck-cta"
+					href={safeCtaUrl}
+					target="_blank"
+					rel="noopener noreferrer"
+					data-cta-track="1"
+				>
+					{book.ctaLabel?.trim() || 'Apoyar / Conseguir libro físico'} ↗
+				</a>
+			)}
+		</aside>
+	)}
 
 	<ReaderStage available={Boolean(book)} title={book?.title ?? null} />
 

@@ -9,6 +9,7 @@ import { BooksService } from './books.service.js';
 import type { Book } from './entities/book.entity.js';
 import type { DownloadEvent } from './entities/download-event.entity.js';
 import type { ReadingState } from './entities/reading-state.entity.js';
+import { presentBook } from './http/book-presenter.js';
 import type { BookStorage } from './storage/book-storage.js';
 
 function bookRow(overrides: Partial<Book> = {}): Book {
@@ -59,6 +60,19 @@ describe('BooksService multi-user isolation and reading state', () => {
         books = books.filter((b) => b.id !== id);
         return { affected: 1 };
       }),
+      increment: vi.fn(
+        async (
+          criteria: { id: number },
+          propertyPath: 'readsStartedCount' | 'offlineDownloadsCount' | 'ctaClicksCount',
+          value: number,
+        ) => {
+          const target = books.find((b) => b.id === criteria.id);
+          if (target) {
+            target[propertyPath] = Number(target[propertyPath] ?? 0) + value;
+          }
+          return { affected: target ? 1 : 0 };
+        },
+      ),
     } as unknown as Repository<Book>;
 
     const downloadEventsRepo = {
@@ -215,12 +229,106 @@ describe('BooksService multi-user isolation and reading state', () => {
     expect(reloadedB.words[0].term).toBe('Kwisatz');
   });
 
-  it('allows owner to download their own private PDF without hitting anonymous rate limit', async () => {
-    books.push(bookRow({ id: 8, ownerId: 'user-a', published: false, filePath: 'secret.pdf' }));
+  it('restricts direct source PDF download strictly to admins', async () => {
+    books.push(bookRow({ id: 8, ownerId: 'user-a', published: true, filePath: 'secret.pdf' }));
 
-    await expect(service.prepareDownload(8, '1.2.3.4', null)).rejects.toThrow(NotFoundException);
-    const ownerDl = await service.prepareDownload(8, '1.2.3.4', { id: 'user-a', role: 'user' });
-    expect(ownerDl.filePath).toBe('secret.pdf');
+    await expect(service.prepareDownload(8, '1.2.3.4', null)).rejects.toThrow(ForbiddenException);
+    await expect(
+      service.prepareDownload(8, '1.2.3.4', { id: 'user-a', role: 'user' }),
+    ).rejects.toThrow(ForbiddenException);
+    await expect(
+      service.prepareDownload(8, '1.2.3.4', { id: 'user-b', role: 'user' }),
+    ).rejects.toThrow(ForbiddenException);
+
+    const adminDl = await service.prepareDownload(8, '1.2.3.4', { id: 'admin-1', role: 'admin' });
+    expect(adminDl.filePath).toBe('secret.pdf');
     expect(downloadEvents).toHaveLength(0);
+  });
+
+  it('persists and normalizes editorial ficha and CTA fields on create and update', async () => {
+    const created = await service.createForUser(
+      {
+        title: 'Ficciones',
+        author: 'Jorge Luis Borges',
+        description: 'Cuentos.',
+        status: ReadingStatus.QUEUED,
+        publisher: '  Editorial Sur  ',
+        translator: '   ',
+        illustrator: 'Norah Borges',
+        isbn: '978-987-0000-00-0',
+        license: 'Autorización editorial',
+        ctaLabel: 'Comprar libro físico',
+        ctaUrl: 'https://editorialsur.example/ficciones',
+      },
+      { id: 'user-a', email: 'alice@ignit.app', name: 'Alice', role: 'user' },
+    );
+
+    expect(created.publisher).toBe('Editorial Sur');
+    expect(created.translator).toBeNull();
+    expect(created.illustrator).toBe('Norah Borges');
+    expect(created.isbn).toBe('978-987-0000-00-0');
+    expect(created.license).toBe('Autorización editorial');
+    expect(created.ctaLabel).toBe('Comprar libro físico');
+    expect(created.ctaUrl).toBe('https://editorialsur.example/ficciones');
+
+    const updated = await service.updateForUser(
+      created.id,
+      { ctaLabel: '', ctaUrl: '' },
+      { id: 'user-a', role: 'user' },
+    );
+    expect(updated.ctaLabel).toBeNull();
+    expect(updated.ctaUrl).toBeNull();
+  });
+
+  it('records atomic per-book metrics only for readable books', async () => {
+    books.push(
+      bookRow({
+        id: 12,
+        ownerId: 'user-a',
+        published: true,
+        readsStartedCount: 0,
+        offlineDownloadsCount: 0,
+        ctaClicksCount: 0,
+      }),
+    );
+    books.push(bookRow({ id: 13, ownerId: 'user-a', published: false }));
+
+    await service.recordMetric(12, 'read_started', null);
+    await service.recordMetric(12, 'offline_download', { id: 'user-b', role: 'user' });
+    await service.recordMetric(12, 'cta_click', null);
+
+    expect(books[0].readsStartedCount).toBe(1);
+    expect(books[0].offlineDownloadsCount).toBe(1);
+    expect(books[0].ctaClicksCount).toBe(1);
+
+    await expect(service.recordMetric(13, 'read_started', null)).rejects.toThrow(NotFoundException);
+
+    // presentBook strips internal metric counters from public/owner payloads
+    const presented = presentBook(books[0], null);
+    expect(presented).not.toHaveProperty('readsStartedCount');
+    expect(presented).not.toHaveProperty('offlineDownloadsCount');
+    expect(presented).not.toHaveProperty('ctaClicksCount');
+  });
+
+  it('prevents non-admin owners from re-publishing a book taken down by admin', async () => {
+    books.push(
+      bookRow({
+        id: 20,
+        ownerId: 'user-a',
+        published: false,
+        reviewStatus: 'rejected',
+      }),
+    );
+
+    await expect(
+      service.updateForUser(20, { published: true }, { id: 'user-a', role: 'user' }),
+    ).rejects.toThrow(ForbiddenException);
+
+    const republishedByAdmin = await service.updateForUser(
+      20,
+      { published: true },
+      { id: 'admin-1', role: 'admin' },
+    );
+    expect(republishedByAdmin.published).toBe(true);
   });
 });

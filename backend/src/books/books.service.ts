@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { FindOptionsWhere, Repository } from 'typeorm';
 import type { RouteSessionUser } from '../auth/guards/session-reader.js';
@@ -8,6 +8,7 @@ import type { PagedResult, PaginationQueryDto } from '../common/pagination/pagin
 import { ensureUserExists, type SessionUserIdentity } from '../users/ensure-user-exists.js';
 import { User } from '../users/entities/user.entity.js';
 import type { CreateBookDto } from './dto/create-book.dto.js';
+import type { BookMetricEvent } from './dto/record-book-metric.dto.js';
 import type { UpdateBookDto } from './dto/update-book.dto.js';
 import type { UpdateReadingStateDto } from './dto/update-reading-state.dto.js';
 import { Book } from './entities/book.entity.js';
@@ -21,11 +22,7 @@ import {
   requireSessionUser,
 } from './lib/book-access.js';
 import { createBookRow, removeBookRow, updateBookRow } from './lib/book-columns.js';
-import {
-  assertDownloadQuota,
-  downloadDescriptor,
-  recordDownload,
-} from './lib/book-download.js';
+import { downloadDescriptor } from './lib/book-download.js';
 import { attachBookFile, type UploadedPdf } from './lib/book-file.js';
 import { findBookOrFail, requireStoredFile } from './lib/book-lookup.js';
 import { resolveReadingDocument } from './lib/book-reading.js';
@@ -99,6 +96,11 @@ export class BooksService {
   ): Promise<Book> {
     const book = await this.findOne(id);
     assertCanManageBook(book, user);
+    if (dto.published === true && book.reviewStatus === 'rejected' && !isAdminUser(user)) {
+      throw new ForbiddenException(
+        'Este libro fue retirado por administración y solo un administrador puede volver a publicarlo',
+      );
+    }
     return updateBookRow(this.booksRepository, book, dto);
   }
 
@@ -189,18 +191,38 @@ export class BooksService {
 
   async prepareDownload(
     id: number,
-    ip: string,
+    _ip: string,
     user?: RouteSessionUser | null,
   ): Promise<{ filePath: string; originalName: string; mimeType: string }> {
+    if (!isAdminUser(user)) {
+      throw new ForbiddenException(
+        'La descarga directa del archivo fuente está restringida a administradores',
+      );
+    }
     const book = await this.findOne(id);
-    assertCanReadBook(book, user);
     const filePath = requireStoredFile(book);
 
-    if (!isBookOwner(book, user) && !isAdminUser(user)) {
-      await assertDownloadQuota(this.downloadEventsRepository, ip);
-      await recordDownload(this.downloadEventsRepository, ip, id);
-    }
-
     return downloadDescriptor(book, filePath);
+  }
+
+  async recordMetric(
+    id: number,
+    event: BookMetricEvent,
+    user?: RouteSessionUser | null,
+  ): Promise<{ ok: true }> {
+    const book = await this.findOne(id);
+    assertCanReadBook(book, user);
+
+    const columnMap: Record<
+      BookMetricEvent,
+      'readsStartedCount' | 'offlineDownloadsCount' | 'ctaClicksCount'
+    > = {
+      read_started: 'readsStartedCount',
+      offline_download: 'offlineDownloadsCount',
+      cta_click: 'ctaClicksCount',
+    };
+
+    await this.booksRepository.increment({ id: book.id }, columnMap[event], 1);
+    return { ok: true };
   }
 }

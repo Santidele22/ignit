@@ -48,6 +48,13 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 	const [prefillStatus, setPrefillStatus] = createSignal('');
 	const [prefillStage, setPrefillStage] = createSignal<'idle' | 'metadata' | 'cover'>('idle');
 	const [published, setPublished] = createSignal(false);
+	const [publisher, setPublisher] = createSignal('');
+	const [translator, setTranslator] = createSignal('');
+	const [illustrator, setIllustrator] = createSignal('');
+	const [isbn, setIsbn] = createSignal('');
+	const [license, setLicense] = createSignal('');
+	const [ctaLabel, setCtaLabel] = createSignal('');
+	const [ctaUrl, setCtaUrl] = createSignal('');
 	const [file, setFile] = createSignal<File | null>(null);
 	const [createdRow, setCreatedRow] = createSignal<AdminBookRow | null>(null);
 	const [submittedTitle, setSubmittedTitle] = createSignal<string | null>(null);
@@ -76,6 +83,13 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 		setPrefillStatus('');
 		setPrefillStage('idle');
 		setPublished(false);
+		setPublisher('');
+		setTranslator('');
+		setIllustrator('');
+		setIsbn('');
+		setLicense('');
+		setCtaLabel('');
+		setCtaUrl('');
 		setFile(null);
 		setCreatedRow(null);
 		setSubmittedTitle(null);
@@ -189,6 +203,12 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 			}
 		}
 
+		const cleanCtaUrl = ctaUrl().trim();
+		if (cleanCtaUrl && !/^https?:\/\//i.test(cleanCtaUrl)) {
+			setError('El enlace externo debe comenzar con http:// o https://.');
+			return;
+		}
+
 		setError(null);
 		setSubmitting(true);
 
@@ -201,6 +221,13 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 			review: '',
 			published: published(),
 			coverUrl: coverUrl().trim() || undefined,
+			publisher: publisher(),
+			translator: translator(),
+			illustrator: illustrator(),
+			isbn: isbn(),
+			license: license(),
+			ctaLabel: ctaLabel(),
+			ctaUrl: cleanCtaUrl,
 		});
 
 		let created = createdRow();
@@ -479,6 +506,95 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 								</Show>
 							</div>
 						</div>
+
+						<details class="ficha-details">
+							<summary>Ficha editorial y enlace externo (opcional)</summary>
+							<div class="ficha-details-grid">
+								<div class="modal-grid">
+									<div class="field">
+										<label for="upPublisher">Editorial</label>
+										<input
+											id="upPublisher"
+											type="text"
+											placeholder="Ej. Editorial Sur"
+											value={publisher()}
+											disabled={submitting()}
+											onInput={(event) => setPublisher(event.currentTarget.value)}
+										/>
+									</div>
+									<div class="field">
+										<label for="upIsbn">ISBN</label>
+										<input
+											id="upIsbn"
+											type="text"
+											placeholder="978-987-…"
+											value={isbn()}
+											disabled={submitting()}
+											onInput={(event) => setIsbn(event.currentTarget.value)}
+										/>
+									</div>
+								</div>
+								<div class="modal-grid">
+									<div class="field">
+										<label for="upTranslator">Traductor</label>
+										<input
+											id="upTranslator"
+											type="text"
+											placeholder="Opcional"
+											value={translator()}
+											disabled={submitting()}
+											onInput={(event) => setTranslator(event.currentTarget.value)}
+										/>
+									</div>
+									<div class="field">
+										<label for="upIllustrator">Ilustrador</label>
+										<input
+											id="upIllustrator"
+											type="text"
+											placeholder="Opcional"
+											value={illustrator()}
+											disabled={submitting()}
+											onInput={(event) => setIllustrator(event.currentTarget.value)}
+										/>
+									</div>
+								</div>
+								<div class="field">
+									<label for="upLicense">Licencia / Derechos</label>
+									<input
+										id="upLicense"
+										type="text"
+										placeholder="Ej. CC BY-NC-SA 4.0 · Autorización editorial"
+										value={license()}
+										disabled={submitting()}
+										onInput={(event) => setLicense(event.currentTarget.value)}
+									/>
+								</div>
+								<div class="modal-grid">
+									<div class="field">
+										<label for="upCtaLabel">Botón externo (texto)</label>
+										<input
+											id="upCtaLabel"
+											type="text"
+											placeholder="Ej. Comprar libro físico"
+											value={ctaLabel()}
+											disabled={submitting()}
+											onInput={(event) => setCtaLabel(event.currentTarget.value)}
+										/>
+									</div>
+									<div class="field">
+										<label for="upCtaUrl">Enlace externo (URL)</label>
+										<input
+											id="upCtaUrl"
+											type="url"
+											placeholder="https://tienda-editorial.com/libro"
+											value={ctaUrl()}
+											disabled={submitting()}
+											onInput={(event) => setCtaUrl(event.currentTarget.value)}
+										/>
+									</div>
+								</div>
+							</div>
+						</details>
 
 						<label class="field checkbox-field">
 							<input

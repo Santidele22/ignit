@@ -3,7 +3,12 @@ import { signOutCleanly } from '../../auth/api/authActions';
 import { BookClutterPanel } from './BookClutterPanel';
 import { FirewallPipeline } from './FirewallPipeline';
 import { StyleReferenceSection } from './StyleReferenceSection';
-import { ADMIN_QUEUE_PAGE_SIZE, fetchAdminQueue, submitAdminReview } from '../lib/admin-api';
+import {
+	ADMIN_QUEUE_PAGE_SIZE,
+	fetchAdminQueue,
+	submitAdminReview,
+	unpublishAdminBook,
+} from '../lib/admin-api';
 import {
 	adminAiVerdict,
 	adminKindLabel,
@@ -34,12 +39,15 @@ export interface AdminQueueAppProps {
 	userLabel: string;
 }
 
-type ArmedRow = { id: number; mode: 'approve' | 'reject' };
+type ArmedRow = { id: number; mode: 'approve' | 'reject' | 'unpublish' };
+type AdminViewMode = 'pending' | 'published';
 
 const LOAD_ERROR = 'No se pudo cargar la cola de revisión.';
 const DECISION_ERROR = 'No se pudo registrar la decisión.';
+const UNPUBLISH_ERROR = 'No se pudo despublicar el libro.';
 
 export default function AdminQueueApp(props: AdminQueueAppProps) {
+	const [view, setView] = createSignal<AdminViewMode>('pending');
 	const [queue, setQueue] = createSignal<AdminQueuePage | null>(null);
 	const [loading, setLoading] = createSignal(true);
 	const [error, setError] = createSignal<string | null>(null);
@@ -72,14 +80,18 @@ export default function AdminQueueApp(props: AdminQueueAppProps) {
 	const pendingTotal = () => queue()?.total ?? 0;
 	const windowView = () => adminQueueWindow(queue() ?? { total: 0, offset: 0, limit: ADMIN_QUEUE_PAGE_SIZE });
 
-	/** Loads one page; an emptied last page falls back to the previous one. */
-	async function loadQueue(target: number) {
+	/** Loads one page for the active view; an emptied last page falls back to the previous one. */
+	async function loadQueue(target: number, mode: AdminViewMode = view()) {
 		setLoading(true);
 		setError(null);
 		try {
-			const result = await fetchAdminQueue({ page: target, pageSize: ADMIN_QUEUE_PAGE_SIZE });
+			const query =
+				mode === 'published'
+					? { published: true, page: target, pageSize: ADMIN_QUEUE_PAGE_SIZE }
+					: { review: 'pending' as const, page: target, pageSize: ADMIN_QUEUE_PAGE_SIZE };
+			const result = await fetchAdminQueue(query);
 			if (result.items.length === 0 && target > 1) {
-				await loadQueue(target - 1);
+				await loadQueue(target - 1, mode);
 				return;
 			}
 			setQueue(result);
@@ -89,6 +101,14 @@ export default function AdminQueueApp(props: AdminQueueAppProps) {
 		} finally {
 			setLoading(false);
 		}
+	}
+
+	function switchView(next: AdminViewMode) {
+		if (view() === next) return;
+		disarm();
+		setView(next);
+		setPage(1);
+		void loadQueue(1, next);
 	}
 
 	function disarm() {
@@ -104,12 +124,31 @@ export default function AdminQueueApp(props: AdminQueueAppProps) {
 		setPublishOnApprove(false);
 		setArmed({ id: book.id, mode });
 		queueMicrotask(() => {
-			if (mode === 'reject') {
+			if (mode === 'reject' || mode === 'unpublish') {
 				noteInput?.focus();
 				return;
 			}
 			confirmInput?.focus();
 		});
+	}
+
+	async function executeUnpublish(book: AdminQueueBook) {
+		if (busyId() !== null) return;
+
+		const trimmedNote = note().trim();
+		setBusyId(book.id);
+		setError(null);
+
+		try {
+			await unpublishAdminBook(book.id, trimmedNote || undefined);
+			setAnnouncement(`«${book.title}» despublicado del catálogo público.`);
+			disarm();
+			await loadQueue(page(), view());
+		} catch (cause) {
+			setError(cause instanceof Error ? cause.message : UNPUBLISH_ERROR);
+		} finally {
+			setBusyId(null);
+		}
 	}
 
 	async function decide(book: AdminQueueBook, decision: 'approved' | 'rejected') {
@@ -185,9 +224,9 @@ export default function AdminQueueApp(props: AdminQueueAppProps) {
 					</span>
 
 					<div class="admin-top-actions">
-						<span class="pending-badge" title="PDFs pendientes de revisión">
+						<span class="pending-badge" title={view() === 'published' ? 'Libros publicados' : 'PDFs pendientes de revisión'}>
 							<span class="pending-count">{pendingTotal()}</span>
-							<span class="pending-label">pendientes</span>
+							<span class="pending-label">{view() === 'published' ? 'publicados' : 'pendientes'}</span>
 						</span>
 						<div class="user-pill">
 							<span class="user-avatar" aria-hidden="true">
@@ -215,13 +254,40 @@ export default function AdminQueueApp(props: AdminQueueAppProps) {
 				</div>
 
 				<div class="admin-head">
-					<p class="admin-eyebrow">Revisión de PDFs</p>
-					<h1 class="admin-title">Cola de revisión</h1>
+					<p class="admin-eyebrow">Gestión de catálogo y revisión</p>
+					<h1 class="admin-title">
+						{view() === 'published' ? 'Catálogo publicado' : 'Cola de revisión'}
+					</h1>
 					<p class="admin-sub">
-						Cada PDF subido por la comunidad llega acá antes de publicarse. Revisá el archivo, aceptalo o
-						rechazalo con una nota.
+						{view() === 'published'
+							? 'Controlá los libros visibles al público, revisá sus métricas básicas y despublicá al instante si una editorial o titular solicita el retiro.'
+							: 'Cada PDF subido por la comunidad llega acá antes de publicarse. Revisá el archivo, aceptalo o rechazalo con una nota.'}
 					</p>
-					<StyleReferenceSection />
+					<div class="admin-tabs" role="tablist" aria-label="Vistas de administración">
+						<button
+							type="button"
+							role="tab"
+							class="admin-tab"
+							aria-selected={view() === 'pending'}
+							data-active={String(view() === 'pending')}
+							onClick={() => switchView('pending')}
+						>
+							Cola pendiente
+						</button>
+						<button
+							type="button"
+							role="tab"
+							class="admin-tab"
+							aria-selected={view() === 'published'}
+							data-active={String(view() === 'published')}
+							onClick={() => switchView('published')}
+						>
+							Catálogo publicado y métricas
+						</button>
+					</div>
+					<Show when={view() === 'pending'}>
+						<StyleReferenceSection />
+					</Show>
 				</div>
 
 				<Show when={error()}>
@@ -238,8 +304,16 @@ export default function AdminQueueApp(props: AdminQueueAppProps) {
 
 				<Show when={!loading() && rows().length === 0}>
 					<section class="empty-state">
-						<p class="empty-title">No hay PDFs pendientes de revisión</p>
-						<p class="empty-note">Todo lo subido por la comunidad ya fue revisado.</p>
+						<p class="empty-title">
+							{view() === 'published'
+								? 'No hay libros publicados en el catálogo'
+								: 'No hay PDFs pendientes de revisión'}
+						</p>
+						<p class="empty-note">
+							{view() === 'published'
+								? 'Cuando apruebes y publiques un libro desde la cola, va a aparecer acá con sus métricas y botón de retiro inmediato.'
+								: 'Todo lo subido por la comunidad ya fue revisado.'}
+						</p>
 						<a class="btn-secondary" href="/biblioteca">
 							Volver a la biblioteca
 						</a>
@@ -280,71 +354,140 @@ export default function AdminQueueApp(props: AdminQueueAppProps) {
 												<span>subido {formatAdminRelativeTime(book.createdAt)}</span>
 											</p>
 
-											<div class="row-ai" data-tone={verdict.tone}>
-												<span class="ai-label">{verdict.label}</span>
-												<Show when={verdict.qualityLabel}>
-													<span class="ai-quality">{verdict.qualityLabel}</span>
-												</Show>
-												<Show when={verdict.notes}>
-													<span class="ai-notes">{verdict.notes}</span>
-												</Show>
+											<Show when={book.publisher || book.license || book.isbn}>
+												<p class="row-editorial">
+													<Show when={book.publisher}>
+														<span>Editorial: {book.publisher}</span>
+													</Show>
+													<Show when={book.isbn}>
+														<span>ISBN: {book.isbn}</span>
+													</Show>
+													<Show when={book.license}>
+														<span>Licencia: {book.license}</span>
+													</Show>
+												</p>
+											</Show>
+
+											<div class="row-metrics" aria-label="Métricas del libro">
+												<span class="metric-pill">
+													Lecturas iniciadas: <strong>{book.readsStartedCount ?? 0}</strong>
+												</span>
+												<span class="metric-pill">
+													Descargas offline: <strong>{book.offlineDownloadsCount ?? 0}</strong>
+												</span>
+												<span class="metric-pill">
+													Clics CTA: <strong>{book.ctaClicksCount ?? 0}</strong>
+												</span>
 											</div>
 
-										<div class="row-phases">
-											<section class="phase-card" aria-label="Fase 1: Seguridad">
-												<div class="phase-head">
-													<span class="phase-title">Fase 1 · Seguridad</span>
-													<label class="phase-check">
-														<input
-															type="checkbox"
-															checked={getPhases(book.id).security}
-															onChange={(event) => togglePhase(book.id, 'security', event.currentTarget.checked)}
-														/>
-														<span>{getPhases(book.id).security ? 'Aprobada' : 'Marcar aprobada'}</span>
-													</label>
+											<Show when={view() === 'pending'}>
+												<div class="row-ai" data-tone={verdict.tone}>
+													<span class="ai-label">{verdict.label}</span>
+													<Show when={verdict.qualityLabel}>
+														<span class="ai-quality">{verdict.qualityLabel}</span>
+													</Show>
+													<Show when={verdict.notes}>
+														<span class="ai-notes">{verdict.notes}</span>
+													</Show>
 												</div>
-												<button
-													class="pipeline-toggle"
-													type="button"
-													aria-expanded={pipelineId() === book.id}
-													onClick={() => setPipelineId(pipelineId() === book.id ? null : book.id)}
-												>
-													{pipelineId() === book.id ? 'Ocultar firewall' : 'Ver firewall'}
-												</button>
-												<FirewallPipeline bookId={book.id} open={pipelineId() === book.id} />
-											</section>
 
-											<section class="phase-card" aria-label="Fase 2: Diseño y contenido">
-												<div class="phase-head">
-													<span class="phase-title">Fase 2 · Diseño y preview</span>
-													<label class="phase-check">
-														<input
-															type="checkbox"
-															checked={getPhases(book.id).design}
-															onChange={(event) => togglePhase(book.id, 'design', event.currentTarget.checked)}
-														/>
-														<span>{getPhases(book.id).design ? 'Aprobado' : 'Marcar aprobado'}</span>
-													</label>
+												<div class="row-phases">
+													<section class="phase-card" aria-label="Fase 1: Seguridad">
+														<div class="phase-head">
+															<span class="phase-title">Fase 1 · Seguridad</span>
+															<label class="phase-check">
+																<input
+																	type="checkbox"
+																	checked={getPhases(book.id).security}
+																	onChange={(event) => togglePhase(book.id, 'security', event.currentTarget.checked)}
+																/>
+																<span>{getPhases(book.id).security ? 'Aprobada' : 'Marcar aprobada'}</span>
+															</label>
+														</div>
+														<button
+															class="pipeline-toggle"
+															type="button"
+															aria-expanded={pipelineId() === book.id}
+															onClick={() => setPipelineId(pipelineId() === book.id ? null : book.id)}
+														>
+															{pipelineId() === book.id ? 'Ocultar firewall' : 'Ver firewall'}
+														</button>
+														<FirewallPipeline bookId={book.id} open={pipelineId() === book.id} />
+													</section>
+
+													<section class="phase-card" aria-label="Fase 2: Diseño y contenido">
+														<div class="phase-head">
+															<span class="phase-title">Fase 2 · Diseño y preview</span>
+															<label class="phase-check">
+																<input
+																	type="checkbox"
+																	checked={getPhases(book.id).design}
+																	onChange={(event) => togglePhase(book.id, 'design', event.currentTarget.checked)}
+																/>
+																<span>{getPhases(book.id).design ? 'Aprobado' : 'Marcar aprobado'}</span>
+															</label>
+														</div>
+														<button
+															class="pipeline-toggle"
+															type="button"
+															aria-expanded={clutterId() === book.id}
+															onClick={() => setClutterId(clutterId() === book.id ? null : book.id)}
+														>
+															{clutterId() === book.id ? 'Ocultar diseño y preview' : 'Ver diseño, preview y suciedad'}
+														</button>
+														<BookClutterPanel bookId={book.id} open={clutterId() === book.id} />
+													</section>
 												</div>
-												<button
-													class="pipeline-toggle"
-													type="button"
-													aria-expanded={clutterId() === book.id}
-													onClick={() => setClutterId(clutterId() === book.id ? null : book.id)}
-												>
-													{clutterId() === book.id ? 'Ocultar diseño y preview' : 'Ver diseño, preview y suciedad'}
-												</button>
-												<BookClutterPanel bookId={book.id} open={clutterId() === book.id} />
-											</section>
-										</div>
+											</Show>
 										</div>
 
 										<div class="row-actions">
 											<a class="btn-secondary" href={`/lecturas/${book.id}`} target="_blank" rel="noreferrer">
-												Ver PDF
+												{view() === 'published' ? 'Abrir lector' : 'Ver PDF'}
 											</a>
 
-											<Show when={!isArmed()}>
+											<Show when={view() === 'published'}>
+												<Show when={!isArmed()}>
+													<button
+														class="btn-reject"
+														type="button"
+														disabled={isBusy()}
+														onClick={() => arm(book, 'unpublish')}
+													>
+														Despublicar
+													</button>
+												</Show>
+												<Show when={mode() === 'unpublish'}>
+													<div class="arm-panel" role="group" aria-label={`Confirmar retiro inmediato de «${book.title}»`}>
+														<label class="arm-note">
+															<span class="sr-only">Motivo del retiro</span>
+															<input
+																ref={(element) => {
+																	noteInput = element;
+																}}
+																type="text"
+																value={note()}
+																placeholder="Motivo (ej. pedido de editorial)"
+																maxLength={280}
+																onInput={(event) => setNote(event.currentTarget.value)}
+															/>
+														</label>
+														<button
+															class="btn-reject"
+															type="button"
+															disabled={isBusy()}
+															onClick={() => void executeUnpublish(book)}
+														>
+															{isBusy() ? 'Despublicando…' : 'Confirmar despublicación'}
+														</button>
+														<button class="btn-ghost" type="button" disabled={isBusy()} onClick={disarm}>
+															Cancelar
+														</button>
+													</div>
+												</Show>
+											</Show>
+
+											<Show when={view() === 'pending' && !isArmed()}>
 												<button
 													class="btn-approve"
 													type="button"

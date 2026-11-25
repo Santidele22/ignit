@@ -380,6 +380,104 @@ export default function EditBookModal(props: EditBookModalProps) {
 							</div>
 						</div>
 
+						<details
+							class="ficha-details"
+							open={Boolean(
+								form().publisher ||
+									form().translator ||
+									form().illustrator ||
+									form().isbn ||
+									form().license ||
+									form().ctaLabel ||
+									form().ctaUrl,
+							)}
+						>
+							<summary>Ficha editorial y enlace externo (opcional)</summary>
+							<div class="ficha-details-grid">
+								<div class="modal-grid">
+									<div class="field">
+										<label for="editBookPublisher">Editorial</label>
+										<input
+											id="editBookPublisher"
+											type="text"
+											placeholder="Ej. Editorial Sur"
+											value={form().publisher ?? ''}
+											disabled={saving()}
+											onInput={(event) => update('publisher', event.currentTarget.value)}
+										/>
+									</div>
+									<div class="field">
+										<label for="editBookIsbn">ISBN</label>
+										<input
+											id="editBookIsbn"
+											type="text"
+											placeholder="978-987-…"
+											value={form().isbn ?? ''}
+											disabled={saving()}
+											onInput={(event) => update('isbn', event.currentTarget.value)}
+										/>
+									</div>
+								</div>
+								<div class="modal-grid">
+									<div class="field">
+										<label for="editBookTranslator">Traductor</label>
+										<input
+											id="editBookTranslator"
+											type="text"
+											value={form().translator ?? ''}
+											disabled={saving()}
+											onInput={(event) => update('translator', event.currentTarget.value)}
+										/>
+									</div>
+									<div class="field">
+										<label for="editBookIllustrator">Ilustrador</label>
+										<input
+											id="editBookIllustrator"
+											type="text"
+											value={form().illustrator ?? ''}
+											disabled={saving()}
+											onInput={(event) => update('illustrator', event.currentTarget.value)}
+										/>
+									</div>
+								</div>
+								<div class="field">
+									<label for="editBookLicense">Licencia / Derechos</label>
+									<input
+										id="editBookLicense"
+										type="text"
+										placeholder="Ej. CC BY-NC-SA 4.0 · Autorización editorial"
+										value={form().license ?? ''}
+										disabled={saving()}
+										onInput={(event) => update('license', event.currentTarget.value)}
+									/>
+								</div>
+								<div class="modal-grid">
+									<div class="field">
+										<label for="editBookCtaLabel">Botón externo (texto)</label>
+										<input
+											id="editBookCtaLabel"
+											type="text"
+											placeholder="Ej. Comprar libro físico"
+											value={form().ctaLabel ?? ''}
+											disabled={saving()}
+											onInput={(event) => update('ctaLabel', event.currentTarget.value)}
+										/>
+									</div>
+									<div class="field">
+										<label for="editBookCtaUrl">Enlace externo (URL)</label>
+										<input
+											id="editBookCtaUrl"
+											type="url"
+											placeholder="https://tienda-editorial.com/libro"
+											value={form().ctaUrl ?? ''}
+											disabled={saving()}
+											onInput={(event) => update('ctaUrl', event.currentTarget.value)}
+										/>
+									</div>
+								</div>
+							</div>
+						</details>
+
 						<label class="field checkbox-field">
 							<input
 								id="editBookPublished"

@@ -18,6 +18,7 @@ export interface BookTomoCardProps {
 	busy?: boolean;
 	onToggleOffline: (book: SalaBook) => void;
 	onEdit?: (book: SalaBook) => void;
+	onOpenFicha?: (book: SalaBook) => void;
 }
 
 export default function BookTomoCard(props: BookTomoCardProps) {
@@ -79,6 +80,16 @@ export default function BookTomoCard(props: BookTomoCardProps) {
 					<span class="peso">{sizeLabel()}</span>
 				</div>
 				<div class="tomo-actions">
+					<Show when={props.onOpenFicha}>
+						<button
+							class="btn-edit-mini"
+							type="button"
+							aria-label={`Ver ficha de ${props.book.title}`}
+							onClick={() => props.onOpenFicha?.(props.book)}
+						>
+							Ficha
+						</button>
+					</Show>
 					<Show when={props.book.isOwner && props.onEdit}>
 						<button
 							class="btn-edit-mini"

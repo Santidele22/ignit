@@ -13,9 +13,10 @@ const DOMAIN_PAGE_WATERMARK_EXACT_RE =
 	/^(?:(?:https?:\/\/)?(?:www\.)?[a-z0-9-]+(?:\.[a-z0-9-]+)+\s*[-–—|·/]\s*(?:p[aá]gina|page|p[aá]g\.?)\s*\d+(?:\s*(?:de|of|\/)\s*\d+)?|(?:p[aá]gina|page|p[aá]g\.?)\s*\d+(?:\s*(?:de|of|\/)\s*\d+)?\s*[-–—|·/]\s*(?:https?:\/\/)?(?:www\.)?[a-z0-9-]+(?:\.[a-z0-9-]+)+)$/i;
 
 const STANDALONE_PAGE_NUMBER_RE =
-	/^(?:[-–—[(]?\s*\d{1,4}\s*[-–—\])]|(?:p[aá]gina|page|p[aá]g\.?)\s*\d{1,4}(?:\s*(?:de|of|\/)\s*\d{1,4})?|\d{1,4})$/i;
+	/^(?:[-–—[(]?\s*\d{1,4}\s*[-–—\])]|(?:p[aá]gina|page|p[aá]g\.?)\s*\d{1,4}(?:\s*(?:de|of|\/)\s*\d{1,4})?|\d{1,4}\/\d{1,4}|\d{1,4})$/i;
 
-const STANDALONE_URL_RE = /^(?:https?:\/\/\S+|www\.[a-z0-9-]+(?:\.[a-z0-9-]+)+(?:\/\S*)?)$/i;
+const STANDALONE_URL_RE =
+	/^(?:https?:\/\/\S+|www\.[a-z0-9-]+(?:\.[a-z0-9-]+)+(?:\/\S*)?|[a-z0-9-]+(?:\.[a-z0-9-]+)+\/\S+)$/i;
 const EPUB_STAMP_RE = /\bepub\s+(?:base\s+)?r\d+(?:\.\d+)*\b/i;
 const RIPPER_CREDIT_PREFIX_RE =
 	/^(?:editor\s+digital|digitalizado\s+por|escaneado\s+por|maquetado\s+por|maquetaci[oó]n|correcci[oó]n\s+de\s+erratas|conversi[oó]n\s+a\s+(?:pdf|epub))\b/i;
@@ -117,7 +118,7 @@ export function isNoiseChunk(
 	if (RIPPER_CREDIT_ANYWHERE_RE.test(trimmed) && trimmed.length <= 160) return true;
 
 	if (STANDALONE_URL_RE.test(trimmed)) {
-		if (KNOWN_EBOOK_SITES_RE.test(trimmed) || isEdgeMatter) return true;
+		if (KNOWN_EBOOK_SITES_RE.test(trimmed) || isEdgeMatter || /\//.test(trimmed)) return true;
 	}
 
 	if (isEdgeMatter) {

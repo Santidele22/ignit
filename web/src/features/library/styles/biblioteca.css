@@ -2515,3 +2515,120 @@ body.biblioteca-body .user-pill .user-name {
 			linear-gradient(0deg, var(--b-grid-line) 1px, transparent 1px) 0 0 / 40px 40px;
 	}
 }
+
+
+/* ----------------------------------------------------- Ficha del libro ---- */
+
+body.biblioteca-body .ficha-details {
+	border: 1px solid var(--b-border);
+	background: var(--b-panel-2);
+	padding: 10px 12px;
+	margin-bottom: 12px;
+}
+
+body.biblioteca-body .ficha-details summary {
+	cursor: pointer;
+	font-family: var(--b-mono);
+	font-size: 10px;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--b-accent-bright);
+	user-select: none;
+}
+
+body.biblioteca-body .ficha-details-grid {
+	margin-top: 12px;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+body.biblioteca-body .ficha-modal-box {
+	max-width: 560px;
+}
+
+body.biblioteca-body .ficha-header {
+	margin-bottom: 12px;
+}
+
+body.biblioteca-body .ficha-book-title {
+	margin: 0 0 4px;
+	font-family: var(--b-serif);
+	font-size: 22px;
+	color: var(--b-fg);
+}
+
+body.biblioteca-body .ficha-book-author {
+	margin: 0;
+	font-family: var(--b-mono);
+	font-size: 11px;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--b-faint);
+}
+
+body.biblioteca-body .ficha-desc {
+	margin: 0 0 14px;
+	font-size: 13.5px;
+	line-height: 1.65;
+	color: var(--b-body);
+}
+
+body.biblioteca-body .ficha-review {
+	margin: 0 0 14px;
+	padding: 10px 12px;
+	border-left: 2px solid var(--b-accent);
+	background: var(--b-panel-2);
+	font-size: 13px;
+	line-height: 1.6;
+	color: var(--b-body);
+}
+
+body.biblioteca-body .ficha-dl {
+	margin: 0 0 14px;
+	display: grid;
+	gap: 8px;
+	border-top: 1px solid var(--b-border);
+	padding-top: 12px;
+}
+
+body.biblioteca-body .ficha-row {
+	display: grid;
+	grid-template-columns: 110px 1fr;
+	gap: 8px;
+	font-size: 13px;
+	align-items: baseline;
+}
+
+body.biblioteca-body .ficha-row dt {
+	font-family: var(--b-mono);
+	font-size: 9.5px;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--b-faint);
+}
+
+body.biblioteca-body .ficha-row dd {
+	margin: 0;
+	color: var(--b-fg);
+}
+
+body.biblioteca-body .ficha-mono {
+	font-family: var(--b-mono);
+	font-size: 12px;
+}
+
+body.biblioteca-body .ficha-empty-note {
+	margin: 0 0 12px;
+	font-size: 12px;
+	color: var(--b-ghost);
+}
+
+body.biblioteca-body .ficha-cta-wrap {
+	margin-top: 14px;
+}
+
+body.biblioteca-body .ficha-cta-btn {
+	width: 100%;
+	justify-content: center;
+}

@@ -1,3 +1,4 @@
+import { recordBookMetric } from '../../features/book/api/books';
 import {
 	computeInitialRenderWindow,
 	extractBookChapters,
@@ -9,10 +10,22 @@ import { renderChapterList, setCurrentItemIndex } from './chapterNav';
 import { BATCH_SIZE, getDisplayItems, getTotalParas, setChapters, setDisplayItems, setTotalParas } from './doc';
 import { body, progTotalPages, readerArticle } from './dom';
 import { markBookStarted, syncAutoBookStatus } from './status';
-import { bookAuthor, bookId, bookTitle, canSync, downloadUrl, getPdfPages, hasBook, setPdfPages, state } from './state';
+import { bookAuthor, bookId, bookTitle, canSync, getPdfPages, hasBook, setPdfPages, state } from './state';
 import { updateProgressDisplay } from './progress';
 import { findRenderedElementForItem, mountRenderWindow } from './renderWindow';
 import { scrollElementToFocalBand } from './scroll';
+
+function recordReadStartedOnce() {
+	if (!Number.isInteger(bookId) || bookId <= 0) return;
+	const key = `ignit:metric:read:${bookId}`;
+	try {
+		if (typeof sessionStorage !== 'undefined') {
+			if (sessionStorage.getItem(key) === '1') return;
+			sessionStorage.setItem(key, '1');
+		}
+	} catch {}
+	recordBookMetric(bookId, 'read_started');
+}
 
 function renderOcrFallback() {
 	if (!readerArticle) return;
@@ -26,33 +39,16 @@ function renderOcrFallback() {
 	head.className = 'head';
 	const seal = document.createElement('span');
 	seal.className = 'seal';
-	seal.textContent = 'Fallback · ocr_pending';
+	seal.textContent = 'Texto en preparación';
 	const msg = document.createElement('p');
-	msg.appendChild(
-		document.createTextNode(
-			'Este PDF es escaneado o aún no tiene capa de texto extraída. La vigilia abre el documento original dentro del mundo nocturno mientras el proceso de OCR está pendiente — también podés ',
-		),
-	);
-	const link = document.createElement('a');
-	link.className = 'fallback-link';
-	link.href = downloadUrl;
-	link.target = '_blank';
-	link.rel = 'noreferrer';
-	link.textContent = 'descargar el PDF original';
-	msg.appendChild(link);
-	msg.appendChild(document.createTextNode('.'));
+	msg.textContent =
+		'Este libro todavía está en proceso de extracción de texto y aún no está disponible para lectura en Vigilia. Para proteger el archivo fuente de la editorial, la descarga directa del PDF original está deshabilitada.';
 	head.appendChild(seal);
 	head.appendChild(msg);
 	box.appendChild(head);
 
-	const frame = document.createElement('iframe');
-	frame.className = 'fallback-frame';
-	frame.src = downloadUrl;
-	frame.title = bookTitle;
-
 	readerArticle.appendChild(h2);
 	readerArticle.appendChild(box);
-	readerArticle.appendChild(frame);
 }
 
 function renderReadingError(message: string) {
@@ -153,6 +149,7 @@ async function loadReadingDocument() {
 			);
 		}
 		markBookStarted();
+		recordReadStartedOnce();
 		void syncAutoBookStatus();
 	} catch (err) {
 		const msg =

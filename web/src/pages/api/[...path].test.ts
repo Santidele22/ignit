@@ -55,6 +55,22 @@ describe('proxy mutations invalidate the content cache', () => {
 		expect(cachedEntryCount()).toBe(1);
 	});
 
+	it('keeps cache when mutating per-user reading-state, metrics, or stateless metadata prefill', async () => {
+		await cachedRead('https://render.example/books', async () => '[]');
+		await call('https://site.example', '/api/books/1/reading-state', 'PUT');
+		await call('https://site.example', '/api/books/1/metrics', 'POST');
+		await call('https://site.example', '/api/books/suggest-metadata', 'POST');
+		expect(cachedEntryCount()).toBe(1);
+	});
+
+	it('invalidates cache immediately when admin unpublishes a book', async () => {
+		await cachedRead('https://render.example/books', async () => '[]');
+		expect(cachedEntryCount()).toBe(1);
+
+		await call('https://site.example', '/api/admin/books/7/unpublish', 'POST');
+		expect(cachedEntryCount()).toBe(0);
+	});
+
 	it('attaches Neon Bearer JWT on GET /api/books/:id/download when cookie is present', async () => {
 		envMock.neonAuthUrl = 'https://neon-auth.example';
 		const upstream = vi.fn((input: unknown) => {
@@ -78,5 +94,15 @@ describe('proxy mutations invalidate the content cache', () => {
 		expect(backendCall[0]).toBe('https://render.example/books/7/download');
 		const forwardedHeaders = backendCall[1].headers as Headers;
 		expect(forwardedHeaders.get('authorization')).toBe('Bearer neon-jwt-42');
+	});
+
+	it('serves GET /api/session-mode directly as neon when neonAuthUrl is configured even if backend is 502', async () => {
+		envMock.neonAuthUrl = 'https://neon-auth.example';
+		const res = await call('https://site.example', '/api/session-mode', 'GET', () =>
+			Promise.resolve(new Response('Bad Gateway', { status: 502 })),
+		);
+
+		expect(res.status).toBe(200);
+		await expect(res.json()).resolves.toEqual({ mode: 'neon', guarded: true });
 	});
 });

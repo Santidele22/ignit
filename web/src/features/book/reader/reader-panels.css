@@ -269,3 +269,74 @@
 @media (prefers-reduced-motion: reduce) {
 	.chapter-deck { transition:none; }
 }
+
+
+/* ===== Ficha del libro y CTA externo en Vigilia ===== */
+.topbar-ficha-btn {
+	background: none;
+	border: 1px solid var(--w-border);
+	cursor: pointer;
+	padding: 4px 10px;
+}
+.topbar-ficha-btn:hover,
+.topbar-ficha-btn[aria-expanded="true"] {
+	border-color: var(--aka);
+	color: var(--aka);
+}
+.topbar-cta-link {
+	border: 1px solid var(--aka);
+	color: var(--aka) !important;
+	padding: 4px 10px;
+}
+.ficha-deck {
+	position: fixed;
+	z-index: 38;
+	top: 64px;
+	right: 26px;
+	width: min(340px, calc(100vw - 32px));
+	border: 1px solid var(--w-border);
+	background: var(--w-panel);
+	box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.95);
+	padding: 16px 18px;
+}
+.ficha-deck[hidden] {
+	display: none !important;
+}
+.ficha-deck-dl {
+	margin: 0 0 12px;
+	display: grid;
+	gap: 8px;
+}
+.ficha-deck-row {
+	display: grid;
+	grid-template-columns: 88px 1fr;
+	gap: 8px;
+	align-items: baseline;
+}
+.ficha-deck-row dt {
+	font: 500 8.5px/1.2 var(--font-mono);
+	letter-spacing: 0.16em;
+	text-transform: uppercase;
+	color: var(--w-faint);
+}
+.ficha-deck-row dd {
+	margin: 0;
+	font: 400 12.5px/1.45 var(--font-zen-stack);
+	color: var(--w-foreground);
+}
+.ficha-deck-cta {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	padding: 9px 12px;
+	border: 1px solid var(--aka);
+	color: var(--aka);
+	text-decoration: none;
+	font: 600 9.5px/1 var(--font-mono);
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+}
+.ficha-deck-cta:hover {
+	background: var(--w-aka-tint-2);
+}

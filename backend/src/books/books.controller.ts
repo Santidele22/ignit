@@ -3,6 +3,8 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Inject,
   Param,
   ParseIntPipe,
@@ -32,15 +34,15 @@ import {
   ApiPayloadTooLargeResponse,
   ApiProduces,
   ApiTags,
-  ApiTooManyRequestsResponse,
 } from '@nestjs/swagger';
-import { AllowAnonymous } from '@thallesp/nestjs-better-auth';
+import { AllowAnonymous, Roles } from '@thallesp/nestjs-better-auth';
 import type { FindOptionsWhere } from 'typeorm';
 import type { RouteSessionUser } from '../auth/guards/session-reader.js';
-import { ApiSessionAuth, ApiUserAuth } from '../common/swagger/api-decorators.js';
+import { ApiAdminAuth, ApiSessionAuth, ApiUserAuth } from '../common/swagger/api-decorators.js';
 import { BooksService } from './books.service.js';
 import { BooksPaginationQueryDto } from './dto/books-pagination.query.dto.js';
 import { CreateBookDto } from './dto/create-book.dto.js';
+import { RecordBookMetricDto } from './dto/record-book-metric.dto.js';
 import { UpdateBookDto } from './dto/update-book.dto.js';
 import { UpdateReadingStateDto } from './dto/update-reading-state.dto.js';
 import { suggestMetadataFromFilename } from './ai/ai-metadata.service.js';
@@ -127,7 +129,10 @@ export class BooksController {
 
   @Get('cover-search')
   @ApiSessionAuth()
-  @ApiOperation({ summary: 'Search book cover images across Google Books, OpenLibrary and Wikimedia Commons' })
+  @ApiOperation({
+    summary:
+      'Search book cover images across Google Books, OpenLibrary, Internet Archive, Project Gutenberg and Wikimedia Commons',
+  })
   coverSearch(
     @Query('title') title = '',
     @Query('author') author = '',
@@ -207,18 +212,18 @@ export class BooksController {
   }
 
   @Get(':id/download')
-  @AllowAnonymous()
+  @Roles(['admin'])
+  @ApiAdminAuth()
   @ApiOperation({
-    summary: 'Download a book PDF',
+    summary: 'Download a book source PDF (admin only)',
     description:
-      'Rate-limited per IP per day for non-owners (`BOOKS_DAILY_DOWNLOAD_LIMIT`, default 10). Allows private downloads only for the owner/admin. The served PDF answers `Content-Disposition: inline`, `X-Content-Type-Options: nosniff` and `Content-Security-Policy: sandbox`, so the reader stays the only rendering path and the document cannot script into the app origin.',
+      'Restricted to administrators to prevent direct distribution of the original source PDF. Readers consume the extracted reading document via `GET /books/:id/reading`.',
   })
   @ApiParam({ name: 'id', type: Number })
   @ApiProduces('application/pdf')
   @ApiOkResponse({ description: 'PDF file stream (local storage)' })
   @ApiFoundResponse({ description: 'Redirect to short-lived S3 presigned URL (S3 storage)' })
-  @ApiNotFoundResponse({ description: 'Book not found, unpublished, or missing PDF' })
-  @ApiTooManyRequestsResponse({ description: 'Per-IP daily download quota exceeded' })
+  @ApiNotFoundResponse({ description: 'Book not found or missing PDF' })
   async download(
     @Param('id', ParseIntPipe) id: number,
     @Req() req: { ip?: string; socket?: { remoteAddress?: string }; user?: RouteSessionUser | null },
@@ -228,6 +233,26 @@ export class BooksController {
     const info = await this.booksService.prepareDownload(id, ip, req.user);
     const delivery = await this.bookStorage.resolveDownload(info.filePath);
     respondWithDownload(res, delivery, info);
+  }
+
+  @Post(':id/metrics')
+  @AllowAnonymous()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Record a basic book metric event',
+    description:
+      'Atomically increments one per-book counter (`read_started`, `offline_download`, or `cta_click`) for books readable by the caller.',
+  })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiOkResponse({ description: 'Metric recorded' })
+  @ApiBadRequestResponse({ description: 'Invalid metric event' })
+  @ApiNotFoundResponse({ description: 'Book not found' })
+  recordMetric(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: RecordBookMetricDto,
+    @Req() req: { user?: RouteSessionUser | null },
+  ) {
+    return this.booksService.recordMetric(id, dto.event, req.user);
   }
 
   @Get(':id/reading')

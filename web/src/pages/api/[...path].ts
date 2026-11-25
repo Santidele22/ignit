@@ -11,6 +11,18 @@ const BETTER_AUTH_PREFIX = '/api/auth';
 const ALLOWED_CROSS_ORIGINS: readonly string[] = [];
 
 const MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+const NON_CATALOG_MUTATION_ROUTES = [
+	/^\/api\/books\/[^/]+\/reading-state$/,
+	/^\/api\/books\/[^/]+\/metrics$/,
+	/^\/api\/books\/suggest-metadata$/,
+];
+
+function shouldInvalidateContentCache(pathname: string, method: string, status: number): boolean {
+	if (!MUTATING_METHODS.has(method) || status >= 400) {
+		return false;
+	}
+	return !NON_CATALOG_MUTATION_ROUTES.some((pattern) => pattern.test(pathname));
+}
 
 const UPSTREAM_CORS_HEADERS = new Set([
 	'access-control-allow-origin',
@@ -225,11 +237,28 @@ function applyAuthCors(headers: Headers, crossOrigin: string): void {
 	headers.append('Vary', 'Origin');
 }
 
-async function forwardApi(request: Request, clientAddress?: string): Promise<Response> {
+async function forwardApi(
+	request: Request,
+	clientAddress?: string,
+	waitUntil?: (promise: Promise<unknown>) => void,
+): Promise<Response> {
 	const url = new URL(request.url);
+	if (neonAuthUrl && request.method === 'GET' && url.pathname === '/api/session-mode') {
+		if (waitUntil) {
+			waitUntil(fetch(`${backendUrl}/session-mode`, { signal: AbortSignal.timeout(30_000) }).catch(() => {}));
+		}
+		return new Response(JSON.stringify({ mode: 'neon', guarded: true }), {
+			status: 200,
+			headers: {
+				'Content-Type': 'application/json; charset=utf-8',
+				'Cache-Control': 'no-store',
+			},
+		});
+	}
+
 	if (!url.pathname.startsWith(BETTER_AUTH_PREFIX)) {
 		const response = await forward(request, clientAddress);
-		if (MUTATING_METHODS.has(request.method) && response.status < 400) {
+		if (shouldInvalidateContentCache(url.pathname, request.method, response.status)) {
 			setEdgeCacheStore(contentCacheKv);
 			await invalidateContentCache();
 		}
@@ -258,10 +287,33 @@ async function forwardApi(request: Request, clientAddress?: string): Promise<Res
 	return response;
 }
 
-export const GET: APIRoute = (context) => forwardApi(context.request, context.clientAddress);
-export const POST: APIRoute = (context) => forwardApi(context.request, context.clientAddress);
-export const PUT: APIRoute = (context) => forwardApi(context.request, context.clientAddress);
-export const PATCH: APIRoute = (context) => forwardApi(context.request, context.clientAddress);
-export const DELETE: APIRoute = (context) => forwardApi(context.request, context.clientAddress);
-export const HEAD: APIRoute = (context) => forwardApi(context.request, context.clientAddress);
-export const OPTIONS: APIRoute = (context) => forwardApi(context.request, context.clientAddress);
+function extractWaitUntil(locals: unknown): ((promise: Promise<unknown>) => void) | undefined {
+	const runtime = locals as
+		| {
+				cfContext?: { waitUntil?: (promise: Promise<unknown>) => void };
+				runtime?: { ctx?: { waitUntil?: (promise: Promise<unknown>) => void } };
+		  }
+		| undefined;
+	if (runtime?.cfContext?.waitUntil) {
+		return (promise) => runtime.cfContext!.waitUntil!(promise);
+	}
+	if (runtime?.runtime?.ctx?.waitUntil) {
+		return (promise) => runtime.runtime!.ctx!.waitUntil!(promise);
+	}
+	return undefined;
+}
+
+export const GET: APIRoute = (context) =>
+	forwardApi(context.request, context.clientAddress, extractWaitUntil(context.locals));
+export const POST: APIRoute = (context) =>
+	forwardApi(context.request, context.clientAddress, extractWaitUntil(context.locals));
+export const PUT: APIRoute = (context) =>
+	forwardApi(context.request, context.clientAddress, extractWaitUntil(context.locals));
+export const PATCH: APIRoute = (context) =>
+	forwardApi(context.request, context.clientAddress, extractWaitUntil(context.locals));
+export const DELETE: APIRoute = (context) =>
+	forwardApi(context.request, context.clientAddress, extractWaitUntil(context.locals));
+export const HEAD: APIRoute = (context) =>
+	forwardApi(context.request, context.clientAddress, extractWaitUntil(context.locals));
+export const OPTIONS: APIRoute = (context) =>
+	forwardApi(context.request, context.clientAddress, extractWaitUntil(context.locals));

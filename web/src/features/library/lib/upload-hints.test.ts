@@ -41,4 +41,19 @@ describe('pdf name hints (upload prefill)', () => {
 		expect(pdfNameHints('  .pdf')).toEqual({ title: null, author: null });
 		expect(pdfNameHints('')).toEqual({ title: null, author: null });
 	});
+
+	it('cleans kebab-case slugs with "por"/"by" author and trailing year', () => {
+		expect(pdfNameHints('la-maquina-se-detiene-por-e.m.-forster-1909.pdf')).toEqual({
+			title: 'La maquina se detiene',
+			author: 'E. M. Forster',
+		});
+		expect(pdfNameHints('the-machine-stops-by-e.m.-forster-1909.pdf')).toEqual({
+			title: 'The machine stops',
+			author: 'E. M. Forster',
+		});
+		expect(pdfNameHints('el-tunel-1948.pdf')).toEqual({
+			title: 'El tunel',
+			author: null,
+		});
+	});
 });

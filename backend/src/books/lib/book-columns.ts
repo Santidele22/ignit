@@ -12,6 +12,32 @@ import type { BookStorage } from '../storage/book-storage.js';
 import { removeBookFirewallReport } from './book-firewall-report.js';
 import { readingJsonKey, readingStateKey } from './book-sidecar-keys.js';
 
+const NULLABLE_EDITORIAL_KEYS = [
+  'publisher',
+  'translator',
+  'illustrator',
+  'isbn',
+  'license',
+  'ctaLabel',
+  'ctaUrl',
+] as const;
+
+function normalizeEditorialFields<T extends Partial<CreateBookDto>>(dto: T): T {
+  const normalized: Record<string, unknown> = { ...dto };
+  for (const key of NULLABLE_EDITORIAL_KEYS) {
+    if (key in normalized) {
+      const value = normalized[key];
+      if (typeof value === 'string') {
+        const trimmed = value.trim();
+        normalized[key] = trimmed.length > 0 ? trimmed : null;
+      } else if (value === null) {
+        normalized[key] = null;
+      }
+    }
+  }
+  return normalized as T;
+}
+
 /**
  * Creates a book owned strictly by the authenticated user, ensuring the
  * shadow `user` row exists first when external/dev auth is active.
@@ -40,7 +66,7 @@ export async function createBookRow(
     }
   }
 
-  const book = booksRepository.create(dto);
+  const book = booksRepository.create(normalizeEditorialFields(dto));
   book.ownerId = owner.id;
   // Every new row starts in the admin review queue (S4); uploads keep it
   // pending until an admin decides, and the column default backfills old rows.
@@ -55,7 +81,7 @@ export async function updateBookRow(
   book: Book,
   dto: UpdateBookDto,
 ): Promise<Book> {
-  booksRepository.merge(book, dto);
+  booksRepository.merge(book, normalizeEditorialFields(dto));
 
   return booksRepository.save(book);
 }

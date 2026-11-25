@@ -47,7 +47,8 @@ export function prepareBookDisplayItems(
 	for (const chunk of chunks) {
 		const cleanedText = prepareChunkText(chunk);
 		if (!cleanedText || cleanedText.length < 2) continue;
-		const effective = cleanedText === chunk.text ? chunk : { ...chunk, text: cleanedText };
+		const effective =
+			cleanedText === chunk.text ? chunk : { ...chunk, text: cleanedText, runs: undefined };
 		if (isNoiseChunk(effective, book, context)) continue;
 		activeChunks.push(effective);
 	}

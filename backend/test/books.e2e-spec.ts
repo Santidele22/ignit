@@ -184,7 +184,7 @@ describe('Ignit Books Multi-User (e2e)', () => {
     await request(server()).patch(`/books/${privA.body.id}`).set('Cookie', USER_B_COOKIE).send({ title: 'X' }).expect(404);
     await request(server()).delete(`/books/${privA.body.id}`).set('Cookie', USER_B_COOKIE).expect(404);
     await request(server()).get(`/books/${privA.body.id}/reading`).set('Cookie', USER_B_COOKIE).expect(404);
-    await request(server()).get(`/books/${privA.body.id}/download`).set('Cookie', USER_B_COOKIE).expect(404);
+    await request(server()).get(`/books/${privA.body.id}/download`).set('Cookie', USER_B_COOKIE).expect(403);
     await request(server()).get(`/books/${privA.body.id}/reading-state`).set('Cookie', USER_B_COOKIE).expect(404);
 
     // Non-owner upload on private book returns 404 and writes no files to disk
@@ -221,11 +221,16 @@ describe('Ignit Books Multi-User (e2e)', () => {
     expect(ownerRead.body.ocrPending).toBe(false);
     expect(ownerRead.body.chunks.length).toBeGreaterThanOrEqual(1);
 
-    const ownerDl = await request(server())
+    // Direct source PDF download is restricted strictly to admins (403 for owner, 401 for anon)
+    await request(server()).get(`/books/${privA.body.id}/download`).expect(401);
+    await request(server())
       .get(`/books/${privA.body.id}/download`)
       .set('Cookie', USER_A_COOKIE)
-      .expect(200);
-    expect(ownerDl.body).toEqual(textPdfBuffer);
+      .expect(403);
+
+    const admin = await signInAdmin();
+    const adminDl = await admin.get(`/books/${privA.body.id}/download`).expect(200);
+    expect(adminDl.body).toEqual(textPdfBuffer);
   });
 
   it('serves /reading publicly for published books and isolates reading-state per user', async () => {
@@ -296,7 +301,7 @@ describe('Ignit Books Multi-User (e2e)', () => {
     expect(stateB.body.words[0].term).toBe('vigilia');
   });
 
-  it('paginates published books filtered by kind, rate-limits anonymous downloads, and deletes cleanly', async () => {
+  it('paginates published books filtered by kind, blocks non-admin direct PDF download, and deletes cleanly', async () => {
     const admin = await signInAdmin();
     const tech = await admin
       .post('/books')
@@ -310,15 +315,16 @@ describe('Ignit Books Multi-User (e2e)', () => {
     expect(page.body.items).toHaveLength(1);
     expect(page.body.items[0].id).toBe(tech.body.id);
 
-    process.env.BOOKS_DAILY_DOWNLOAD_LIMIT = '2';
     await admin
       .post(`/books/${tech.body.id}/file`)
       .attach('file', pdfBuffer, { filename: 'x.pdf', contentType: 'application/pdf' })
       .expect(201);
-    await request(server()).get(`/books/${tech.body.id}/download`).expect(200);
-    await request(server()).get(`/books/${tech.body.id}/download`).expect(200);
-    await request(server()).get(`/books/${tech.body.id}/download`).expect(429);
-    delete process.env.BOOKS_DAILY_DOWNLOAD_LIMIT;
+    await request(server()).get(`/books/${tech.body.id}/download`).expect(401);
+    await request(server())
+      .get(`/books/${tech.body.id}/download`)
+      .set('Cookie', USER_A_COOKIE)
+      .expect(403);
+    await admin.get(`/books/${tech.body.id}/download`).expect(200);
 
     await admin.delete(`/books/${tech.body.id}`).expect(200);
     await request(server()).get(`/books/${tech.body.id}`).expect(404);
@@ -330,6 +336,6 @@ describe('Ignit Books Multi-User (e2e)', () => {
     const books = app.get(DataSource).getRepository(Book);
     await books.save(books.create({ id: created.body.id, filePath: 'uploads/books/missing-000.pdf' }));
 
-    await request(server()).get(`/books/${created.body.id}/download`).expect(404);
+    await admin.get(`/books/${created.body.id}/download`).expect(404);
   });
 });

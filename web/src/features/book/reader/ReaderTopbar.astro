@@ -1,4 +1,6 @@
 ---
+import { safeExternalUrl } from '../api/books';
+
 interface Props {
 	title: string | null;
 	author: string | null;
@@ -8,6 +10,9 @@ interface Props {
 	backLabel?: string;
 	canSync?: boolean;
 	loginHref?: string;
+	hasFicha?: boolean;
+	ctaLabel?: string | null;
+	ctaUrl?: string | null;
 }
 
 const {
@@ -19,7 +24,11 @@ const {
 	backLabel = '← explorar',
 	canSync = false,
 	loginHref = '/login',
+	hasFicha = false,
+	ctaLabel = null,
+	ctaUrl = null,
 } = Astro.props;
+const safeCtaUrl = safeExternalUrl(ctaUrl) ?? null;
 ---
 
 	<header class="topbar" id="topbar">
@@ -33,6 +42,28 @@ const {
 			id="progSummary"
 			aria-label={`Progreso de lectura: página ${initialPage}, ${initialPct} por ciento`}
 		>
+			{hasFicha && (
+				<button
+					class="crumb topbar-ficha-btn"
+					id="fichaBtn"
+					type="button"
+					aria-expanded="false"
+					aria-controls="fichaDeck"
+				>
+					Ficha
+				</button>
+			)}
+			{safeCtaUrl && (
+				<a
+					class="crumb topbar-cta-link"
+					href={safeCtaUrl}
+					target="_blank"
+					rel="noopener noreferrer"
+					data-cta-track="1"
+				>
+					{ctaLabel?.trim() || 'Apoyar / Tienda'} ↗
+				</a>
+			)}
 			{!canSync && title && (
 				<a class="crumb" href={loginHref} title="Iniciá sesión para sincronizar progreso entre dispositivos">
 					Sincronizar progreso

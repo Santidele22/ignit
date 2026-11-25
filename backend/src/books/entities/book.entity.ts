@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
@@ -56,6 +57,7 @@ export class Book {
   /** Which landing shelf the book renders on: `tecnico` or `no_tecnico`.
    * Defaults to `no_tecnico`, so existing rows and creates without an
    * explicit kind stay out of the technical shelf (issue 23). */
+  @Index()
   @Column({ type: 'varchar', length: 20, enum: BookKind, default: BookKind.NO_TECNICO })
   kind: BookKind;
 
@@ -68,6 +70,7 @@ export class Book {
    * download endpoint). Nullable so unpublished drafts stay out of the
    * public queries without an explicit false.
    */
+  @Index()
   @Column({ type: 'boolean', default: false })
   published: boolean;
 
@@ -89,6 +92,7 @@ export class Book {
   fileSize?: string | null;
 
   /** SHA-256 hex digest of the stored PDF bytes for duplicate detection. */
+  @Index()
   @Column({ type: 'varchar', length: 64, nullable: true })
   fileHash?: string | null;
 
@@ -100,11 +104,50 @@ export class Book {
   @Column({ type: 'text', nullable: true })
   coverUrl?: string | null;
 
+  /** Publisher / editorial house (Ficha del libro). */
+  @Column({ type: 'text', nullable: true })
+  publisher?: string | null;
+
+  /** Translator name (optional). */
+  @Column({ type: 'text', nullable: true })
+  translator?: string | null;
+
+  /** Illustrator name (optional). */
+  @Column({ type: 'text', nullable: true })
+  illustrator?: string | null;
+
+  /** ISBN identifier (optional). */
+  @Column({ type: 'varchar', length: 32, nullable: true })
+  isbn?: string | null;
+
+  /** Distribution license or rights notice (e.g. CC BY-NC-SA 4.0, Autorización editorial). */
+  @Column({ type: 'text', nullable: true })
+  license?: string | null;
+
+  /** External CTA button label (e.g. "Comprar libro físico", "Apoyar en Cafecito"). */
+  @Column({ type: 'varchar', length: 120, nullable: true })
+  ctaLabel?: string | null;
+
+  /** External CTA target URL (validated http/https). */
+  @Column({ type: 'text', nullable: true })
+  ctaUrl?: string | null;
+
+  /** Basic per-book metrics counters (atomic increments). */
+  @Column({ type: 'int', default: 0 })
+  readsStartedCount: number;
+
+  @Column({ type: 'int', default: 0 })
+  offlineDownloadsCount: number;
+
+  @Column({ type: 'int', default: 0 })
+  ctaClicksCount: number;
+
   /**
    * Admin review state (S4): `pending` until an admin accepts or rejects the
    * upload, so a new PDF never reaches the public surface on its own. The
    * default also backfills every row that existed before this column.
    */
+  @Index()
   @Column({ type: 'varchar', length: 20, default: REVIEW_STATUS_PENDING })
   reviewStatus: BookReviewStatus;
 
@@ -148,6 +191,7 @@ export class Book {
   @JoinColumn({ name: 'ownerId' })
   owner: User | null;
 
+  @Index()
   @Column({ type: 'text' })
   ownerId: string;
 }

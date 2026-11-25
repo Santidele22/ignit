@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
-import { IsIn, IsInt, IsOptional, Min } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import { IsBoolean, IsIn, IsInt, IsOptional, Min } from 'class-validator';
 import { MAX_LIMIT, PaginationQueryDto } from '../../../common/pagination/pagination.dto.js';
 import {
   BOOK_REVIEW_STATUSES,
@@ -10,8 +10,8 @@ import {
 /**
  * Query of `GET /admin/books`: the shared pagination window expressed as a
  * 1-based `page`/`pageSize` pair (the admin dashboard thinks in pages) plus the
- * review filter. Unknown review values are rejected with `400` instead of
- * silently listing everything.
+ * review and published filters. Unknown review values are rejected with `400`
+ * instead of silently listing everything.
  */
 export class AdminBooksQueryDto extends PaginationQueryDto {
   @ApiPropertyOptional({
@@ -22,6 +22,19 @@ export class AdminBooksQueryDto extends PaginationQueryDto {
   @IsOptional()
   @IsIn([...BOOK_REVIEW_STATUSES])
   review?: BookReviewStatus;
+
+  @ApiPropertyOptional({
+    type: Boolean,
+    description: 'Filter by published state (`true` or `false`)',
+  })
+  @Transform(({ value }) => {
+    if (value === 'true' || value === true) return true;
+    if (value === 'false' || value === false) return false;
+    return value;
+  })
+  @IsOptional()
+  @IsBoolean()
+  published?: boolean;
 
   @ApiPropertyOptional({ type: Number, minimum: 1, default: 1, description: '1-based page number' })
   @Type(() => Number)

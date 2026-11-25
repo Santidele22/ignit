@@ -131,4 +131,46 @@ describe('noise helpers', () => {
 			verse: false,
 		});
 	});
+
+	it('strips browser print-to-PDF URLs and page fractions glued to paragraphs', () => {
+		expect(
+			prepareChunkDisplay({
+				id: 'p0004.0000',
+				type: 'para',
+				page: 4,
+				offset: 0,
+				text: 'vikingolsd.blogspot.com/2013/08/este-cuento-lo-lei-hace-mucho-y-me.html 4/18 finamente sincronizado estaba el sistema, tan independiente del estado',
+				mood: 'espera',
+				cues: [],
+			}),
+		).toEqual({
+			kind: 'para',
+			text: 'finamente sincronizado estaba el sistema, tan independiente del estado',
+			verse: false,
+		});
+
+		expect(
+			prepareChunkDisplay({
+				id: 'p0004.0001',
+				type: 'para',
+				page: 4,
+				offset: 10,
+				text: 'vikingolsd.blogspot.com/2013/08/este-cuento-lo-lei-hace-mucho-y-me.html',
+				mood: 'espera',
+				cues: [],
+			}),
+		).toEqual({ kind: 'hidden' });
+
+		expect(
+			prepareChunkDisplay({
+				id: 'p0004.0002',
+				type: 'para',
+				page: 4,
+				offset: 20,
+				text: '4/18',
+				mood: 'espera',
+				cues: [],
+			}),
+		).toEqual({ kind: 'hidden' });
+	});
 });
