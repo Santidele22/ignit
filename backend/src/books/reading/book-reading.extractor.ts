@@ -24,6 +24,11 @@ export { classifyChunkType, splitPageIntoParagraphs } from './reading.chunks.js'
 export { extractReadingFromPdftohtmlXml } from './reading.xml-blocks.js';
 export { extractReadingFromPdf } from './reading.extract.js';
 export {
+  assessReadingLegibility,
+  assessTextLegibility,
+  ILLEGIBLE_READING_MESSAGE,
+} from './reading.legibility.js';
+export {
   readBookReadingJson,
   readBookReadingState,
   readingJsonPath,

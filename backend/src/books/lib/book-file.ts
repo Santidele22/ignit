@@ -1,4 +1,4 @@
-import { ConflictException, HttpException, HttpStatus } from '@nestjs/common';
+import { BadRequestException, ConflictException, HttpException, HttpStatus } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 import { readFile, unlink } from 'node:fs/promises';
 import type { Repository } from 'typeorm';
@@ -7,7 +7,9 @@ import { refineReadingDocument } from '../ai/ai-refiner.service.js';
 import type { Book } from '../entities/book.entity.js';
 import type { BookStorage } from '../storage/book-storage.js';
 import {
+  assessReadingLegibility,
   extractReadingFromPdf,
+  ILLEGIBLE_READING_MESSAGE,
   writeBookReadingJson,
 } from '../reading/book-reading.extractor.js';
 import { writeBookDeterministicReadingJson } from '../reading/reading.state.js';
@@ -64,6 +66,12 @@ export async function attachBookFile(
   const deterministicDoc = await extractReadingFromPdf(book.id, file.path).catch(
     () => emptyReadingDocument(book.id),
   );
+
+  const legibility = assessReadingLegibility(deterministicDoc);
+  if (!legibility.legible) {
+    await unlink(file.path).catch(() => undefined);
+    throw new BadRequestException(legibility.reason ?? ILLEGIBLE_READING_MESSAGE);
+  }
 
   const runAiSync = process.env.NODE_ENV === 'test';
   let readingDoc = deterministicDoc;
