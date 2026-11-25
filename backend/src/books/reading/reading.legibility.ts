@@ -19,6 +19,23 @@ export type LegibilityVerdict = {
   reason?: string;
 };
 
+function countReplacementOrControlChars(text: string): number {
+  let count = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    const code = text.charCodeAt(i);
+    if (
+      code === 0xfffd ||
+      code <= 0x08 ||
+      code === 0x0b ||
+      code === 0x0c ||
+      (code >= 0x0e && code <= 0x1f)
+    ) {
+      count += 1;
+    }
+  }
+  return count;
+}
+
 /**
  * Deterministic legibility gate: detects broken `/ToUnicode` CMaps (glyph-shifted
  * ASCII punctuation like `"#$%&' (((((`) and replacement-character floods
@@ -41,7 +58,7 @@ export function assessTextLegibility(rawText: string): LegibilityVerdict {
   }
 
   const letters = nonWs.match(/\p{L}/gu)?.length ?? 0;
-  const replacements = nonWs.match(/[\uFFFD\x00-\x08\x0B\x0C\x0E-\x1F]/g)?.length ?? 0;
+  const replacements = countReplacementOrControlChars(nonWs);
   const alphaRatio = letters / totalNonWs;
   const replacementRatio = replacements / totalNonWs;
 

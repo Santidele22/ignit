@@ -5,6 +5,7 @@ import { classifyMoodAndCues } from './reading.mood.js';
 import { cleanPageTextsForExtraction } from './reading.noise.js';
 import { classifyChunkType, splitPageIntoParagraphs } from './reading.chunks.js';
 import { extractPagesFromPdfBuffer, runPdftohtmlXml, runPdftotext } from './reading.pdf-text.js';
+import { extractPagesWithPdfJs } from './reading.pdfjs.js';
 import { inferHeadingLevelFromText } from './reading.block-rules.js';
 import { extractReadingFromPdftohtmlXml } from './reading.xml-blocks.js';
 
@@ -26,10 +27,16 @@ export async function extractReadingFromPdf(
   if (!pageTexts || pageTexts.every((p) => p.trim().length === 0)) {
     try {
       const buf = await readFile(pdfPath);
-      const fallback = extractPagesFromPdfBuffer(buf);
-      totalPages = Math.max(totalPages, fallback.pageCount);
-      if (fallback.pages.some((p) => p.trim().length > 0)) {
-        pageTexts = fallback.pages;
+      const pdfJsPages = await extractPagesWithPdfJs(buf);
+      if (pdfJsPages && pdfJsPages.some((p) => p.trim().length > 0)) {
+        pageTexts = pdfJsPages;
+        totalPages = Math.max(totalPages, pdfJsPages.length);
+      } else {
+        const fallback = extractPagesFromPdfBuffer(buf);
+        totalPages = Math.max(totalPages, fallback.pageCount);
+        if (fallback.pages.some((p) => p.trim().length > 0)) {
+          pageTexts = fallback.pages;
+        }
       }
     } catch {
       totalPages = Math.max(1, totalPages);
