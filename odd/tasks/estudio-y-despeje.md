@@ -15,11 +15,16 @@ No copiar el HTML de las artboards: mapear a componentes y estilos existentes.
 
 ## Tasks
 
-- T1 → S1, S4, S5, S3 — Landing (04): landing.css + HeroSection + secciones de landing. Route: worker (gentle-ai-worker). Commit: pendiente.
-- T2 → S2, S4, S5, S3 — Biblioteca (05): biblioteca.css + BibliotecaApp/HeroDash/SalaTopbar/BookTomoCard. Route: worker (gentle-ai-worker). Commit: pendiente.
+- T1 → S1, S4, S5, S3 — Landing (04): landing.css + HeroSection + secciones de landing. Route: worker (gentle-ai-worker). Commit: 47977dc.
+- T2 → S2, S4, S5, S3 — Biblioteca (05): biblioteca.css + BibliotecaApp/HeroDash/SalaTopbar/BookTomoCard. Route: worker (gentle-ai-worker). Commit: 48b0f5a.
 
 ## Log
+
+- Slice 1: commits 47977dc + 48b0f5a (456 + 6445 líneas, medición del lock del harness sobre origin/main; incluye el feature doc). Conventional Commits por unidad en feat/estudio-y-despeje.
 
 - L1 (verbatim, primera petición): «Sigamos con el diseño de @"design/biblioteca-tecnico-literatura/01-dos-alas-  arquitectonicas.html" antes de hacerlo prende el servidor asi puedo ver el diseño exacto»
 - L2 (verbatim): «no es este. el cambio es de la landing @design/biblioteca-tecnico-literatura/04-landing-estudio-y-despeje.html prende ese»
 - L3 (verbatim): «bien, agreguemos estos diseño el diseño: [Image#1] y [Image#2]» — las imágenes son las artboards 04 (Landing — Estudio y Despeje) y 05 (Mi Biblioteca — Estudio Profesional y Despeje) del canvas.
+- L4 (evidencia): T1 worker — RED 4 failed (helpers faltantes) → GREEN 17 passed; vitest 36/36, astro check 0 errores, build OK. Commit 47977dc. Desviación declarada: 4 chips de disciplina de la artboard (derecho/medicina/economía/diseño) no existen en BookKind; fila armada con los 8 kinds reales.
+- L5 (evidencia): T2 worker — RED 12 failed → GREEN 35/35 en suite library; suite completa 319/319, astro check 0 errores, build OK. Commit 48b0f5a. Paneles arrancan sin sala activa para no alterar el comportamiento por defecto (S3); metadata muestra páginas+tamaño reales (no hay campo de año en Book).
+- L6 (slice): Slice 1 de unidad = commits 47977dc (landing) + 48b0f5a (biblioteca + design artboards + feature doc) en branch feat/estudio-y-despeje.
