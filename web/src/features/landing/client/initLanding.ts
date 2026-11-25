@@ -610,17 +610,21 @@ export function initLanding(): () => void {
 	 * ------------------------------------------------------------------ */
 
 	const chips = Array.from(document.querySelectorAll<HTMLButtonElement>('.chip[data-filtro]'));
-	const tomos = Array.from(document.querySelectorAll<HTMLElement>('.tomo'));
+	const catalogGrid = byId<HTMLElement>('rejilla');
+	const catalogSection = byId<HTMLElement>('s2');
 	const catalogSearch = byId<HTMLInputElement>('catSearch');
 	const emptySearch = byId<HTMLElement>('catEmptySearch');
 	const offlineCount = byId<HTMLElement>('dlCount');
 	const offlineBar = byId<HTMLElement>('dlBar');
 
-	if (tomos.length > 0 || chips.length > 0) {
+	const getTomos = () => Array.from(document.querySelectorAll<HTMLElement>('#rejilla .tomo'));
+
+	if (getTomos().length > 0 || chips.length > 0) {
 		let activeKind = chips.find((chip) => chip.dataset.activa === 'true')?.dataset.filtro ?? '*';
+		let pageController: AbortController | null = null;
 
 		const renderOfflineMeter = () => {
-			const selectedKb = tomos
+			const selectedKb = getTomos()
 				.filter((tomo) => tomo.dataset.offline === 'true')
 				.map((tomo) => Number(tomo.dataset.kb ?? '0'));
 			const meter = computeOfflineMeter(selectedKb);
@@ -629,6 +633,7 @@ export function initLanding(): () => void {
 		};
 
 		const applyCatalogFilter = () => {
+			const tomos = getTomos();
 			const query = normalizeSearchText(catalogSearch?.value ?? '');
 			let visible = 0;
 
@@ -644,6 +649,111 @@ export function initLanding(): () => void {
 				emptySearch.hidden = visible > 0 || tomos.length === 0;
 			}
 		};
+
+		const bindTomoButtons = () => {
+			for (const tomo of getTomos()) {
+				const button = tomo.querySelector<HTMLButtonElement>('.btn-dl');
+				const badge = tomo.querySelector<HTMLElement>('.tomo-badge');
+				if (!button || button.dataset.bound === 'true') continue;
+				button.dataset.bound = 'true';
+
+				button.addEventListener(
+					'click',
+					() => {
+						const nowOffline = tomo.dataset.offline !== 'true';
+						tomo.dataset.offline = nowOffline ? 'true' : 'false';
+						button.textContent = nowOffline ? 'Quitar' : '↓ Descargar';
+						button.setAttribute('aria-pressed', String(nowOffline));
+						if (badge) badge.textContent = nowOffline ? 'offline ✓' : 'nube';
+						renderOfflineMeter();
+					},
+					{ signal },
+				);
+			}
+		};
+
+		const loadCatalogPage = async (href: string, pushHistory: boolean) => {
+			if (!catalogGrid || !catalogSection) {
+				window.location.assign(href);
+				return;
+			}
+			pageController?.abort();
+			pageController = new AbortController();
+			catalogGrid.setAttribute('aria-busy', 'true');
+			catalogGrid.style.opacity = '0.55';
+			catalogGrid.style.transition = 'opacity 140ms ease';
+
+			try {
+				const res = await fetch(href, {
+					headers: { accept: 'text/html' },
+					signal: pageController.signal,
+				});
+				if (!res.ok) {
+					window.location.assign(href);
+					return;
+				}
+				const html = await res.text();
+				const parsed = new DOMParser().parseFromString(html, 'text/html');
+				const nextGrid = parsed.getElementById('rejilla');
+				const nextPagination = parsed.querySelector('#s2 .cat-pagination');
+				if (!nextGrid) {
+					window.location.assign(href);
+					return;
+				}
+
+				catalogGrid.innerHTML = nextGrid.innerHTML;
+				const currentPagination = catalogSection.querySelector('.cat-pagination');
+				if (currentPagination && nextPagination) {
+					currentPagination.innerHTML = nextPagination.innerHTML;
+				} else if (currentPagination && !nextPagination) {
+					currentPagination.remove();
+				}
+
+				if (pushHistory) {
+					window.history.pushState({ catalogHref: href }, '', href);
+				}
+
+				bindTomoButtons();
+				applyCatalogFilter();
+				renderOfflineMeter();
+
+				// Keep the user oriented at the catalog header if scrolled below it
+				const rect = catalogSection.getBoundingClientRect();
+				if (rect.top < -80) {
+					catalogSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+				}
+			} catch (err) {
+				if ((err as { name?: string })?.name !== 'AbortError') {
+					window.location.assign(href);
+				}
+			} finally {
+				catalogGrid.removeAttribute('aria-busy');
+				catalogGrid.style.opacity = '';
+			}
+		};
+
+		catalogSection?.addEventListener(
+			'click',
+			(event) => {
+				if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) {
+					return;
+				}
+				const target = event.target as HTMLElement | null;
+				const link = target?.closest<HTMLAnchorElement>('.cat-pagination a[href]');
+				if (!link) return;
+				event.preventDefault();
+				void loadCatalogPage(link.href, true);
+			},
+			{ signal },
+		);
+
+		window.addEventListener(
+			'popstate',
+			() => {
+				void loadCatalogPage(window.location.href, false);
+			},
+			{ signal },
+		);
 
 		for (const chip of chips) {
 			chip.addEventListener(
@@ -662,26 +772,7 @@ export function initLanding(): () => void {
 		}
 
 		catalogSearch?.addEventListener('input', applyCatalogFilter, { signal });
-
-		for (const tomo of tomos) {
-			const button = tomo.querySelector<HTMLButtonElement>('.btn-dl');
-			const badge = tomo.querySelector<HTMLElement>('.tomo-badge');
-			if (!button) continue;
-
-			button.addEventListener(
-				'click',
-				() => {
-					const nowOffline = tomo.dataset.offline !== 'true';
-					tomo.dataset.offline = nowOffline ? 'true' : 'false';
-					button.textContent = nowOffline ? 'Quitar' : '↓ Descargar';
-					button.setAttribute('aria-pressed', String(nowOffline));
-					if (badge) badge.textContent = nowOffline ? 'offline ✓' : 'nube';
-					renderOfflineMeter();
-				},
-				{ signal },
-			);
-		}
-
+		bindTomoButtons();
 		renderOfflineMeter();
 	}
 
