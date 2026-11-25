@@ -1,10 +1,11 @@
-import type {
-	Book,
-	BookKind,
-	BookMetricEvent,
-	BookReadingDocument,
-	BookReadingState,
-	ReadingStatus,
+import {
+	parseBookKind,
+	type Book,
+	type BookKind,
+	type BookMetricEvent,
+	type BookReadingDocument,
+	type BookReadingState,
+	type ReadingStatus,
 } from '../../../entities/book/types';
 import { getJson, type RequestOptions } from '../../../shared/api/http';
 import {
@@ -14,7 +15,6 @@ import {
 import type { Paged } from '../../../shared/api/pagination';
 
 const READING_STATUSES: ReadingStatus[] = ['reading', 'finished', 'queued'];
-const BOOK_KINDS: BookKind[] = ['tecnico', 'no_tecnico'];
 
 const STATUS_LABELS: Record<ReadingStatus, string> = {
 	reading: 'Leyendo',
@@ -69,9 +69,7 @@ function mapBook(book: ApiBook): Book {
 	const status = READING_STATUSES.includes(book.status as ReadingStatus)
 		? (book.status as ReadingStatus)
 		: 'queued';
-	const kind = BOOK_KINDS.includes(book.kind as BookKind)
-		? (book.kind as BookKind)
-		: 'no_tecnico';
+	const kind = parseBookKind(book.kind);
 	const fileSizeBytes = parseOptionalFileSize(book.fileSize);
 
 	return {

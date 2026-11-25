@@ -1,6 +1,39 @@
 export type ReadingStatus = 'reading' | 'finished' | 'queued';
 
-export type BookKind = 'tecnico' | 'no_tecnico';
+export type BookKind =
+	| 'tecnico'
+	| 'ciencia'
+	| 'ficcion'
+	| 'terror_scifi'
+	| 'filosofia'
+	| 'historia'
+	| 'poesia'
+	| 'no_tecnico';
+
+export const BOOK_KIND_OPTIONS: ReadonlyArray<{ value: BookKind; label: string }> = [
+	{ value: 'tecnico', label: 'Técnico' },
+	{ value: 'ciencia', label: 'Ciencia' },
+	{ value: 'ficcion', label: 'Ficción' },
+	{ value: 'terror_scifi', label: 'Terror y Sci-Fi' },
+	{ value: 'filosofia', label: 'Filosofía y Ensayo' },
+	{ value: 'historia', label: 'Historia' },
+	{ value: 'poesia', label: 'Poesía y Teatro' },
+	{ value: 'no_tecnico', label: 'General' },
+];
+
+const BOOK_KIND_SET = new Set<string>(BOOK_KIND_OPTIONS.map((option) => option.value));
+
+export function isBookKind(value: string | null | undefined): value is BookKind {
+	return typeof value === 'string' && BOOK_KIND_SET.has(value);
+}
+
+export function parseBookKind(value: string | null | undefined): BookKind {
+	return isBookKind(value) ? value : 'no_tecnico';
+}
+
+export function getBookKindLabel(kind: string | null | undefined): string {
+	return BOOK_KIND_OPTIONS.find((option) => option.value === kind)?.label ?? 'General';
+}
 
 export type BookMetricEvent = 'read_started' | 'offline_download' | 'cta_click';
 

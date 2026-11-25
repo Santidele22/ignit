@@ -12,7 +12,7 @@
  * `#dlBar`, `#catEmptySearch`); por eso no hay `<script is:inline>`.
  */
 import { formatLicenseBadge } from '../../../entities/book/open-licenses';
-import type { Book, BookKind } from '../../../entities/book/types';
+import { BOOK_KIND_OPTIONS, type Book, type BookKind } from '../../../entities/book/types';
 import PaginationControls from '../../../shared/ui/PaginationControls.astro';
 import {
 	bookSearchIndex,
@@ -40,8 +40,7 @@ const items = books ?? [];
 
 const filters: Array<{ value: '*' | BookKind; label: string }> = [
 	{ value: '*', label: 'Todos' },
-	{ value: 'tecnico', label: 'Técnico' },
-	{ value: 'no_tecnico', label: 'No técnico' },
+	...BOOK_KIND_OPTIONS,
 ];
 const isActiveFilter = (value: '*' | BookKind) =>
 	value === '*' ? activeKind === undefined : activeKind === value;

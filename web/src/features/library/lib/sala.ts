@@ -1,5 +1,5 @@
 import { isOpenLicense } from '../../../entities/book/open-licenses';
-import type { Book, BookKind } from '../../../entities/book/types';
+import { parseBookKind, type Book, type BookKind } from '../../../entities/book/types';
 import {
 	bookSizeKb,
 	coverVariantIndex,
@@ -434,7 +434,7 @@ export function validatePdfUpload(
 }
 
 export function kindFromValue(raw: string): BookKind {
-	return raw === 'tecnico' ? 'tecnico' : 'no_tecnico';
+	return parseBookKind(raw);
 }
 
 export { formatSizeKb };

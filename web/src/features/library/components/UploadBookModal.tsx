@@ -5,7 +5,7 @@ import {
 	OPEN_LICENSE_REQUIRED_MESSAGE,
 	isOpenLicense,
 } from '../../../entities/book/open-licenses';
-import type { BookKind } from '../../../entities/book/types';
+import { BOOK_KIND_OPTIONS, type BookKind } from '../../../entities/book/types';
 import CoverPickerModal from '../../book/components/CoverPickerModal';
 import {
 	createBookReturning,
@@ -511,8 +511,11 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 									disabled={submitting()}
 									onChange={(event) => setKind(kindFromValue(event.currentTarget.value))}
 								>
-									<option value="no_tecnico">No técnico</option>
-									<option value="tecnico">Técnico</option>
+									{BOOK_KIND_OPTIONS.map((option) => (
+										<option value={option.value} selected={kind() === option.value}>
+											{option.label}
+										</option>
+									))}
 								</select>
 							</div>
 						</div>

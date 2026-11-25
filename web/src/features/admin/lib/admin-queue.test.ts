@@ -32,7 +32,8 @@ describe('admin queue view helpers (S5)', () => {
 
 	it('labels the kind of every queued upload', () => {
 		expect(adminKindLabel('tecnico')).toBe('Técnico');
-		expect(adminKindLabel('no_tecnico')).toBe('No técnico');
+		expect(adminKindLabel('filosofia')).toBe('Filosofía y Ensayo');
+		expect(adminKindLabel('no_tecnico')).toBe('General');
 	});
 
 	it('maps the AI columns to ok / suspect / skipped with quality and notes', () => {

@@ -1,4 +1,4 @@
-import type { BookKind } from '../../../entities/book/types';
+import { isBookKind, type BookKind } from '../../../entities/book/types';
 import { kindLabel } from '../../landing/lib/catalog';
 
 /**
@@ -93,7 +93,7 @@ export function formatAdminRelativeTime(
 
 /** Kind label of the queue, reusing the catalog vocabulary. */
 export function adminKindLabel(kind: BookKind | null | undefined): string {
-	return kind === 'tecnico' || kind === 'no_tecnico' ? kindLabel(kind) : 'Sin categoría';
+	return isBookKind(kind) ? kindLabel(kind) : 'Sin categoría';
 }
 
 /**

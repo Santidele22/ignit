@@ -3,7 +3,13 @@ import {
 	OPEN_LICENSE_REQUIRED_MESSAGE,
 	isOpenLicense,
 } from '../../entities/book/open-licenses';
-import type { BookKind, ReadingStatus } from '../../entities/book/types';
+import {
+	BOOK_KIND_OPTIONS as ENTITY_BOOK_KIND_OPTIONS,
+	getBookKindLabel,
+	parseBookKind,
+	type BookKind,
+	type ReadingStatus,
+} from '../../entities/book/types';
 import type { AdminBookRow, BookWriteBody } from './api/books-admin';
 
 export type BookFormState = {
@@ -50,8 +56,7 @@ export const BOOK_STATUS_OPTIONS: { value: ReadingStatus; label: string }[] = [
 ];
 
 export const BOOK_KIND_OPTIONS: { value: BookKind; label: string }[] = [
-	{ value: 'tecnico', label: 'Técnico' },
-	{ value: 'no_tecnico', label: 'No técnico' },
+	...ENTITY_BOOK_KIND_OPTIONS,
 ];
 
 export const OPEN_LICENSE_SELECT_OPTIONS: { value: string; label: string }[] = [
@@ -62,9 +67,9 @@ export const OPEN_LICENSE_SELECT_OPTIONS: { value: string; label: string }[] = [
 const STATUS_KEYS: string[] = BOOK_STATUS_OPTIONS.map((option) => option.value);
 const KIND_KEYS: string[] = BOOK_KIND_OPTIONS.map((option) => option.value);
 
-/** Rendered label of a stored kind key; defaults to `No técnico`. */
+/** Rendered label of a stored kind key; defaults to `General`. */
 export function bookKindLabel(kind: string | null | undefined): string {
-	return BOOK_KIND_OPTIONS.find((option) => option.value === kind)?.label ?? 'No técnico';
+	return getBookKindLabel(kind);
 }
 
 /** Rendered label of a stored status key; unknown keys fall back to their raw value. */
@@ -104,7 +109,7 @@ export function bookFormToBody(form: BookFormState): BookWriteBody {
 		author: form.author.trim(),
 		description: form.description.trim(),
 		status: STATUS_KEYS.includes(form.status) ? (form.status as ReadingStatus) : 'reading',
-		kind: KIND_KEYS.includes(form.kind) ? (form.kind as BookKind) : 'no_tecnico',
+		kind: KIND_KEYS.includes(form.kind) ? parseBookKind(form.kind) : 'no_tecnico',
 		review: form.review.trim() || null,
 		published: form.published,
 		// An untouched cover field stays out of the payload; an explicitly

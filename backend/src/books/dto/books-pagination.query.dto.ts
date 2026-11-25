@@ -31,7 +31,7 @@ export class BooksPaginationQueryDto extends PaginationQueryDto {
   @ApiPropertyOptional({
     enum: BookKind,
     enumName: 'BookKind',
-    description: 'Filter books by shelf kind (`tecnico` or `no_tecnico`)',
+    description: 'Filter books by category kind',
   })
   @IsOptional()
   @IsEnum(BookKind)

@@ -1,5 +1,5 @@
 import { For, Show, createEffect, createMemo, createSignal, onCleanup, onMount } from 'solid-js';
-import type { Book } from '../../../entities/book/types';
+import { BOOK_KIND_OPTIONS, parseBookKind, type Book } from '../../../entities/book/types';
 import { fetchBookClientReading, fetchBooks, recordBookMetric, safeExternalUrl } from '../../book/api/books';
 import { fetchMyBooks } from '../../book/api/books-admin';
 import type { AdminBookRow } from '../../book/api/books-admin';
@@ -55,14 +55,13 @@ export interface BibliotecaAppProps {
 
 const CATALOG_CHIPS: ReadonlyArray<{ value: CatalogKindFilter; label: string }> = [
 	{ value: '*', label: 'Todos' },
-	{ value: 'tecnico', label: 'Técnico' },
-	{ value: 'no_tecnico', label: 'No técnico' },
+	...BOOK_KIND_OPTIONS,
 ];
 
 /** `AdminBookRow` (real `GET /books?mine=true`) → the UI `Book` shape. */
 function rowToBook(row: AdminBookRow): Book {
 	const status = row.status === 'finished' || row.status === 'queued' ? row.status : 'reading';
-	const kind = row.kind === 'tecnico' ? 'tecnico' : 'no_tecnico';
+	const kind = parseBookKind(row.kind);
 	const fileSizeBytes = parseFileSizeBytes(row.fileSize);
 
 	return {

@@ -1,4 +1,5 @@
 ---
+import { isBookKind } from '../entities/book/types';
 import { SITE_DESCRIPTION, SITE_NAME } from '../app/config/site';
 import LandingLayout from '../app/layouts/LandingLayout.astro';
 import { getServerSession } from '../features/auth/api/serverSession';
@@ -15,7 +16,7 @@ import { parseOffset } from '../shared/api/pagination';
 
 const PAGE_SIZE = 8;
 const rawKind = Astro.url.searchParams.get('kind');
-const activeKind = rawKind === 'tecnico' || rawKind === 'no_tecnico' ? rawKind : undefined;
+const activeKind = isBookKind(rawKind) ? rawKind : undefined;
 const offset = parseOffset(Astro.url.searchParams.get('offset'));
 const serverOrigin = Astro.url.origin;
 

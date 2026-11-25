@@ -82,7 +82,13 @@ describe('landing catalog helpers', () => {
 			'el desierto de los tartaros',
 		);
 		expect(kindLabel('tecnico')).toBe('Técnico');
-		expect(kindLabel('no_tecnico')).toBe('No técnico');
+		expect(kindLabel('ciencia')).toBe('Ciencia');
+		expect(kindLabel('ficcion')).toBe('Ficción');
+		expect(kindLabel('terror_scifi')).toBe('Terror y Sci-Fi');
+		expect(kindLabel('filosofia')).toBe('Filosofía y Ensayo');
+		expect(kindLabel('historia')).toBe('Historia');
+		expect(kindLabel('poesia')).toBe('Poesía y Teatro');
+		expect(kindLabel('no_tecnico')).toBe('General');
 
 		expect(filterCatalogBooks(SAMPLE_BOOKS, '*', '')).toHaveLength(3);
 		expect(filterCatalogBooks(SAMPLE_BOOKS, 'tecnico', '')).toEqual([SAMPLE_BOOKS[1]]);

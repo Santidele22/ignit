@@ -1,4 +1,4 @@
-import type { Book, BookKind } from '../../../entities/book/types';
+import { getBookKindLabel, type Book, type BookKind } from '../../../entities/book/types';
 
 export type CatalogKindFilter = '*' | BookKind;
 
@@ -77,7 +77,7 @@ export function formatSizeKb(kb: number): string {
 }
 
 export function kindLabel(kind: BookKind): string {
-	return kind === 'tecnico' ? 'Técnico' : 'No técnico';
+	return getBookKindLabel(kind);
 }
 
 export function normalizeSearchText(value: string): string {
@@ -136,7 +136,7 @@ export function coverVariantIndex(bookId: number): number {
 function toShelfBookInfo(book: Book, index: number, isFeatured: boolean): ShelfBookInfo {
 	const idx = String(index + 1).padStart(2, '0');
 	const sizeLabel = formatSizeKb(bookSizeKb(book));
-	const baseKind = book.kind === 'tecnico' ? 'TÉCNICO' : 'NO TÉCNICO';
+	const baseKind = kindLabel(book.kind).toUpperCase();
 	return {
 		id: book.id,
 		idx,
@@ -159,8 +159,9 @@ export function buildShelfLayout(books: readonly Book[]): ShelfLayout {
 	const capped = books.slice(0, 8);
 	const indexed = capped.map((book, i) => toShelfBookInfo(book, i, i === 0));
 
-	const nonTech = indexed.filter((b) => b.kind === 'no_tecnico');
-	const tech = indexed.filter((b) => b.kind === 'tecnico');
+	const isTechShelf = (k: BookKind) => k === 'tecnico' || k === 'ciencia';
+	const nonTech = indexed.filter((b) => !isTechShelf(b.kind));
+	const tech = indexed.filter((b) => isTechShelf(b.kind));
 
 	const shelfABooks: ShelfBookInfo[] = [];
 	const shelfBBooks: ShelfBookInfo[] = [...tech.slice(0, 3)];

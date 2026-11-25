@@ -23,10 +23,11 @@ describe('bookStatusLabel', () => {
 describe('bookKindLabel', () => {
 	it('maps known kind keys and defaults missing or unknown kinds to No técnico', () => {
 		expect(bookKindLabel('tecnico')).toBe('Técnico');
-		expect(bookKindLabel('no_tecnico')).toBe('No técnico');
-		expect(bookKindLabel(null)).toBe('No técnico');
-		expect(bookKindLabel(undefined)).toBe('No técnico');
-		expect(bookKindLabel('unknown')).toBe('No técnico');
+		expect(bookKindLabel('terror_scifi')).toBe('Terror y Sci-Fi');
+		expect(bookKindLabel('no_tecnico')).toBe('General');
+		expect(bookKindLabel(null)).toBe('General');
+		expect(bookKindLabel(undefined)).toBe('General');
+		expect(bookKindLabel('unknown')).toBe('General');
 	});
 });
 
