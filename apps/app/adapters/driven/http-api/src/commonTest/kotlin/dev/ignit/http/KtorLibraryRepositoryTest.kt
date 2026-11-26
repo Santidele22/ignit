@@ -42,6 +42,7 @@ private fun repositoryOver(
 	status: HttpStatusCode = HttpStatusCode.OK,
 	contentType: ContentType = ContentType.Application.Json,
 	sessionCookie: String = "",
+	token: String = "tok_body",
 ): KtorLibraryRepository {
 	val client = HttpClient(
 		MockEngine { request ->
@@ -58,7 +59,7 @@ private fun repositoryOver(
 			userId = "usr_1",
 			email = "santi@ignit.ar",
 			name = "Santi",
-			token = "tok_body",
+			token = token,
 			sessionCookie = sessionCookie,
 		),
 	)
@@ -253,6 +254,43 @@ class KtorLibraryRepositoryTest {
 		repository.fetchLibrary(mine = true)
 
 		assertEquals(cookie, captured.single().headers[HttpHeaders.Cookie])
+	}
+
+	@Test
+	fun tokenIsSentAsABearerAuthorizationHeader() = runTest {
+		val captured = mutableListOf<HttpRequestData>()
+		val repository = repositoryOver(captured, "[]", token = "tok_prod")
+
+		repository.fetchLibrary(mine = true)
+
+		val request = captured.single()
+		assertEquals("Bearer tok_prod", request.headers[HttpHeaders.Authorization])
+		assertNull(request.headers[HttpHeaders.Cookie])
+	}
+
+	@Test
+	fun bothCredentialsAreSentWhenTheSessionCarriesBoth() = runTest {
+		val captured = mutableListOf<HttpRequestData>()
+		val cookie = "better-auth.session_token=signed.value"
+		val repository = repositoryOver(captured, "[]", sessionCookie = cookie, token = "tok_both")
+
+		repository.fetchLibrary(mine = true)
+
+		val request = captured.single()
+		assertEquals("Bearer tok_both", request.headers[HttpHeaders.Authorization])
+		assertEquals(cookie, request.headers[HttpHeaders.Cookie])
+	}
+
+	@Test
+	fun neitherCredentialIsSentWhenBothAreBlank() = runTest {
+		val captured = mutableListOf<HttpRequestData>()
+		val repository = repositoryOver(captured, "[]", sessionCookie = "", token = "")
+
+		repository.fetchLibrary(mine = true)
+
+		val request = captured.single()
+		assertNull(request.headers[HttpHeaders.Authorization])
+		assertNull(request.headers[HttpHeaders.Cookie])
 	}
 
 	@Test

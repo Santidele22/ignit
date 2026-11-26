@@ -5,16 +5,21 @@ import dev.ignit.application.port.AuthSession
 import dev.ignit.domain.model.UserSession
 
 /**
- * Reads the session persisted by a previous [LogIn], or null when the user never signed in.
+ * Reads the session persisted by a previous [LogIn], or null when there is no usable one.
  *
- * A session is only returned when it carries the signed session cookie, because that is the
- * credential the backend verifies: better-auth resolves the session from the request headers and
- * has no bearer plugin, so a session holding just the raw body token cannot authenticate. Sessions
- * written by older builds (before the cookie was persisted) therefore resolve to null and the app
- * asks the user to sign in again, instead of showing a library that fails with `Unauthorized`.
+ * The credential the backend accepts depends on the environment, and the client cannot know which
+ * one it is talking to: production runs `session-mode = neon`, whose guard reads only
+ * `Authorization: Bearer <token>`, while local development mounts better-auth, which resolves the
+ * signed session cookie from the request headers. A stored session is therefore usable when it
+ * carries either [UserSession.token] or [UserSession.sessionCookie].
+ *
+ * A session carrying neither is treated as signed out: the library endpoints would answer 401, so
+ * the app asks the user to sign in again instead of landing on a screen that cannot load.
  */
 class GetCurrentSession(private val session: AuthSession) {
-	suspend operator fun invoke(): UserSession? = session.load()?.takeIf { it.sessionCookie.isNotBlank() }
+	suspend operator fun invoke(): UserSession? = session.load()?.takeIf { stored ->
+		stored.sessionCookie.isNotBlank() || stored.token.isNotBlank()
+	}
 }
 
 /** Drops the persisted session so the next launch starts at the login screen again. */

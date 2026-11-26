@@ -11,8 +11,11 @@ import kotlin.coroutines.cancellation.CancellationException
  * Signs the user in against the remote backend and persists the resulting session.
  *
  * Empty fields are rejected before the network is touched, and nothing is written to the
- * session store unless [AuthGateway.signIn] actually succeeded with a session cookie the
- * backend would accept back.
+ * session store unless [AuthGateway.signIn] actually succeeded. Whatever credential that session
+ * carries is persisted verbatim: production (`session-mode = neon`) authenticates a bearer token
+ * while local development mounts better-auth and answers a cookie, so deciding here which one is
+ * "the right one" would only lock out the other environment. [AuthGateway.signIn] already fails
+ * when the backend hands back neither credential.
  */
 class LogIn(
 	private val gateway: AuthGateway,
@@ -31,12 +34,6 @@ class LogIn(
 			return Result.failure(error)
 		}
 
-		// `GetCurrentSession` refuses a session without a cookie, so persisting this one would sign
-		// the user in only until the next launch. Reject it here instead, before anything is stored.
-		if (signedIn.sessionCookie.isBlank()) {
-			return Result.failure(AuthException(SIGN_IN_WITHOUT_COOKIE))
-		}
-
 		return try {
 			session.save(signedIn)
 			Result.success(signedIn)
@@ -50,8 +47,5 @@ class LogIn(
 	companion object {
 		const val EMAIL_REQUIRED: String = "Ingresá tu email"
 		const val PASSWORD_REQUIRED: String = "Ingresá tu contraseña"
-
-		/** Shown when the backend signed the user in but handed back no session cookie to send back. */
-		const val SIGN_IN_WITHOUT_COOKIE: String = "No pudimos iniciar sesión correctamente. Probá de nuevo."
 	}
 }

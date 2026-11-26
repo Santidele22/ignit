@@ -46,9 +46,11 @@ private const val CONNECTION_FALLBACK = "No pudimos conectar con el servidor."
  * `mine = true` asks for the caller's own library (`?mine=true`, which the backend only
  * answers for an authenticated caller) and [Book.kind] narrows the shelf through `?kind=`.
  * [limit] and [offset] always travel as query parameters, because sending them is what makes
- * the controller answer the paginated envelope. Authentication rides on the session cookie
- * resolved from [session], because the backend verifies the signed better-auth cookie and
- * accepts no bearer token.
+ * the controller answer the paginated envelope. Authentication rides on the session read from
+ * [session], and both credential forms are sent when it carries them: production runs in `neon`
+ * mode and verifies `Authorization: Bearer <token>`, while local development mounts better-auth
+ * and verifies the signed `Cookie` pair. The client cannot tell the two modes apart, so it offers
+ * whichever credentials the session holds and lets the API reject what it does not accept.
  *
  * The response is either a bare array or the paginated envelope whose items live under
  * [ITEMS_KEY]. A bare array (the server ignored pagination) still yields a coherent
@@ -68,12 +70,15 @@ class KtorLibraryRepository(
 		LibraryRepository.requireValidRequest(limit, offset)
 
 		val (status, body) = try {
-			val cookie = session.load()?.sessionCookie.orEmpty()
+			val stored = session.load()
+			val token = stored?.token.orEmpty()
+			val cookie = stored?.sessionCookie.orEmpty()
 			val response = client.get("$baseUrl$BOOKS_PATH") {
 				if (mine) parameter(MINE_PARAM, "true")
 				kind?.takeIf { it.isNotBlank() }?.let { parameter(KIND_PARAM, it) }
 				parameter(LIMIT_PARAM, limit)
 				parameter(OFFSET_PARAM, offset)
+				if (token.isNotBlank()) header(HttpHeaders.Authorization, "Bearer $token")
 				if (cookie.isNotBlank()) header(HttpHeaders.Cookie, cookie)
 			}
 			response.status to response.bodyAsText()

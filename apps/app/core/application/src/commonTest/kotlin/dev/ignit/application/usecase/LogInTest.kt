@@ -11,12 +11,17 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
+/**
+ * The production sign-in shape: a body token and no usable session cookie.
+ *
+ * Production runs `session-mode = neon`, whose guard reads only `Authorization: Bearer <token>`, so
+ * a session that arrives without a cookie is still a usable session and must be stored as-is.
+ */
 private val santi = UserSession(
 	userId = "usr_123",
 	email = "santi@ignit.ar",
 	name = "Santi",
 	token = "tok_abc",
-	sessionCookie = "better-auth.session_token=santi.signed",
 )
 
 private class RecordingGateway(
@@ -119,38 +124,32 @@ class LogInTest {
 	}
 
 	@Test
-	fun aSessionWithoutCookieIsNotPersisted() = runTest {
+	fun aSessionWithoutACookieStillLogsInAndPersists() = runTest {
 		val cookieLess = santi.copy(sessionCookie = "")
 		val gateway = RecordingGateway(Result.success(cookieLess))
 		val session = RecordingSession()
 
 		val result = LogIn(gateway, session)("santi@ignit.ar", "secret123")
 
-		assertTrue(result.isFailure)
-		assertEquals(
-			"No pudimos iniciar sesión correctamente. Probá de nuevo.",
-			result.exceptionOrNull()?.message,
-		)
+		assertTrue(result.isSuccess)
+		assertEquals(cookieLess, result.getOrNull())
 		assertEquals(1, gateway.calls.size)
-		assertEquals(0, session.saves)
-		assertNull(session.current())
+		assertEquals(cookieLess, session.current())
+		assertEquals(1, session.saves)
 	}
 
 	@Test
-	fun aBlankCookieLeavesAPreviouslyStoredSessionUntouched() = runTest {
+	fun aBlankCookieSessionReplacesThePreviouslyStoredSession() = runTest {
 		val blankCookie = santi.copy(sessionCookie = "   ")
 		val gateway = RecordingGateway(Result.success(blankCookie))
-		val session = RecordingSession(stored = santi)
+		val session = RecordingSession(stored = santi.copy(sessionCookie = "stale.cookie"))
 
 		val result = LogIn(gateway, session)("santi@ignit.ar", "secret123")
 
-		assertEquals(
-			"No pudimos iniciar sesión correctamente. Probá de nuevo.",
-			result.exceptionOrNull()?.message,
-		)
-		assertEquals(0, session.saves)
+		assertTrue(result.isSuccess)
+		assertEquals(blankCookie, session.current())
+		assertEquals(1, session.saves)
 		assertEquals(0, session.clears)
-		assertEquals(santi, session.current())
 	}
 
 	@Test

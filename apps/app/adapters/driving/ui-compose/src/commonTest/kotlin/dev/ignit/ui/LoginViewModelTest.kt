@@ -12,13 +12,13 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 
-// The fixture carries a session cookie because a sign-in without one is refused by `LogIn`.
+// The fixture carries only the body token: production (`session-mode = neon`) authenticates the
+// bearer token, so a session without a session cookie is a perfectly valid sign-in.
 private val santi = UserSession(
 	userId = "usr_1",
 	email = "a@b.ar",
 	name = "A",
 	token = "tok_1",
-	sessionCookie = "better-auth.session_token=santi.signed",
 )
 
 private class FakeGateway(private val result: Result<UserSession>) : AuthGateway {
