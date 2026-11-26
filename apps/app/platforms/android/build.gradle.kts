@@ -18,6 +18,7 @@ kotlin {
 			implementation(project(":adapters:driven:http-api"))
 			implementation(project(":adapters:driven:persistence"))
 			implementation(project(":adapters:driven:auth-session"))
+			implementation(project(":adapters:driven:preferences"))
 			implementation(compose.material3)
 			implementation(libs.androidx.activity.compose)
 		}

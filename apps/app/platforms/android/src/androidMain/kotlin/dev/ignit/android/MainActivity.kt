@@ -8,8 +8,10 @@ import androidx.compose.runtime.remember
 import dev.ignit.application.usecase.GetCurrentSession
 import dev.ignit.application.usecase.LogIn
 import dev.ignit.application.usecase.LogOut
+import dev.ignit.application.usecase.PalettePreference
 import dev.ignit.http.KtorAuthGateway
 import dev.ignit.http.createIgnitHttpClient
+import dev.ignit.preferences.SharedPreferencesStore
 import dev.ignit.session.KeystoreAuthSession
 import dev.ignit.ui.IgnitApp
 import dev.ignit.ui.LoginViewModel
@@ -24,9 +26,11 @@ class MainActivity : ComponentActivity() {
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
 
-		// Driven adapters: the Keystore session store and the HTTP auth gateway.
+		// Driven adapters: the Keystore session store, the plain preferences store, and the HTTP gateway.
 		val authSession = KeystoreAuthSession(applicationContext)
+		val preferences = SharedPreferencesStore(applicationContext)
 		val authGateway = KtorAuthGateway(httpClient, BASE_URL)
+		val palettePreference = PalettePreference(preferences)
 
 		// Driving side gets use cases only — it never sees Ktor or the Keystore. `IgnitApp` owns the
 		// theme and its surface so the palette can change at runtime.
@@ -37,6 +41,7 @@ class MainActivity : ComponentActivity() {
 				loginViewModel = loginViewModel,
 				getCurrentSession = GetCurrentSession(authSession),
 				logOut = LogOut(authSession),
+				palettePreference = palettePreference,
 			)
 		}
 	}

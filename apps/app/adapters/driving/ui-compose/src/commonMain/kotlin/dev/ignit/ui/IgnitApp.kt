@@ -34,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.ignit.application.usecase.GetCurrentSession
 import dev.ignit.application.usecase.LogOut
+import dev.ignit.application.usecase.PalettePreference
 import dev.ignit.domain.model.UserSession
 import dev.ignit.ui.theme.IgnitPalette
 import dev.ignit.ui.theme.IgnitTheme
@@ -45,12 +46,15 @@ import kotlinx.coroutines.launch
  * The persisted session is restored once on first composition, so a returning user lands directly
  * on the library instead of seeing the form flash by. The theme lives here too, because the palette
  * toggle above the content changes it at runtime; the platform roots only host this composable.
+ * The palette itself is restored from [palettePreference] during that same first composition and
+ * saved on every toggle: the state changes immediately, the write happens in the background.
  */
 @Composable
 fun IgnitApp(
 	loginViewModel: LoginViewModel,
 	getCurrentSession: GetCurrentSession,
 	logOut: LogOut,
+	palettePreference: PalettePreference,
 ) {
 	val scope = rememberCoroutineScope()
 	var session by remember { mutableStateOf<UserSession?>(null) }
@@ -59,6 +63,8 @@ fun IgnitApp(
 
 	LaunchedEffect(Unit) {
 		session = getCurrentSession()
+		val storedPalette = palettePreference.load()
+		if (storedPalette != null) palette = IgnitPalette.fromName(storedPalette)
 		restoring = false
 	}
 
@@ -97,7 +103,11 @@ fun IgnitApp(
 
 				PaletteToggle(
 					palette = palette,
-					onSelect = { palette = it },
+					onSelect = { selected ->
+						// Apply first so the UI never lags behind the tap, then persist off the main path.
+						palette = selected
+						scope.launch { palettePreference.save(selected.persistedName) }
+					},
 					modifier = Modifier.align(Alignment.TopEnd).padding(16.dp),
 				)
 			}

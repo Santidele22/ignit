@@ -23,7 +23,28 @@ import androidx.compose.ui.unit.sp
  * the blue-black monochrome palette: it forces dark, so it never follows OS light mode and never
  * inherits the warm paper tokens.
  */
-enum class IgnitPalette { ORIGINAL, NOCHE_AZUL }
+enum class IgnitPalette {
+	ORIGINAL,
+	NOCHE_AZUL;
+
+	/**
+	 * Stable name written to the preferences store. Deliberately not the enum name, so renaming a
+	 * constant can never orphan a choice the user already made.
+	 */
+	val persistedName: String
+		get() = when (this) {
+			ORIGINAL -> "original"
+			NOCHE_AZUL -> "noche-azul"
+		}
+
+	companion object {
+		/** Reads back a [persistedName]; anything unknown or absent falls back to [ORIGINAL]. */
+		fun fromName(name: String?): IgnitPalette = when (name) {
+			"noche-azul" -> NOCHE_AZUL
+			else -> ORIGINAL
+		}
+	}
+}
 
 /**
  * Ignit palette, transcribed from `design/system.md` (synced from

@@ -31,3 +31,12 @@ interface AuthSession {
 	suspend fun save(session: UserSession)
 	suspend fun clear()
 }
+
+/**
+ * Outbound port: a small key-value store for user preferences that are not secrets.
+ * Secrets go through AuthSession; this is for choices the user can re-make (palette, reader font).
+ */
+interface Preferences {
+	suspend fun read(key: String): String?
+	suspend fun write(key: String, value: String)
+}
