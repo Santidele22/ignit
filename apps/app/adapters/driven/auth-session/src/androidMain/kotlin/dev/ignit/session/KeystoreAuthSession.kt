@@ -53,6 +53,9 @@ class KeystoreAuthSession(context: Context) : AuthSession {
 			return null
 		} catch (missingKey: IllegalStateException) {
 			return null
+		} catch (unreadableStore: IOException) {
+			// A keystore we cannot open holds no session we could decrypt: start at the login screen.
+			return null
 		}
 		return SessionCodec.decode(encoded)
 	}
@@ -65,6 +68,9 @@ class KeystoreAuthSession(context: Context) : AuthSession {
 			.putString(KEY_IV, Base64.getEncoder().encodeToString(cipher.iv))
 			.putString(KEY_PAYLOAD, Base64.getEncoder().encodeToString(payload))
 			.commit()
+			.let { persisted ->
+				check(persisted) { "No pudimos guardar la sesión en este dispositivo." }
+			}
 	}
 
 	override suspend fun clear() {
@@ -72,6 +78,9 @@ class KeystoreAuthSession(context: Context) : AuthSession {
 			.remove(KEY_IV)
 			.remove(KEY_PAYLOAD)
 			.commit()
+			.let { cleared ->
+				check(cleared) { "No pudimos cerrar la sesión en este dispositivo." }
+			}
 		try {
 			keyStore().deleteEntry(KEY_ALIAS)
 		} catch (cryptoFailure: GeneralSecurityException) {

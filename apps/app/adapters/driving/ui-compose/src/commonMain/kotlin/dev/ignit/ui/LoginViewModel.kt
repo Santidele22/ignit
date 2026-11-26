@@ -55,9 +55,14 @@ class LoginViewModel(private val logIn: LogIn) {
 	/**
 	 * Drops the signed-in session held here. The root app calls this when the user logs out, so a
 	 * re-entered login screen does not immediately navigate back to the library.
+	 *
+	 * The typed password is cleared too: leaving it behind would re-authenticate the next user of the
+	 * device with a single tap. The email is kept as a convenience for the next sign-in.
 	 */
 	fun clearSession() {
 		session = null
+		password = ""
+		error = null
 	}
 
 	companion object {

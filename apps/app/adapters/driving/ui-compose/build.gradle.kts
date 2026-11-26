@@ -19,6 +19,10 @@ kotlin {
 			implementation(libs.androidx.lifecycle.viewmodel.compose)
 			implementation(libs.koin.compose)
 		}
+		commonTest.dependencies {
+			implementation(kotlin("test"))
+			implementation(libs.kotlinx.coroutines.test)
+		}
 	}
 }
 

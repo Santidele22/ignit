@@ -95,9 +95,20 @@ class KtorAuthGateway(private val client: HttpClient, private val baseUrl: Strin
 			.orEmpty()
 			.asSequence()
 			.map { it.substringBefore(';').trim() }
-			.filter { it.substringBefore('=', missingDelimiterValue = "").trim() == SESSION_COOKIE_NAME }
+			.filter { cookieName(it) == SESSION_COOKIE_NAME }
 			.map { it.substringAfter('=', missingDelimiterValue = "").trim() }
 			.firstOrNull { it.isNotEmpty() }
+
+	/**
+	 * Drops the browser security prefixes a cookie arrives with. The backend sets the session cookie
+	 * as `__Secure-better-auth.session_token` in production and unprefixed on localhost, so matching
+	 * the bare name alone would miss every production sign-in.
+	 */
+	private fun cookieName(raw: String): String = raw
+		.substringBefore('=', missingDelimiterValue = "")
+		.trim()
+		.removePrefix("__Secure-")
+		.removePrefix("__Host-")
 
 	private fun backendMessage(body: String): String? = try {
 		(Json.parseToJsonElement(body) as? JsonObject)
