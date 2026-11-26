@@ -1,4 +1,5 @@
 import { getManagedAuthClient } from '../../../shared/api/managedAuthClient';
+import type { AuthUser } from '../types';
 import { getAuthClient } from './authClient';
 import { signInWithDev, signOutWithDev, signUpWithDev } from './devAuth';
 import { refreshSession } from './session';
@@ -9,7 +10,7 @@ export type AuthActionError = { status?: number; message?: string; code?: string
 export async function signInWithEmail(
 	email: string,
 	password: string,
-): Promise<{ error: AuthActionError }> {
+): Promise<{ error: AuthActionError; user?: AuthUser }> {
 	const mode = await getAuthMode();
 	const cleanEmail = email.trim();
 
@@ -21,7 +22,11 @@ export async function signInWithEmail(
 
 	const client = mode === 'neon' ? await getManagedAuthClient() : getAuthClient();
 	const res = await client.signIn.email({ email: cleanEmail, password });
-	return { error: (res.error as AuthActionError) ?? null };
+	const user = (res.data as { user?: AuthUser } | null | undefined)?.user;
+	return {
+		error: (res.error as AuthActionError) ?? null,
+		...(user ? { user } : {}),
+	};
 }
 
 export async function signUpWithEmail(
@@ -36,7 +41,7 @@ export async function signUpWithEmail(
 	if (mode === 'dev') {
 		const res = await signUpWithDev(cleanName, cleanEmail, password);
 		if (!res.error) await refreshSession();
-		return res;
+		return { error: res.error };
 	}
 
 	const client = mode === 'neon' ? await getManagedAuthClient() : getAuthClient();

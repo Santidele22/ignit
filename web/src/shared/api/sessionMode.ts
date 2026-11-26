@@ -31,7 +31,8 @@ async function readAuthMode(): Promise<AuthMode> {
 		return mode === 'dev' || mode === 'neon' ? mode : 'better';
 	} catch {
 		// An API without the endpoint (or an unreachable one) keeps the Better
-		// Auth flow the panel used before the interim mode.
+		// Auth flow without caching a transient failure forever.
+		modeRequest = undefined;
 		return 'better';
 	}
 }

@@ -1,10 +1,12 @@
 ---
 import BibliotecaLayout from '../app/layouts/BibliotecaLayout.astro';
-import { getServerSession } from '../features/auth/api/serverSession';
+import { isAdminSession } from '../features/admin/lib/admin-access';
+import { getServerSession, type ServerSession } from '../features/auth/api/serverSession';
 import { fetchBooks, fetchMyBooksServer } from '../features/book/api/books';
 import BibliotecaApp from '../features/library/components/BibliotecaApp';
 
-const session = await getServerSession(Astro.request.headers.get('cookie'));
+const cachedSession = (Astro.locals as unknown as { serverSession?: ServerSession }).serverSession;
+const session = cachedSession ?? (await getServerSession(Astro.request.headers.get('cookie')));
 const serverOrigin = Astro.url.origin;
 
 const authOptions = session.authenticated
@@ -20,6 +22,7 @@ const userId = session.authenticated ? (session.user.id ?? session.user.email) :
 const userLabel = session.authenticated
 	? session.user.email || session.user.name || 'lector'
 	: '';
+const isAdmin = session.authenticated && isAdminSession(session.user);
 ---
 
 <BibliotecaLayout title="Mi biblioteca — Ignit">
@@ -27,7 +30,10 @@ const userLabel = session.authenticated
 		client:load
 		userId={userId}
 		userLabel={userLabel}
+		isAdmin={isAdmin}
 		initialOwnedBooks={ownedBooks ?? []}
 		initialCatalogBooks={catalogBooks ?? []}
+		ssrOwnedLoaded={ownedBooks !== null}
+		ssrCatalogLoaded={catalogBooks !== null}
 	/>
 </BibliotecaLayout>

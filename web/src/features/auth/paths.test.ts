@@ -25,6 +25,8 @@ describe('isProtectedRoute and isAuthSecurityScope', () => {
 	it.each([
 		['/biblioteca', true, true],
 		['/biblioteca/', true, true],
+		['/admin', false, true],
+		['/admin/', false, true],
 		['/login', false, true],
 		['/registro', false, true],
 		['/lecturas/7', false, true],
@@ -39,6 +41,7 @@ describe('isProtectedRoute and isAuthSecurityScope', () => {
 describe('safeRedirectTarget', () => {
 	it('allows safe Ignit routes and blocks open redirects', () => {
 		expect(safeRedirectTarget('/biblioteca')).toBe('/biblioteca');
+		expect(safeRedirectTarget('/admin')).toBe('/admin');
 		expect(safeRedirectTarget('/lecturas/7')).toBe('/lecturas/7');
 		expect(safeRedirectTarget('/lecturas/7?foo=1')).toBe('/lecturas/7?foo=1');
 		expect(safeRedirectTarget('/')).toBe('/');

@@ -128,7 +128,10 @@ describe('signInWithEmail in dev mode', () => {
 
 		const result = await signInWithEmail('  santi@example.com ', 'password123');
 
-		expect(result).toEqual({ error: null });
+		expect(result).toEqual({
+			error: null,
+			user: { id: 'u1', name: 'Santi', email: 'santi@example.com', role: 'user' },
+		});
 		expect(fetchMock).toHaveBeenCalledTimes(1);
 		const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
 		expect(url).toBe('/api/auth/dev-login');

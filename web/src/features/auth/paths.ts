@@ -1,6 +1,7 @@
 export const LOGIN_PATH = '/login';
 export const REGISTER_PATH = '/registro';
 export const LIBRARY_PATH = '/biblioteca';
+export const ADMIN_PATH = '/admin';
 
 /**
  * Individual book reader routes (`/lecturas/:id`) decide public vs private
@@ -21,6 +22,8 @@ export function isAuthSecurityScope(pathname: string): boolean {
 		clean === REGISTER_PATH ||
 		clean === LIBRARY_PATH ||
 		clean.startsWith(`${LIBRARY_PATH}/`) ||
+		clean === ADMIN_PATH ||
+		clean.startsWith(`${ADMIN_PATH}/`) ||
 		isReaderRoute(pathname)
 	);
 }
@@ -45,6 +48,8 @@ export function safeRedirectTarget(requested: string | null | undefined): string
 		clean === '/' ||
 		clean === LIBRARY_PATH ||
 		clean.startsWith(`${LIBRARY_PATH}/`) ||
+		clean === ADMIN_PATH ||
+		clean.startsWith(`${ADMIN_PATH}/`) ||
 		isReaderRoute(pathname)
 	) {
 		return requested;

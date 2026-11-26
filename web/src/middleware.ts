@@ -1,5 +1,5 @@
 import { defineMiddleware } from 'astro:middleware';
-import { hasAuthenticatedSession } from './features/auth/api/serverSession';
+import { getServerSession, type ServerSession } from './features/auth/api/serverSession';
 import { isAuthSecurityScope, isProtectedRoute, LOGIN_PATH } from './features/auth/paths';
 import { setEdgeCacheStore, setWaitUntil } from './shared/api/contentCache';
 import { contentCacheKv } from './shared/api/serverEnvironment';
@@ -85,16 +85,22 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
 	const isProtected = isProtectedRoute(context.url.pathname);
 	if (isProtected) {
-		const authenticated = await hasAuthenticatedSession(context.request.headers.get('cookie'));
+		const session = await getServerSession(context.request.headers.get('cookie'));
 
-		if (!authenticated) {
+		if (!session.authenticated) {
 			const redirect = context.url.pathname + context.url.search;
 			response = new Response(null, {
 				status: 302,
 				headers: { Location: `${LOGIN_PATH}?redirect=${encodeURIComponent(redirect)}` },
 			});
 		} else {
-			response = await next();
+			(context.locals as unknown as { serverSession?: ServerSession }).serverSession = session;
+			try {
+				response = await next();
+			} catch (error) {
+				console.error(`[middleware] render failed for ${context.url.pathname}`, error);
+				response = wakingPage(context.url.pathname);
+			}
 		}
 	} else {
 		try {

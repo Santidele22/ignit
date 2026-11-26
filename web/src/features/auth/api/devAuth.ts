@@ -1,8 +1,8 @@
 import { getJson, postJson, resolveApiUrl } from '../../../shared/api/http';
-import type { AuthSession, DevSessionSnapshot } from '../types';
+import type { AuthSession, AuthUser, DevSessionSnapshot } from '../types';
 
 /** Result shape of the dev auth actions, mirroring the Better Auth client's `error`. */
-export type DevAuthResult = { error: { status: number; message?: string } | null };
+export type DevAuthResult = { error: { status: number; message?: string } | null; user?: AuthUser };
 export type DevSignInResult = DevAuthResult;
 
 async function postDevAuth(path: string, body: Record<string, string>): Promise<DevAuthResult> {
@@ -15,7 +15,11 @@ async function postDevAuth(path: string, body: Record<string, string>): Promise<
 	});
 
 	if (response.ok) {
-		return { error: null };
+		const payload = (await response.json().catch(() => null)) as { user?: AuthUser } | null;
+		return {
+			error: null,
+			...(payload?.user ? { user: payload.user } : {}),
+		};
 	}
 
 	const payload = (await response.json().catch(() => null)) as {

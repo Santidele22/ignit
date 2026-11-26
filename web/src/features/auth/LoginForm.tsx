@@ -1,6 +1,7 @@
 import { createSignal, Show } from 'solid-js';
+import { isAdminSession } from '../admin/lib/admin-access';
 import { signInWithEmail, type AuthActionError } from './api/authActions';
-import { safeRedirectTarget } from './paths';
+import { ADMIN_PATH, LIBRARY_PATH, safeRedirectTarget } from './paths';
 
 const INVALID_CREDENTIALS = 'El correo o la contraseña no son correctos.';
 const TOO_MANY_ATTEMPTS = 'Demasiados intentos seguidos. Esperá un momento antes de volver a probar.';
@@ -27,7 +28,7 @@ export default function LoginForm() {
 		setError('');
 
 		try {
-			const { error: authError } = await signInWithEmail(email(), password());
+			const { error: authError, user } = await signInWithEmail(email(), password());
 			if (authError) {
 				setError(signInErrorMessage(authError));
 				setPending(false);
@@ -36,7 +37,12 @@ export default function LoginForm() {
 
 			const params = new URLSearchParams(window.location.search);
 			const requested = params.get('redirect') ?? params.get('next');
-			window.location.assign(safeRedirectTarget(requested));
+			const destination = requested
+				? safeRedirectTarget(requested)
+				: isAdminSession(user)
+					? ADMIN_PATH
+					: LIBRARY_PATH;
+			window.location.assign(destination);
 		} catch {
 			setError(CONNECTION_ERROR);
 			setPending(false);

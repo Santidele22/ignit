@@ -8,24 +8,30 @@ const AUTH_MODE_TTL_MS = 60_000;
 let cachedMode: { mode: AuthMode; at: number } | undefined;
 
 async function readAuthMode(): Promise<AuthMode> {
+	if (neonAuthUrl) {
+		return 'neon';
+	}
+
 	const now = Date.now();
 	if (cachedMode && now - cachedMode.at < AUTH_MODE_TTL_MS) {
 		return cachedMode.mode;
 	}
 
-	let mode: AuthMode = 'better';
 	try {
 		const response = await fetch(`${backendUrl}/session-mode`, {
 			signal: AbortSignal.timeout(SESSION_CHECK_TIMEOUT_MS),
 		});
+		if (!response.ok) {
+			return 'better';
+		}
 		const payload = (await response.json()) as { mode?: AuthMode } | null;
-		mode = payload?.mode === 'dev' || payload?.mode === 'neon' ? payload.mode : 'better';
+		const mode: AuthMode = payload?.mode === 'dev' || payload?.mode === 'neon' ? payload.mode : 'better';
+		cachedMode = { mode, at: now };
+		return mode;
 	} catch {
-		// Unreachable backend: session probe below fails closed.
+		// Unreachable backend: session probe below fails closed without poisoning cache.
+		return 'better';
 	}
-
-	cachedMode = { mode, at: now };
-	return mode;
 }
 
 export type ServerSession =
