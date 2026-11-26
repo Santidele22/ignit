@@ -6,6 +6,10 @@
   "start_url": "/biblioteca",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "fullscreen"],
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
   "orientation": "any",
   "background_color": "#04050a",
   "theme_color": "#04050a",

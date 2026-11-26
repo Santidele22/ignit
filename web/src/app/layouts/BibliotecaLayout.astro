@@ -64,7 +64,9 @@ const {
 		<slot />
 		<script>
 			import { initInstallPrompt } from '../../features/pwa/installPrompt';
+			import { initBrowserModeBanner } from '../../features/pwa/browserBanner';
 			initInstallPrompt();
+			initBrowserModeBanner();
 		</script>
 	</body>
 </html>

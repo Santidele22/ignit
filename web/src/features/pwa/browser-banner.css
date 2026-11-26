@@ -1,0 +1,62 @@
+/*
+ * Estilos del aviso de modo navegador (`browserBanner.ts`).
+ * Tokens tomados de la paleta noche-azul (misma base que sw-toast.css),
+ * sin cargas de recursos externos para respetar el CSP de producción.
+ */
+#ignit-browser-mode-banner {
+	position: fixed;
+	left: 50%;
+	bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+	transform: translateX(-50%);
+	z-index: 60;
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	flex-wrap: wrap;
+	justify-content: space-between;
+	max-width: min(30rem, calc(100vw - 2rem));
+	padding: 0.75rem 1rem;
+	border: 1px solid rgba(122, 159, 223, 0.25);
+	border-radius: 0.75rem;
+	background: rgba(7, 10, 22, 0.96);
+	box-shadow: 0 12px 32px rgba(2, 3, 9, 0.55);
+	backdrop-filter: blur(8px);
+}
+
+#ignit-browser-mode-banner .pwa-browser-banner-text {
+	margin: 0;
+	font-size: 0.875rem;
+	line-height: 1.4;
+	color: #e3e8f5;
+}
+
+#ignit-browser-mode-banner .pwa-browser-banner-action {
+	padding: 0.4rem 0.85rem;
+	border: none;
+	border-radius: 999px;
+	background: #7a9fdf;
+	color: #04050a;
+	font-weight: 600;
+	font-size: 0.875rem;
+	cursor: pointer;
+	white-space: nowrap;
+}
+
+#ignit-browser-mode-banner .pwa-browser-banner-action:hover {
+	background: #93b2e6;
+}
+
+#ignit-browser-mode-banner .pwa-browser-banner-close {
+	padding: 0.25rem 0.5rem;
+	border: none;
+	border-radius: 0.5rem;
+	background: transparent;
+	color: #93a0bd;
+	font-size: 1rem;
+	line-height: 1;
+	cursor: pointer;
+}
+
+#ignit-browser-mode-banner .pwa-browser-banner-close:hover {
+	color: #e3e8f5;
+}

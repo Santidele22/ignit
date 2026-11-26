@@ -13,6 +13,8 @@ const manifest = JSON.parse(readFileSync(new URL('manifest.webmanifest', publicD
 	theme_color: string;
 	lang: string;
 	icons: Array<{ src: string; sizes: string; type: string; purpose?: string }>;
+	display_override?: Array<string>;
+	launch_handler?: { client_mode: string };
 };
 
 const iconEntries = manifest.icons ?? [];
@@ -29,6 +31,8 @@ describe('manifest.webmanifest (S3)', () => {
 		expect(manifest.start_url).toBe('/biblioteca');
 		expect(manifest.scope).toBe('/');
 		expect(manifest.display).toBe('standalone');
+		expect(manifest.display_override).toEqual(['standalone', 'fullscreen']);
+		expect(manifest.launch_handler?.client_mode).toBe('focus-existing');
 		expect(manifest.lang).toBe('es');
 	});
 
