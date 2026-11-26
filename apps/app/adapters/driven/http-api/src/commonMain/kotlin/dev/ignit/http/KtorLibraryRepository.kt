@@ -43,8 +43,10 @@ private const val CONNECTION_FALLBACK = "No pudimos conectar con el servidor."
  * verifies the signed better-auth cookie and accepts no bearer token.
  *
  * The response is either a bare array or the paginated envelope whose items live under
- * [ITEMS_KEY]; both are accepted. Any non-2xx answer throws [AuthException] with the
- * backend's own `message`, and transport failures become a user-facing Spanish message.
+ * [ITEMS_KEY]; both are accepted. Anything else — an object without an `items` array, a bare
+ * scalar, malformed JSON — is a backend failure, never an empty library. Any non-2xx answer
+ * throws [AuthException] with the backend's own `message`, and transport failures become a
+ * user-facing Spanish message.
  */
 class KtorLibraryRepository(
 	private val client: HttpClient,
@@ -79,7 +81,7 @@ class KtorLibraryRepository(
 		}
 		val elements = when (root) {
 			is JsonArray -> root
-			is JsonObject -> root[ITEMS_KEY] as? JsonArray ?: JsonArray(emptyList())
+			is JsonObject -> root[ITEMS_KEY] as? JsonArray ?: throw AuthException(LIBRARY_FALLBACK)
 			else -> throw AuthException(LIBRARY_FALLBACK)
 		}
 		return elements.mapNotNull { it as? JsonObject }.map(::bookFrom)

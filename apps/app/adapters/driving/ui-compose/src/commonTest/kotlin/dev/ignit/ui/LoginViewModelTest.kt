@@ -12,7 +12,14 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 
-private val santi = UserSession("usr_1", "a@b.ar", "A", "tok_1")
+// The fixture carries a session cookie because a sign-in without one is refused by `LogIn`.
+private val santi = UserSession(
+	userId = "usr_1",
+	email = "a@b.ar",
+	name = "A",
+	token = "tok_1",
+	sessionCookie = "better-auth.session_token=santi.signed",
+)
 
 private class FakeGateway(private val result: Result<UserSession>) : AuthGateway {
 	override suspend fun signIn(email: String, password: String): UserSession = result.getOrThrow()

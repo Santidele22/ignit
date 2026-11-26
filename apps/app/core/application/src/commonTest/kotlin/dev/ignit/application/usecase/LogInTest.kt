@@ -16,6 +16,7 @@ private val santi = UserSession(
 	email = "santi@ignit.ar",
 	name = "Santi",
 	token = "tok_abc",
+	sessionCookie = "better-auth.session_token=santi.signed",
 )
 
 private class RecordingGateway(
@@ -115,5 +116,54 @@ class LogInTest {
 		assertEquals(santi, session.current())
 		assertEquals(0, session.saves)
 		assertEquals(0, session.clears)
+	}
+
+	@Test
+	fun aSessionWithoutCookieIsNotPersisted() = runTest {
+		val cookieLess = santi.copy(sessionCookie = "")
+		val gateway = RecordingGateway(Result.success(cookieLess))
+		val session = RecordingSession()
+
+		val result = LogIn(gateway, session)("santi@ignit.ar", "secret123")
+
+		assertTrue(result.isFailure)
+		assertEquals(
+			"No pudimos iniciar sesión correctamente. Probá de nuevo.",
+			result.exceptionOrNull()?.message,
+		)
+		assertEquals(1, gateway.calls.size)
+		assertEquals(0, session.saves)
+		assertNull(session.current())
+	}
+
+	@Test
+	fun aBlankCookieLeavesAPreviouslyStoredSessionUntouched() = runTest {
+		val blankCookie = santi.copy(sessionCookie = "   ")
+		val gateway = RecordingGateway(Result.success(blankCookie))
+		val session = RecordingSession(stored = santi)
+
+		val result = LogIn(gateway, session)("santi@ignit.ar", "secret123")
+
+		assertEquals(
+			"No pudimos iniciar sesión correctamente. Probá de nuevo.",
+			result.exceptionOrNull()?.message,
+		)
+		assertEquals(0, session.saves)
+		assertEquals(0, session.clears)
+		assertEquals(santi, session.current())
+	}
+
+	@Test
+	fun aSessionWithACookieIsPersisted() = runTest {
+		val signedIn = santi.copy(sessionCookie = "better-auth.session_token=fresh.signed")
+		val gateway = RecordingGateway(Result.success(signedIn))
+		val session = RecordingSession()
+
+		val result = LogIn(gateway, session)("santi@ignit.ar", "secret123")
+
+		assertTrue(result.isSuccess)
+		assertEquals(signedIn, result.getOrNull())
+		assertEquals("better-auth.session_token=fresh.signed", session.current()?.sessionCookie)
+		assertEquals(1, session.saves)
 	}
 }

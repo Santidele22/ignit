@@ -50,8 +50,8 @@ private const val COVER_ASPECT_RATIO: Float = 2f / 3f
  * The library: who is signed in, which shelf is shown, and the books themselves.
  *
  * The screen owns the coroutine scope of every request: the view model only records the selected
- * scope and kind, and this composable launches the reload right after, so the choice is applied
- * once and never raced by a second caller.
+ * scope and kind, and this composable launches the reload right after. A newer selection therefore
+ * supersedes an older in-flight answer, and only the last request paints the grid.
  */
 @Composable
 fun LibraryScreen(viewModel: LibraryViewModel, session: UserSession, onLogOut: () -> Unit) {

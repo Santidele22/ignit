@@ -19,14 +19,14 @@ private const val BASE_URL = "https://ignit.ignit677.workers.dev"
 private const val USER_JSON = """{"user":{"id":"usr_1","email":"a@b.ar","name":"A"}}"""
 
 private fun clientReturning(
-	cookie: String,
+	vararg cookies: String,
 	body: String = USER_JSON,
 	status: HttpStatusCode = HttpStatusCode.OK,
 ): HttpClient = HttpClient(MockEngine {
 	respond(
 		content = body,
 		status = status,
-		headers = headersOf(HttpHeaders.SetCookie, cookie),
+		headers = headersOf(HttpHeaders.SetCookie, cookies.toList()),
 	)
 }) { expectSuccess = false }
 
@@ -38,13 +38,30 @@ class KtorAuthGatewayCookieTest {
 		val session: UserSession = KtorAuthGateway(client, BASE_URL).signIn("a@b.ar", "pw")
 
 		assertEquals("tok_secure", session.token)
+		assertEquals("__Secure-better-auth.session_token=tok_secure", session.sessionCookie)
 	}
 
 	@Test
 	fun unprefixedCookieIsStillAccepted() = runTest {
 		val client = clientReturning("better-auth.session_token=tok_local; Path=/; HttpOnly")
 
-		assertEquals("tok_local", KtorAuthGateway(client, BASE_URL).signIn("a@b.ar", "pw").token)
+		val session = KtorAuthGateway(client, BASE_URL).signIn("a@b.ar", "pw")
+
+		assertEquals("tok_local", session.token)
+		assertEquals("better-auth.session_token=tok_local", session.sessionCookie)
+	}
+
+	@Test
+	fun theSessionCookieIsCapturedEvenWhenItArrivesSecond() = runTest {
+		val client = clientReturning(
+			"analytics_id=abc123; Path=/; Max-Age=86400",
+			"__Secure-better-auth.session_token=tok_second; Path=/; HttpOnly; Secure",
+		)
+
+		val session = KtorAuthGateway(client, BASE_URL).signIn("a@b.ar", "pw")
+
+		assertEquals("__Secure-better-auth.session_token=tok_second", session.sessionCookie)
+		assertEquals("tok_second", session.token)
 	}
 
 	@Test

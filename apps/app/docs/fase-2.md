@@ -12,7 +12,7 @@ Estado: implementado en la rama `feat/app-native-fase-1-login`. La biblioteca co
 
 ### Adaptadores
 
-- `KtorLibraryRepository` llama `GET {baseUrl}/api/books` con `?mine=true` y `?kind=` solo cuando corresponden, manda `Cookie` desde `AuthSession`, y acepta **array pelado o envelope `{ items, … }`** (el backend devuelve array si no se mandan `offset`/`limit`).
+- `KtorLibraryRepository` llama `GET {baseUrl}/api/books` con `?mine=true` y `?kind=` solo cuando corresponden, manda `Cookie` desde `AuthSession`, y acepta **array pelado o envelope `{ items, … }`** (el backend devuelve array si no se mandan `offset`/`limit`). Un objeto sin array `items` —o un root que no sea array ni objeto— **falla con `AuthException`** en vez de devolver una biblioteca vacía: un 200 con `{"message":"boom"}` no es "no hay libros".
 - `KtorAuthGateway` pasó a guardar la cookie firmada del `Set-Cookie` como credencial (con prefijo `__Secure-` en producción, sin prefijo en localhost), y usa el `token` del body solo como fallback.
 - `SessionCodec` persiste `sessionCookie` y **sigue decodificando sesiones viejas** sin ese campo: si hubiera devuelto `null`, cada instalación existente habría quedado deslogueada.
 
@@ -42,7 +42,9 @@ Estado: implementado en la rama `feat/app-native-fase-1-login`. La biblioteca co
 5. **Ktor: query params opcionales.** `parameter("mine", true)` y `parameter("kind", valor)` **solo cuando aplican**; si mandás `kind=""` el backend filtra por la cadena vacía y devuelve nada. Por eso el caso de `kind` en blanco se normaliza a `null` en el caso de uso, no en el adaptador.
 6. **`expectSuccess = false` otra vez.** Si Ktor lanza en los 4xx, se pierde el `message` del backend (`{"message":"Unauthorized","statusCode":401}`) que es justo lo que la pantalla necesita mostrar.
 7. **Portadas: Coil 3 y un loader único.** Compose Multiplatform no trae cargador de imágenes de red. `coil-compose` + `coil-network-ktor3` resuelven Android y Desktop con el mismo código, y el fetcher se registra una vez con `setSingletonImageLoaderFactory` en la raíz. El placeholder tipográfico se pinta **debajo** del `AsyncImage`, así una portada lenta o rota nunca deja un hueco blanco.
-8. **El estado de error no borra lo que ya se ve.** `LibraryViewModel` deja `books` intacto cuando falla; si no, un refresh con la red caída vaciaría la pantalla y el usuario perdería el contexto.
+8. **Descartar un pedido porque ya hay otro en vuelo es un bug, no una optimización.** `if (loading) return` parecía prudente y era peor: tocar "Mi biblioteca" mientras cargaba el catálogo dejaba la pestaña en Mi biblioteca y la grilla con el catálogo público. Ahora cada pedido toma una generación y **gana el último**: el que quedó viejo no escribe `books`, ni `error`, ni `loading`.
+9. **Una sesión sin credencial no es una sesión.** `LogIn` rechaza y no persiste una respuesta sin cookie firmada, y `GetCurrentSession` descarta la que ya no la tenga. Preferible un login que falla con un mensaje que una app "logueada" que responde `Unauthorized` y al reiniciar te desloguea sin explicación.
+10. **El estado de error no borra lo que ya se ve.** `LibraryViewModel` deja `books` intacto cuando falla; si no, un refresh con la red caída vaciaría la pantalla y el usuario perdería el contexto.
 
 ## Pendiente
 

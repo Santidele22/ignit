@@ -25,6 +25,7 @@ import kotlin.test.assertTrue
 private const val BASE_URL = "https://ignit.ignit677.workers.dev"
 private const val BOOKS_PATH = "/api/books"
 private const val SPANISH_CONNECTION_FALLBACK = "No pudimos conectar con el servidor."
+private const val SPANISH_LIBRARY_FALLBACK = "No pudimos cargar la biblioteca."
 
 private class FakeSession(private val current: UserSession?) : AuthSession {
 	override suspend fun load(): UserSession? = current
@@ -234,6 +235,33 @@ class KtorLibraryRepositoryTest {
 		val failure = assertFailsWith<AuthException> { repository.fetchLibrary() }
 
 		assertEquals("Falló el catálogo", failure.message)
+	}
+
+	@Test
+	fun aJsonObjectWithoutItemsIsRejectedInsteadOfReadAsAnEmptyLibrary() = runTest {
+		val repository = repositoryOver(mutableListOf(), """{"message":"boom"}""")
+
+		val failure = assertFailsWith<AuthException> { repository.fetchLibrary() }
+
+		assertEquals(SPANISH_LIBRARY_FALLBACK, failure.message)
+	}
+
+	@Test
+	fun aJsonObjectWhoseItemsIsNotAnArrayIsRejected() = runTest {
+		val repository = repositoryOver(mutableListOf(), """{"items":"boom"}""")
+
+		val failure = assertFailsWith<AuthException> { repository.fetchLibrary() }
+
+		assertEquals(SPANISH_LIBRARY_FALLBACK, failure.message)
+	}
+
+	@Test
+	fun aRootThatIsNeitherAnArrayNorAnObjectIsRejected() = runTest {
+		val repository = repositoryOver(mutableListOf(), "42")
+
+		val failure = assertFailsWith<AuthException> { repository.fetchLibrary() }
+
+		assertEquals(SPANISH_LIBRARY_FALLBACK, failure.message)
 	}
 
 	@Test

@@ -24,16 +24,21 @@ private fun book(id: String, kind: String = "") =
 /**
  * Port fake that records every request as the `(mine, kind)` pair the use case forwarded, so the
  * tests assert what the backend would have been asked instead of internal state.
+ *
+ * [result] receives that same pair, so a test can make two concurrent requests answer differently.
+ * [gate] is read when a call starts, so replacing it between two launches gates each request on
+ * its own deferred and lets the test decide which answer arrives first.
  */
 private class RecordingLibrary : LibraryRepository {
 	val calls = mutableListOf<Pair<Boolean, String?>>()
-	var result: () -> List<Book> = { emptyList() }
+	var result: (Pair<Boolean, String?>) -> List<Book> = { emptyList() }
 	var gate: CompletableDeferred<Unit>? = null
 
 	override suspend fun fetchLibrary(mine: Boolean, kind: String?): List<Book> {
-		calls += mine to kind
+		val request = mine to kind
+		calls += request
 		gate?.await()
-		return result()
+		return result(request)
 	}
 }
 
@@ -113,20 +118,128 @@ class LibraryViewModelTest {
 	}
 
 	@Test
-	fun reentrantLoadIsIgnoredWhileLoading() = runTest {
-		val gate = CompletableDeferred<Unit>()
-		val library = RecordingLibrary().apply { this.gate = gate }
+	fun aLoadIssuedWhileAnotherIsInFlightIsNotDropped() = runTest {
+		val firstGate = CompletableDeferred<Unit>()
+		val secondGate = CompletableDeferred<Unit>()
+		val library = RecordingLibrary()
+		library.result = { request ->
+			if (request.second == "tecnico") listOf(book("second")) else listOf(book("first"))
+		}
 		val viewModel = LibraryViewModel(SyncLibrary(library))
 
+		library.gate = firstGate
 		val first = launch { viewModel.load() }
 		runCurrent()
 		assertTrue(viewModel.loading)
 
+		// Tap the shelf while the catalog request is still in flight: it must reach the repository.
+		viewModel.onKindChange("tecnico")
+		library.gate = secondGate
+		val second = launch { viewModel.load() }
+		runCurrent()
+		assertEquals(listOf(false to null, false to "tecnico"), library.calls)
+
+		// The newest request answers first: its result is the one on screen.
+		secondGate.complete(Unit)
+		second.join()
+		assertEquals(listOf(book("second")), viewModel.books)
+		assertFalse(viewModel.loading)
+
+		// The superseded request answers later and must not overwrite the newer state.
+		firstGate.complete(Unit)
+		first.join()
+		assertEquals(listOf(book("second")), viewModel.books)
+		assertNull(viewModel.error)
+		assertFalse(viewModel.loading)
+	}
+
+	@Test
+	fun aSupersededFailureDoesNotSurfaceItsError() = runTest {
+		val firstGate = CompletableDeferred<Unit>()
+		val secondGate = CompletableDeferred<Unit>()
+		val library = RecordingLibrary()
+		library.result = { request ->
+			if (request.second == "tecnico") {
+				listOf(book("second"))
+			} else {
+				throw AuthException("Sesión vencida")
+			}
+		}
+		val viewModel = LibraryViewModel(SyncLibrary(library))
+
+		library.gate = firstGate
+		val first = launch { viewModel.load() }
+		runCurrent()
+		viewModel.onKindChange("tecnico")
+		library.gate = secondGate
+		val second = launch { viewModel.load() }
+		runCurrent()
+
+		secondGate.complete(Unit)
+		second.join()
+		firstGate.complete(Unit)
+		first.join()
+
+		assertEquals(listOf(book("second")), viewModel.books)
+		assertNull(viewModel.error)
+		assertFalse(viewModel.loading)
+	}
+
+	@Test
+	fun switchingScopeDuringTheInitialLoadLoadsThePersonalLibrary() = runTest {
+		val catalogGate = CompletableDeferred<Unit>()
+		val mineGate = CompletableDeferred<Unit>()
+		val library = RecordingLibrary()
+		library.result = { request ->
+			if (request.first) listOf(book("mine")) else listOf(book("catalog"))
+		}
+		val viewModel = LibraryViewModel(SyncLibrary(library))
+
+		library.gate = catalogGate
+		val catalog = launch { viewModel.load() }
+		runCurrent()
+		assertTrue(viewModel.loading)
+
+		// "Mi biblioteca" while the public catalog is still loading: the newest request must win.
+		viewModel.onScopeChange(LibraryScope.MINE)
+		library.gate = mineGate
+		val mine = launch { viewModel.load() }
+		runCurrent()
+		assertEquals(listOf<Pair<Boolean, String?>>(false to null, true to null), library.calls)
+
+		// The catalog answer lands first and is discarded, leaving the state to the newer request.
+		catalogGate.complete(Unit)
+		catalog.join()
+		assertEquals(emptyList<Book>(), viewModel.books)
+		assertTrue(viewModel.loading)
+
+		mineGate.complete(Unit)
+		mine.join()
+		assertEquals(listOf(book("mine")), viewModel.books)
+		assertNull(viewModel.error)
+		assertFalse(viewModel.loading)
+	}
+
+	@Test
+	fun refreshKeepsTheBooksOnScreenUntilTheNewAnswerArrives() = runTest {
+		val library = RecordingLibrary()
+		library.result = { listOf(book("first")) }
+		val viewModel = LibraryViewModel(SyncLibrary(library))
 		viewModel.load()
 
+		val gate = CompletableDeferred<Unit>()
+		library.result = { listOf(book("second")) }
+		library.gate = gate
+		val refreshing = launch { viewModel.refresh() }
+		runCurrent()
+
+		// A refresh never empties the grid while the request is in flight.
+		assertEquals(listOf(book("first")), viewModel.books)
+		assertTrue(viewModel.loading)
+
 		gate.complete(Unit)
-		first.join()
-		assertEquals(1, library.calls.size)
+		refreshing.join()
+		assertEquals(listOf(book("second")), viewModel.books)
 		assertFalse(viewModel.loading)
 	}
 

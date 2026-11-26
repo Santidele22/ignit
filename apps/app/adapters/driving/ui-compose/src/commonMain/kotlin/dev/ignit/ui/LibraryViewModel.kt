@@ -30,6 +30,9 @@ class LibraryViewModel(private val syncLibrary: SyncLibrary) {
 	var error by mutableStateOf<String?>(null)
 		private set
 
+	/** Bumped by every [load]/[refresh]: the highest value is the request allowed to write state. */
+	private var generation = 0
+
 	/**
 	 * Shelves the currently loaded [books] actually carry, deduplicated and sorted so the chips do
 	 * not shuffle between loads. Derived from [books], so it follows every successful load and
@@ -40,7 +43,7 @@ class LibraryViewModel(private val syncLibrary: SyncLibrary) {
 			.distinct()
 			.sorted()
 
-	/** Loads the current [scope] and [kind]; re-entrant calls while [loading] are ignored. */
+	/** Loads the current [scope] and [kind]; a newer call supersedes one still in flight. */
 	suspend fun load() {
 		fetch()
 	}
@@ -64,27 +67,37 @@ class LibraryViewModel(private val syncLibrary: SyncLibrary) {
 	}
 
 	/**
-	 * One request. The use case wraps the port call in `runCatching`, so cancellation arrives as a
-	 * failure whose cause is a [CancellationException]: rethrowing it keeps a screen that left the
-	 * composition from painting an error it never earned.
+	 * One request. The newest call always wins: every call takes the next [generation], and a call
+	 * whose generation is stale by the time its answer arrives leaves [books], [error] and [loading]
+	 * to the newer call instead of overwriting them. That is what makes a scope or kind switch
+	 * during an in-flight load take effect instead of being dropped.
+	 *
+	 * The use case wraps the port call in `runCatching`, so cancellation arrives as a failure whose
+	 * cause is a [CancellationException]: rethrowing it keeps a screen that left the composition from
+	 * painting an error it never earned.
 	 */
 	private suspend fun fetch() {
-		if (loading) return
+		val request = ++generation
 
 		loading = true
 		try {
-			syncLibrary(mine = scope == LibraryScope.MINE, kind = kind).fold(
+			val outcome = syncLibrary(mine = scope == LibraryScope.MINE, kind = kind)
+			outcome.exceptionOrNull()?.let { failure ->
+				if (failure is CancellationException) throw failure
+			}
+			// A newer request owns the state: this answer is discarded even if it arrived first.
+			if (request != generation) return
+			outcome.fold(
 				onSuccess = { loaded ->
 					books = loaded
 					error = null
 				},
 				onFailure = { failure ->
-					if (failure is CancellationException) throw failure
 					error = failure.message?.takeIf { it.isNotBlank() } ?: EMPTY_LIBRARY_ERROR
 				},
 			)
 		} finally {
-			loading = false
+			if (request == generation) loading = false
 		}
 	}
 
