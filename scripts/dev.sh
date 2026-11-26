@@ -92,12 +92,8 @@ if port_is_used 3000; then
   echo "error: port 3000 is already in use (another API instance?)" >&2
   exit 1
 fi
-# The web port is pinned instead of left to Astro's default: the URL printed at the end has to be
-# the one the server really answers on. Unpinned, Astro silently drifts to the next free port
-# (4330, say) while this script keeps announcing 4321 and the browser gets nothing.
-: "${WEB_PORT:=4321}"
-if port_is_used "$WEB_PORT"; then
-  echo "error: port $WEB_PORT is already in use (another dev server?)" >&2
+if port_is_used 4321; then
+  echo "error: port 4321 is already in use (another dev server?)" >&2
   exit 1
 fi
 
@@ -129,8 +125,8 @@ echo "    API ready:  http://localhost:3000  (session-mode: $MODE)" >&2
 if [[ "$MODE" == *'"guarded":false'* ]]; then
   echo "    Note:       auth is unmounted on SQLite. Set AUTH_MODE=dev, ADMIN_EMAIL, ADMIN_PASSWORD and DEV_SESSION_SECRET in backend/.env (or backend/.env.local) to enable local multi-account login/signup." >&2
 fi
-echo "    App ready:  http://localhost:$WEB_PORT  (login: /login, registro: /registro, biblioteca: /biblioteca)" >&2
+echo "    App ready:  http://localhost:4321  (login: /login, registro: /registro, biblioteca: /biblioteca)" >&2
 echo "    Ctrl+C stops both." >&2
 echo ""
-echo "==> starting Ignit Astro dev server on http://localhost:$WEB_PORT"
-(cd "$WEB" && pnpm exec astro dev --port "$WEB_PORT")
+echo "==> starting Ignit Astro dev server on http://localhost:4321"
+(cd "$WEB" && pnpm dev)
