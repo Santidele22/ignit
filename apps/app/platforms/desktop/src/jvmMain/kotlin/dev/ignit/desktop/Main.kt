@@ -2,7 +2,6 @@
 package dev.ignit.desktop
 
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
@@ -19,6 +18,7 @@ import dev.ignit.http.createIgnitHttpClient
 import dev.ignit.session.FileAuthSession
 import dev.ignit.ui.IgnitApp
 import dev.ignit.ui.LoginViewModel
+import dev.ignit.ui.theme.IgnitTheme
 
 /** Production backend the native app signs in against, the same one the web app uses. */
 private const val BASE_URL = "https://ignit.ignit677.workers.dev"
@@ -39,7 +39,7 @@ fun main() = application {
 	) {
 		val loginViewModel = remember { LoginViewModel(LogIn(authGateway, authSession)) }
 
-		MaterialTheme {
+		IgnitTheme {
 			Surface(modifier = Modifier.fillMaxSize()) {
 				IgnitApp(
 					loginViewModel = loginViewModel,

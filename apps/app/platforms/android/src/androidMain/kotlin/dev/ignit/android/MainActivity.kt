@@ -5,7 +5,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -17,6 +16,7 @@ import dev.ignit.http.createIgnitHttpClient
 import dev.ignit.session.KeystoreAuthSession
 import dev.ignit.ui.IgnitApp
 import dev.ignit.ui.LoginViewModel
+import dev.ignit.ui.theme.IgnitTheme
 import io.ktor.client.HttpClient
 
 /** Production backend the native app signs in against, the same one the web app uses. */
@@ -36,7 +36,7 @@ class MainActivity : ComponentActivity() {
 		setContent {
 			val loginViewModel = remember { LoginViewModel(LogIn(authGateway, authSession)) }
 
-			MaterialTheme {
+			IgnitTheme {
 				Surface(modifier = Modifier.fillMaxSize()) {
 					IgnitApp(
 						loginViewModel = loginViewModel,

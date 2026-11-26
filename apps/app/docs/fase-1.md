@@ -21,6 +21,7 @@ Estado: implementado en la rama `feat/app-native-fase-1-login`. El login atravie
 ### Adaptador driving y plataformas
 
 - `adapters/driving/ui-compose`: `LoginViewModel` (estado `loading` / `error` / `success`), `LoginScreen` (email, contraseña, spinner, error) e `IgnitApp` con la navegación raíz **Login ⇒ Biblioteca** y un placeholder de biblioteca que muestra el usuario logueado y el botón de cerrar sesión. La UI solo llama casos de uso.
+- `adapters/driving/ui-compose/theme`: `IgnitTheme` traduce **a mano** los tokens de `design/system.md` (los mismos `:root` / `.dark` de `web/src/app/styles/global.css`) a `ColorScheme`, tipografía y shapes. No usa la paleta baseline de Material 3 — por eso antes la app se veía violeta y ajena a la web. Sigue light/dark del sistema, el foco de los campos va en `--aka` (`#c73e3a`) y los títulos usan la familia serif editorial.
 - `platforms/android` y `platforms/desktop`: composition root manual (adapters adentro, casos de uso hacia la UI), permiso `INTERNET` en el manifest y `BASE_URL` apuntando a producción.
 
 ## Tests

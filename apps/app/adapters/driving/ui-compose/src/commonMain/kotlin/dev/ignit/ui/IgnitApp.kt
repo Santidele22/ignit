@@ -1,6 +1,7 @@
 // adapters/driving/ui-compose: driving adapter. Root navigation Login => Biblioteca over use cases only.
 package dev.ignit.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,9 +9,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -100,15 +101,19 @@ private fun LibraryPlaceholder(session: UserSession, onLogOut: () -> Unit) {
 		Text(
 			text = session.email,
 			style = MaterialTheme.typography.bodyMedium,
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
 		)
 		Spacer(Modifier.height(8.dp))
 		Text(
 			text = "Tu biblioteca llega en la próxima fase: por ahora la sesión ya quedó guardada.",
 			style = MaterialTheme.typography.bodyMedium,
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
 		)
 		Spacer(Modifier.height(16.dp))
-		Button(
+		// Sign-out is a secondary action: a paper app does not shout on the way out.
+		OutlinedButton(
 			onClick = onLogOut,
+			border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
 			modifier = Modifier.testTag("logout-submit"),
 		) {
 			Text("Cerrar sesión")
