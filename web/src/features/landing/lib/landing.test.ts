@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { BOOK_KIND_OPTIONS, type Book } from '../../../entities/book/types';
 import {
-	buildDisciplineChips,
+	buildSalaChips,
 	bookSizeKb,
 	buildShelfLayout,
 	computeOfflineMeter,
@@ -187,22 +187,30 @@ describe('landing two rooms — Estudio y Despeje (S1)', () => {
 		expect(countSalaBooks([SAMPLE_BOOKS[1]!])).toEqual({ estudio: 1, despeje: 0 });
 	});
 
-	it('exposes one default kind per room, both present in the chip row', () => {
-		const chipValues = buildDisciplineChips().map((chip) => chip.value);
+	it('exposes one default kind per room, both as room chips', () => {
+		const chipValues = [...buildSalaChips('estudio'), ...buildSalaChips('despeje')].map(
+			(chip) => chip.value,
+		);
 		expect(chipValues).toContain(SALA_DEFAULT_KIND.estudio);
 		expect(chipValues).toContain(SALA_DEFAULT_KIND.despeje);
 	});
 
-	it('builds the discipline chip row from the real book kinds', () => {
-		const chipsRow = buildDisciplineChips();
-		expect(chipsRow[0]).toEqual({ value: '*', label: 'Todas las disciplinas' });
-		expect(chipsRow).toHaveLength(BOOK_KIND_OPTIONS.length + 1);
-		expect(chipsRow.slice(1).map((chip) => chip.value)).toEqual(
-			BOOK_KIND_OPTIONS.map((option) => option.value),
+	it('builds each room chip row from its own kinds (S2 feedback)', () => {
+		const estudio = buildSalaChips('estudio');
+		expect(estudio[0]).toEqual({ value: '*', label: 'Todas las disciplinas' });
+		expect(estudio.slice(1).map((chip) => chip.value)).toEqual([...SALA_KINDS.estudio]);
+
+		const despeje = buildSalaChips('despeje');
+		expect(despeje[0]).toEqual({ value: '*', label: 'Todas las disciplinas' });
+		expect(despeje.slice(1).map((chip) => chip.value)).toEqual([...SALA_KINDS.despeje]);
+		expect(despeje.slice(1).map((chip) => chip.label)).toContain('Poesía y Teatro');
+	});
+
+	it('covers every real kind exactly once across the two rooms', () => {
+		const union = [...buildSalaChips('estudio'), ...buildSalaChips('despeje')].filter(
+			(chip) => chip.value !== '*',
 		);
-		expect(chipsRow.slice(1).map((chip) => chip.label)).toEqual(
-			BOOK_KIND_OPTIONS.map((option) => option.label),
-		);
+		expect(union.map((chip) => chip.value)).toEqual(BOOK_KIND_OPTIONS.map((o) => o.value));
 	});
 });
 

@@ -23,13 +23,13 @@ import PaginationControls from '../../../shared/ui/PaginationControls.astro';
 import {
 	bookSearchIndex,
 	bookSizeKb,
-	buildDisciplineChips,
+	buildSalaChips,
 	computeOfflineMeter,
 	countSalaBooks,
 	coverVariantIndex,
 	formatSizeKb,
 	kindLabel,
-	type CatalogKindFilter,
+	SALA_KINDS,
 	type SalaId,
 } from '../lib/catalog';
 import BookCoverArt from './BookCoverArt.astro';
@@ -47,10 +47,6 @@ const { books, total, offset, limit, activeKind } = Astro.props;
 
 const unreachable = books === null;
 const items = books ?? [];
-
-const filters = buildDisciplineChips();
-const isActiveFilter = (value: CatalogKindFilter) =>
-	value === '*' ? activeKind === undefined : activeKind === value;
 
 /* The artboard starts its offline preview with two downloads; we mirror that
    with the first two books of the page so the KB meter is never a lie. */
@@ -106,44 +102,49 @@ const indexLabel = (position: number) => String(position).padStart(2, '0');
 		<div class="estancias" role="group" aria-label="Elegir sala de lectura">
 			{
 				salas.map((sala) => (
-					<a
+					<div
 						class="estancia"
-						href="#rejilla"
 						data-estancia={sala.id}
-						aria-label={`${sala.name}: ${sala.caption}. Filtrar el estante por esta sala.`}
+						data-activa={activeKind !== undefined && SALA_KINDS[sala.id].includes(activeKind) ? 'true' : 'false'}
 					>
-						<span class="estancia-copy">
-							<span class="domain-num">{sala.num}</span>
-							<span class="domain-name">{sala.name}</span>
-							<span class="domain-caption">{sala.caption}</span>
-						</span>
-						<span class="domain-badge">{salaBadge(salaCounts[sala.id])}</span>
-					</a>
+						<a
+							class="estancia-head"
+							href="#rejilla"
+							data-sala-head={sala.id}
+							aria-label={`${sala.name}: ${sala.caption}. Abrir la sala y filtrar el estante.`}
+						>
+							<span class="estancia-copy">
+								<span class="domain-num">{sala.num}</span>
+								<span class="domain-name">{sala.name}</span>
+								<span class="domain-caption">{sala.caption}</span>
+							</span>
+							<span class="domain-badge">{salaBadge(salaCounts[sala.id])}</span>
+						</a>
+						<div class="estancia-filtros" role="group" aria-label={`Filtros de ${sala.name}`}>
+							{buildSalaChips(sala.id).map((filtro) => (
+								<button
+									class="chip"
+									data-filtro={filtro.value}
+									data-sala={sala.id}
+									data-activa={activeKind !== undefined && activeKind === filtro.value ? 'true' : 'false'}
+									aria-pressed={activeKind !== undefined && activeKind === filtro.value ? 'true' : 'false'}
+									type="button"
+								>
+									{filtro.label}
+								</button>
+							))}
+						</div>
+					</div>
 				))
 			}
 		</div>
 
 		<div class="cat-controls">
-			<div class="filtros" role="group" aria-label="Filtrar por disciplina">
-				{
-					filters.map((filter) => (
-						<button
-							class="chip"
-							data-filtro={filter.value}
-							data-activa={isActiveFilter(filter.value) ? 'true' : 'false'}
-							aria-pressed={isActiveFilter(filter.value) ? 'true' : 'false'}
-							type="button"
-						>
-							{filter.label}
-						</button>
-					))
-				}
-			</div>
 			<input
 				class="cat-search"
 				id="catSearch"
 				type="search"
-				placeholder="Buscar título o autor…"
+				placeholder="Buscar título, autor o disciplina…"
 				aria-label="Buscar en el catálogo"
 			/>
 		</div>
@@ -201,6 +202,7 @@ const indexLabel = (position: number) => String(position).padStart(2, '0');
 								<article
 									class="tomo"
 									data-kind={book.kind}
+										data-sala={SALA_KINDS.estudio.includes(book.kind) ? 'estudio' : 'despeje'}
 									data-kb={sizeKb}
 									data-offline={offline ? 'true' : 'false'}
 									data-search={bookSearchIndex(book)}

@@ -42,14 +42,19 @@ export function countSalaBooks(books: readonly Pick<Book, 'kind'>[]): Record<Sal
 }
 
 /**
- * The discipline chip row: one chip per real catalog kind plus the «all» chip.
- * Values are the `data-filtro` of the existing kind filter, so the client
- * runtime keeps a single source of state.
+ * Discipline chips of ONE room: the «all» chip plus only that room's kinds
+ * (user decision 2026-11-25 after A05/A04 feedback: «esos filtros deberían
+ * estar dentro de cada dominio»). Values stay the `data-filtro` of the
+ * existing kind filter, so the client runtime keeps a single source of state.
  */
-export function buildDisciplineChips(): Array<{ value: CatalogKindFilter; label: string }> {
+export function buildSalaChips(
+	sala: SalaId,
+): ReadonlyArray<{ value: CatalogKindFilter; label: string }> {
 	return [
 		{ value: '*', label: 'Todas las disciplinas' },
-		...BOOK_KIND_OPTIONS.map((option) => ({ value: option.value, label: option.label })),
+		...BOOK_KIND_OPTIONS.filter((option) => SALA_KINDS[sala].includes(option.value)).map(
+			(option) => ({ value: option.value, label: option.label }),
+		),
 	];
 }
 

@@ -11,7 +11,7 @@
 // for Astro view transitions / hot reload).
 
 import type { ShelfHudInfo, ShelfLayout } from '../lib/catalog';
-import { computeOfflineMeter, normalizeSearchText, SALA_DEFAULT_KIND } from '../lib/catalog';
+import { computeOfflineMeter, normalizeSearchText } from '../lib/catalog';
 import { resolveSafeReaderEmbedPath } from '../lib/embed';
 import {
 	JOURNEY_SNIPPETS,
@@ -632,21 +632,32 @@ export function initLanding(): () => void {
 			if (offlineBar) offlineBar.style.width = `${meter.barPercent}%`;
 		};
 
+		const activeSala = () =>
+			chips.find((chip) => chip.dataset.activa === 'true')?.dataset.sala ?? null;
+
 		const applyCatalogFilter = () => {
 			const tomos = getTomos();
 			const query = normalizeSearchText(catalogSearch?.value ?? '');
+			const sala = activeSala();
 			let visible = 0;
 
 			for (const tomo of tomos) {
 				const matchesKind = activeKind === '*' || tomo.dataset.kind === activeKind;
+				const matchesRoom = !sala || tomo.dataset.sala === sala;
 				const matchesQuery = !query || (tomo.dataset.search ?? '').includes(query);
-				const show = matchesKind && matchesQuery;
+				const show = matchesKind && matchesRoom && matchesQuery;
 				tomo.style.display = show ? '' : 'none';
 				if (show) visible += 1;
 			}
 
 			if (emptySearch) {
 				emptySearch.hidden = visible > 0 || tomos.length === 0;
+			}
+
+			/* S2 feedback: the room owning the active chip gets the active visual
+			 * (background + accent bar) on its card. */
+			for (const room of document.querySelectorAll<HTMLElement>('.estancia[data-estancia]')) {
+				room.dataset.activa = sala !== null && room.dataset.estancia === sala ? 'true' : 'false';
 			}
 		};
 
@@ -774,28 +785,52 @@ export function initLanding(): () => void {
 		catalogSearch?.addEventListener('input', applyCatalogFilter, { signal });
 
 		/* ---------------------------------------------------------------
-		 * c2) Two rooms (S1) — the hero lanes and the shelf entry cards reuse
-		 *     the chip filter above instead of opening a parallel state: a
-		 *     click activates the room's default kind chip and brings the shelf
-		 *     into view. Without JS they stay plain `#s2` / `#rejilla` anchors.
+		 * c2) Two rooms (S1 + S2 feedback) — the room cards carry their own
+		 *     chip rows; clicking a room head activates that room's «Todas»
+		 *     chip (server MAY have set a kind param), so the shelf opens
+		 *     scoped to the room with all its disciplines. Hero lanes jump
+		 *     to the same room head. Without JS the heads stay `#rejilla`
+		 *     anchors and chips do nothing.
 		 * ------------------------------------------------------------ */
 
-		for (const room of Array.from(document.querySelectorAll<HTMLElement>('[data-estancia]'))) {
-			const sala = room.dataset.estancia;
-			if (sala !== 'estudio' && sala !== 'despeje') continue;
-			const defaultKind = SALA_DEFAULT_KIND[sala];
+		const salaHeadChip = (sala: string) =>
+			chips.find((candidate) => candidate.dataset.sala === sala && candidate.dataset.filtro === '*');
 
-			room.addEventListener(
+		const activateSala = (sala: string, scroll: boolean) => {
+			const chip = salaHeadChip(sala);
+			if (!chip) return;
+			chip.click();
+			if (scroll) {
+				byId<HTMLElement>('s2')?.scrollIntoView({
+					behavior: reduceMotion ? 'auto' : 'smooth',
+					block: 'start',
+				});
+			}
+		};
+
+		for (const heroLane of Array.from(
+			document.querySelectorAll<HTMLElement>('.dial-lanes .lane-box[data-estancia]'),
+		)) {
+			const sala = heroLane.dataset.estancia;
+			if (sala !== 'estudio' && sala !== 'despeje') continue;
+			heroLane.addEventListener(
 				'click',
 				(event) => {
-					const chip = chips.find((candidate) => candidate.dataset.filtro === defaultKind);
-					if (!chip) return;
 					event.preventDefault();
-					chip.click();
-					byId<HTMLElement>('s2')?.scrollIntoView({
-						behavior: reduceMotion ? 'auto' : 'smooth',
-						block: 'start',
-					});
+					activateSala(sala, true);
+				},
+				{ signal },
+			);
+		}
+
+		for (const head of Array.from(document.querySelectorAll<HTMLElement>('[data-sala-head]'))) {
+			const sala = head.dataset.salaHead;
+			if (sala !== 'estudio' && sala !== 'despeje') continue;
+			head.addEventListener(
+				'click',
+				(event) => {
+					event.preventDefault();
+					activateSala(sala, false);
 				},
 				{ signal },
 			);

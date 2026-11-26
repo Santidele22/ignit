@@ -1135,18 +1135,55 @@ body.landing-body .nav-install:focus-visible {
 	}
 }
 
+/* S2 feedback: the room card becomes a column: header region + its own
+ * chip row, and the active room gets an unmistakable accent wash. */
 .landing-page .estancia {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	padding: clamp(14px, 2vw, 18px);
+	border: 1px solid var(--l-border-strong);
+	background: var(--l-panel);
+	color: var(--l-body);
+	transition: border-color 0.16s, background 0.16s, box-shadow 0.16s;
+}
+
+.landing-page .estancia-head {
 	display: flex;
 	justify-content: space-between;
 	align-items: flex-start;
 	flex-wrap: wrap;
 	gap: 14px;
-	padding: clamp(16px, 2vw, 22px);
-	border: 1px solid var(--l-border-strong);
-	background: var(--l-panel);
+	margin: calc(clamp(14px, 2vw, 18px) * -0.35) calc(clamp(14px, 2vw, 18px) * -0.55) 0;
+	padding: clamp(16px, 2vw, 20px) clamp(16px, 2vw, 20px) 0;
+	background: none;
+	border: 0;
 	color: var(--l-body);
 	text-decoration: none;
-	transition: border-color 0.16s, background 0.16s, box-shadow 0.16s;
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+
+.landing-page .estancia[data-activa="true"] {
+	background: color-mix(in oklab, var(--l-panel) 86%, var(--l-accent));
+	border-color: var(--l-accent-bright);
+	box-shadow: inset 4px 0 0 var(--l-accent), 0 0 0 1px var(--l-accent) inset;
+}
+
+.landing-page .estancia[data-activa="true"] .domain-name {
+	color: var(--l-accent-bright);
+}
+
+.landing-page .estancia-filtros {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.landing-page .estancia-filtros .chip {
+	font-size: 9px;
+	padding: 5px 8px;
 }
 
 .landing-page .estancia:hover {

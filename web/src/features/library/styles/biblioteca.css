@@ -504,10 +504,12 @@ body.biblioteca-body .state-card:hover {
 	border-color: var(--b-accent-bright);
 }
 
+/* User feedback: the active room needs an unmistakable background, not
+ * just a 4px bar — wash the accent into the raised surface and hint it. */
 body.biblioteca-body .state-card[aria-pressed="true"] {
 	border-color: var(--b-accent-bright);
-	background: var(--b-panel-2);
-	box-shadow: inset 4px 0 0 var(--b-accent);
+	background: color-mix(in oklab, var(--b-panel-2) 84%, var(--b-accent));
+	box-shadow: inset 4px 0 0 var(--b-accent), 0 0 0 1px var(--b-accent) inset;
 }
 
 body.biblioteca-body .state-copy {
