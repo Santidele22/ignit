@@ -1,0 +1,2 @@
+# platforms/android — entry point Android
+Compose Android app. Solo wiring: DI, splash, navegación raíz, firma.

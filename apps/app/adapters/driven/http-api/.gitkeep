@@ -1,0 +1,2 @@
+# adapters/driven/http-api — Ktor client
+Implementa los puertos de :core:application contra la API (REST del backend actual).

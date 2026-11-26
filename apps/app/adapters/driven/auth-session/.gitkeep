@@ -1,0 +1,2 @@
+# adapters/driven/auth-session
+Implementa el puerto de sesión: token storage seguro por plataforma.

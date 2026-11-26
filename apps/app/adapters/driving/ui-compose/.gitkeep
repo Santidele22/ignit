@@ -1,0 +1,2 @@
+# adapters/driving/ui-compose — Compose Multiplatform compartido
+Pantallas, estados y view models que invocan casos de uso. Nunca HTTP ni storage directo.

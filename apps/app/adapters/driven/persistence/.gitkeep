@@ -1,0 +1,2 @@
+# adapters/driven/persistence — SQLDelight/Room
+Implementa los puertos de persistencia: libros descargados, progreso local, sync pendiente.

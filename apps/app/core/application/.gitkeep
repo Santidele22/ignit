@@ -1,0 +1,2 @@
+# core/application — Kotlin puro (KMP commonMain)
+Casos de uso + puertos de salida (interfaces). Depende solo de :core:domain.
