@@ -24,12 +24,18 @@ const baseState: BookReadingState = {
 };
 
 let localRaw: string | null = null;
-try {
-	localRaw = localStorage.getItem(storageKey);
-} catch {}
+
+// Anonymous demo showcase reads persist nothing (S2): no local snapshot may
+// be seeded, and none is ever written below.
+if (canSync) {
+	try {
+		localRaw = localStorage.getItem(storageKey);
+	} catch {}
+}
 const state: BookReadingState = resolvePreferredReadingState(baseState, localRaw);
 
 function writeLocalSnapshot() {
+	if (!canSync) return;
 	try {
 		localStorage.setItem(
 			storageKey,

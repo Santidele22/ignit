@@ -69,6 +69,7 @@ describe('cacheablePath — Ignit public catalog whitelist', () => {
 		['/books/3/reading', false],
 		['/books/3/reading-state', false],
 		['/books/3/download', false],
+		['/books/demo-featured', false],
 		['/session-mode', false],
 		['/auth/get-session', false],
 	])('%s → cacheable=%j', (path, expected) => {

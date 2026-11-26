@@ -11,6 +11,7 @@ import {
 	fetchBookReadingState,
 	fetchBooks,
 	fetchBooksPage,
+	fetchDemoFeaturedBookId,
 	saveBookReadingState,
 } from './books';
 import { fetchMyBooks } from './books-admin';
@@ -105,6 +106,24 @@ describe('fetchBooks and fetchMyBooks', () => {
 });
 
 describe('multi-user Vigilia reader API helpers', () => {
+	it('fetchDemoFeaturedBookId returns the rotating showcase id envelope', async () => {
+		getJsonMock.mockResolvedValueOnce({ id: 12 });
+		await expect(fetchDemoFeaturedBookId('https://example.test')).resolves.toBe(12);
+		expect(getJsonMock).toHaveBeenCalledWith('/books/demo-featured', {
+			serverOrigin: 'https://example.test',
+		});
+	});
+
+	it('fetchDemoFeaturedBookId maps empty shelf and errors to null', async () => {
+		getJsonMock.mockResolvedValueOnce({ id: null });
+		await expect(fetchDemoFeaturedBookId('https://example.test')).resolves.toBeNull();
+
+		getJsonMock.mockRejectedValueOnce(new Error('boom'));
+		await expect(fetchDemoFeaturedBookId('https://example.test')).resolves.toBeNull();
+		getJsonMock.mockResolvedValueOnce({ id: 0 });
+		await expect(fetchDemoFeaturedBookId(undefined)).resolves.toBeNull();
+	});
+
 	it('fetchBookById forwards auth options and preserves owner private books', async () => {
 		getJsonMock.mockResolvedValueOnce(row({ id: 8, published: false, isOwner: true, filePath: 'b.pdf' }));
 		const book = await fetchBookById(8, {

@@ -17,6 +17,8 @@ import { scrollElementToFocalBand } from './scroll';
 
 function recordReadStartedOnce() {
 	if (!Number.isInteger(bookId) || bookId <= 0) return;
+	// Demo showcase reads without a session persist nothing (S2).
+	if (!canSync) return;
 	const key = `ignit:metric:read:${bookId}`;
 	try {
 		if (typeof sessionStorage !== 'undefined') {

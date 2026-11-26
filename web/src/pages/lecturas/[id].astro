@@ -11,6 +11,7 @@ import { LOGIN_PATH } from '../../features/auth/paths';
 import {
 	fetchBookById,
 	fetchBookReadingState,
+	fetchDemoFeaturedBookId,
 	safeExternalUrl,
 } from '../../features/book/api/books';
 import ReaderAtmosphere from '../../features/book/reader/ReaderAtmosphere.astro';
@@ -34,6 +35,17 @@ const session = await getServerSession(Astro.request.headers.get('cookie'));
 const readerAuthOptions = session.authenticated
 	? { serverOrigin, bearerToken: session.bearerToken, cookie: session.cookie }
 	: { serverOrigin };
+
+if (!session.authenticated) {
+	// Anonymous visitors may open exactly one book: the rotating demo showcase
+	// (S1/S3). Every other reader route stays locked behind login. A deleted
+	// featured book simply falls out of the rotation, so the gate stays exact.
+	const demoBookId = await fetchDemoFeaturedBookId(serverOrigin);
+	if (demoBookId === null || demoBookId !== bookId) {
+		const redirect = Astro.url.pathname + Astro.url.search;
+		return Astro.redirect(`${LOGIN_PATH}?redirect=${encodeURIComponent(redirect)}`);
+	}
+}
 
 const [book, initialState] = await Promise.all([
 	fetchBookById(bookId, readerAuthOptions),

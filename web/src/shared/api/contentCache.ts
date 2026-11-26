@@ -135,7 +135,10 @@ export function cacheablePath(path: string): boolean {
 		clean.includes('mine=true') ||
 		clean.endsWith('/reading') ||
 		clean.endsWith('/reading-state') ||
-		clean.endsWith('/download')
+		clean.endsWith('/download') ||
+		// The rotating demo showcase must honor deletions and rotation slots
+		// immediately, never an edge-cached stale id (S4).
+		clean.endsWith('/demo-featured')
 	) {
 		return false;
 	}

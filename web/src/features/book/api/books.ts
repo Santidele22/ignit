@@ -158,6 +158,27 @@ export async function fetchBookById(
 	}
 }
 
+/**
+ * Id of the rotating demo showcase book (the only one an anonymous visitor
+ * may open), or `null` when the public shelf is empty. Mirrors the backend
+ * `GET /books/demo-featured` ruling so SSR and the API always agree.
+ */
+export async function fetchDemoFeaturedBookId(
+	optionsOrOrigin?: string | RequestOptions,
+): Promise<number | null> {
+	try {
+		const envelope = await getJson<{ id: number | null }>(
+			'/books/demo-featured',
+			toRequestOptions(optionsOrOrigin),
+		);
+		return typeof envelope.id === 'number' && Number.isInteger(envelope.id) && envelope.id > 0
+			? envelope.id
+			: null;
+	} catch {
+		return null;
+	}
+}
+
 export async function fetchBookReading(
 	id: number,
 	optionsOrOrigin?: string | RequestOptions,

@@ -1,5 +1,5 @@
 import { recordBookMetric } from '../../features/book/api/books';
-import { bookId } from './state';
+import { bookId, canSync } from './state';
 
 /**
  * Wires the Vigilia "Ficha del libro" popover toggle (`#fichaBtn` / `#fichaDeck`)
@@ -31,6 +31,8 @@ export function initFicha(): void {
 	const ctaLinks = document.querySelectorAll<HTMLAnchorElement>('[data-cta-track="1"]');
 	for (const link of ctaLinks) {
 		link.addEventListener('click', () => {
+			// Demo showcase reads without a session persist nothing (S2).
+			if (!canSync) return;
 			recordBookMetric(bookId, 'cta_click');
 		});
 	}
