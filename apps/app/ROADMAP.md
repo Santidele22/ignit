@@ -29,9 +29,12 @@ Misma API que la web (`/api/auth/sign-in/email`), sin duplicar auth; ojo con que
 
 ## Fase 2 — Biblioteca básica
 
-1. Caso de uso `SyncLibrary` (ya esbozado en stub) contra `/api/library`.
-2. Pantalla biblioteca: grilla/lista de libros con portada fija y título.
-3. Proyecto del catálogo real en la web actual (así la app y la web muestran lo mismo).
+1. ✅ Caso de uso `SyncLibrary(mine, kind)` contra `GET /api/books` (el stub apuntaba a `/api/library`, endpoint inexistente).
+2. ✅ Pantalla biblioteca: selector catálogo / mi biblioteca, chips de estante derivados de los datos, grilla de portadas con placeholder, estados loading/error/vacío y refresco.
+3. ✅ Catálogo real: la app muestra los mismos libros que `https://ignit.ignit677.workers.dev/biblioteca` (payload real fijado en un test).
+
+**Verificación**: catálogo público `200` con 24 libros mapeados correctamente; `?mine=true` sin sesión devuelve `401`, y con sesión viaja la cookie firmada que el backend exige. **Falta** la mirada en vivo con credenciales reales. Detalle en `docs/fase-2.md`.
+Una advertencia para quien siga: el `token` del body NO autentica, la cookie firmada sí (better-auth sin plugin `bearer`).
 
 ## Fase 3 — Lector: el corazón de Ignit
 

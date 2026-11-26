@@ -11,7 +11,9 @@ import dev.ignit.application.usecase.GetCurrentSession
 import dev.ignit.application.usecase.LogIn
 import dev.ignit.application.usecase.LogOut
 import dev.ignit.application.usecase.PalettePreference
+import dev.ignit.application.usecase.SyncLibrary
 import dev.ignit.http.KtorAuthGateway
+import dev.ignit.http.KtorLibraryRepository
 import dev.ignit.http.createIgnitHttpClient
 import dev.ignit.preferences.FilePreferencesStore
 import dev.ignit.session.FileAuthSession
@@ -27,6 +29,8 @@ fun main() = application {
 	val preferences = remember { FilePreferencesStore() }
 	val authGateway = remember { KtorAuthGateway(httpClient, BASE_URL) }
 	val palettePreference = remember { PalettePreference(preferences) }
+	// The library adapter reads the session itself: the catalog needs the signed cookie.
+	val syncLibrary = remember { SyncLibrary(KtorLibraryRepository(httpClient, BASE_URL, authSession)) }
 
 	DisposableEffect(Unit) {
 		onDispose { httpClient.close() }
@@ -42,6 +46,7 @@ fun main() = application {
 		// `IgnitApp` owns the theme and its surface so the palette can change at runtime.
 		IgnitApp(
 			loginViewModel = loginViewModel,
+			syncLibrary = syncLibrary,
 			getCurrentSession = GetCurrentSession(authSession),
 			logOut = LogOut(authSession),
 			palettePreference = palettePreference,

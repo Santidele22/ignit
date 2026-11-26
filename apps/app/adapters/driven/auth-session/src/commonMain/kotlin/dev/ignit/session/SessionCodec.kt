@@ -13,6 +13,7 @@ private const val USER_ID = "userId"
 private const val EMAIL = "email"
 private const val NAME = "name"
 private const val TOKEN = "token"
+private const val SESSION_COOKIE = "sessionCookie"
 
 /**
  * Encodes and decodes [UserSession] with plain `JsonElement` APIs.
@@ -20,6 +21,10 @@ private const val TOKEN = "token"
  * The repo has no kotlinx-serialization compiler plugin, so the shape is written by hand.
  * [decode] is total: malformed JSON, a missing required string field or a non-string value
  * all yield `null`, and unknown fields are ignored so older payloads keep loading.
+ *
+ * [UserSession.sessionCookie] is optional on decode on purpose: sessions persisted before the
+ * cookie became the credential have no key for it, and returning `null` there would log every
+ * existing install out.
  */
 object SessionCodec {
 
@@ -28,6 +33,7 @@ object SessionCodec {
 		put(EMAIL, session.email)
 		put(NAME, session.name)
 		put(TOKEN, session.token)
+		put(SESSION_COOKIE, session.sessionCookie)
 	}.toString()
 
 	fun decode(raw: String): UserSession? {
@@ -43,6 +49,7 @@ object SessionCodec {
 			email = payload.string(EMAIL) ?: return null,
 			name = payload.string(NAME) ?: return null,
 			token = payload.string(TOKEN) ?: return null,
+			sessionCookie = payload.string(SESSION_COOKIE) ?: "",
 		)
 	}
 

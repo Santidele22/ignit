@@ -1,23 +1,11 @@
 // adapters/driving/ui-compose: driving adapter. Root navigation Login => Biblioteca over use cases only.
 package dev.ignit.ui
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -27,14 +15,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.ignit.application.usecase.GetCurrentSession
 import dev.ignit.application.usecase.LogOut
 import dev.ignit.application.usecase.PalettePreference
+import dev.ignit.application.usecase.SyncLibrary
 import dev.ignit.domain.model.UserSession
 import dev.ignit.ui.theme.IgnitPalette
 import dev.ignit.ui.theme.IgnitTheme
@@ -52,6 +37,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun IgnitApp(
 	loginViewModel: LoginViewModel,
+	syncLibrary: SyncLibrary,
 	getCurrentSession: GetCurrentSession,
 	logOut: LogOut,
 	palettePreference: PalettePreference,
@@ -60,6 +46,8 @@ fun IgnitApp(
 	var session by remember { mutableStateOf<UserSession?>(null) }
 	var restoring by remember { mutableStateOf(true) }
 	var palette by remember { mutableStateOf(IgnitPalette.ORIGINAL) }
+	// Covers are remote images: install the shared loader before any card can ask for one.
+	IgnitImageLoader()
 
 	LaunchedEffect(Unit) {
 		session = getCurrentSession()
@@ -87,7 +75,8 @@ fun IgnitApp(
 								onLoggedIn = { loggedIn -> session = loggedIn },
 							)
 						} else {
-							LibraryPlaceholder(
+							LibraryScreen(
+								viewModel = remember { LibraryViewModel(syncLibrary) },
 								session = current,
 								onLogOut = {
 									scope.launch {
@@ -125,91 +114,18 @@ private fun PaletteToggle(
 	onSelect: (IgnitPalette) -> Unit,
 	modifier: Modifier = Modifier,
 ) {
-	Row(
-		modifier = modifier
-			.clip(MaterialTheme.shapes.small)
-			.background(MaterialTheme.colorScheme.surfaceContainerLow)
-			.border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
-			.testTag("palette-toggle"),
-	) {
-		PaletteOption(
+	SegmentedToggle(modifier = modifier, tag = "palette-toggle") {
+		SegmentedToggleOption(
 			label = "ORIGINAL",
 			selected = palette == IgnitPalette.ORIGINAL,
 			testTag = "palette-original",
 			onSelect = { onSelect(IgnitPalette.ORIGINAL) },
 		)
-		PaletteOption(
+		SegmentedToggleOption(
 			label = "NOCHE AZUL",
 			selected = palette == IgnitPalette.NOCHE_AZUL,
 			testTag = "palette-noche-azul",
 			onSelect = { onSelect(IgnitPalette.NOCHE_AZUL) },
 		)
-	}
-}
-
-/** One option of [PaletteToggle]; the selected one sits on the brand accent like the web's `aria-pressed`. */
-@Composable
-private fun PaletteOption(
-	label: String,
-	selected: Boolean,
-	testTag: String,
-	onSelect: () -> Unit,
-) {
-	Row(
-		modifier = Modifier
-			.background(if (selected) MaterialTheme.colorScheme.tertiaryContainer else Color.Transparent)
-			.clickable(onClick = onSelect)
-			.padding(horizontal = 10.dp, vertical = 6.dp)
-			.testTag(testTag),
-		verticalAlignment = Alignment.CenterVertically,
-	) {
-		Text(
-			text = label,
-			style = MaterialTheme.typography.labelSmall,
-			color = if (selected) {
-				MaterialTheme.colorScheme.onTertiaryContainer
-			} else {
-				MaterialTheme.colorScheme.onSurfaceVariant
-			},
-			fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-		)
-	}
-}
-
-/** Phase-1 stand-in for the library: who is signed in, how to sign out, and what comes next. */
-@Composable
-private fun LibraryPlaceholder(session: UserSession, onLogOut: () -> Unit) {
-	Column(
-		modifier = Modifier.fillMaxSize().padding(24.dp),
-		verticalArrangement = Arrangement.spacedBy(8.dp),
-	) {
-		Text(
-			text = "Biblioteca",
-			style = MaterialTheme.typography.headlineMedium,
-		)
-		Text(
-			text = session.name,
-			style = MaterialTheme.typography.titleMedium,
-		)
-		Text(
-			text = session.email,
-			style = MaterialTheme.typography.bodyMedium,
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
-		Spacer(Modifier.height(8.dp))
-		Text(
-			text = "Tu biblioteca llega en la próxima fase: por ahora la sesión ya quedó guardada.",
-			style = MaterialTheme.typography.bodyMedium,
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
-		Spacer(Modifier.height(16.dp))
-		// Sign-out is a secondary action: a paper app does not shout on the way out.
-		OutlinedButton(
-			onClick = onLogOut,
-			border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-			modifier = Modifier.testTag("logout-submit"),
-		) {
-			Text("Cerrar sesión")
-		}
 	}
 }

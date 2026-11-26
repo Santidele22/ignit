@@ -13,6 +13,15 @@ private val stored = UserSession(
 	email = "santi@ignit.ar",
 	name = "Santi",
 	token = "tok_abc",
+	sessionCookie = "better-auth.session_token=tok_abc.sig",
+)
+
+/** A session persisted before the signed cookie was stored: it cannot authenticate anything. */
+private val legacy = UserSession(
+	userId = "usr_123",
+	email = "santi@ignit.ar",
+	name = "Santi",
+	token = "tok_abc",
 )
 
 private class FakeSession(private var current: UserSession? = null) : AuthSession {
@@ -36,6 +45,11 @@ class SessionUseCasesTest {
 	@Test
 	fun currentSessionIsNullWhenNothingWasStored() = runTest {
 		assertNull(GetCurrentSession(FakeSession())())
+	}
+
+	@Test
+	fun aSessionWithoutItsCookieIsNotUsable() = runTest {
+		assertNull(GetCurrentSession(FakeSession(legacy))())
 	}
 
 	@Test

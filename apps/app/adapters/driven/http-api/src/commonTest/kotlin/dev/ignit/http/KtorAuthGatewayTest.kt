@@ -92,6 +92,78 @@ class KtorAuthGatewayTest {
 	}
 
 	@Test
+	fun storesTheSessionCookiePairAsTheCredential() = runTest {
+		val client = clientWith {
+			respond(
+				content = """{"user":{"id":"usr_123","email":"santi@ignit.ar","name":"Santi"}}""",
+				status = HttpStatusCode.OK,
+				headers = headersOf(
+					HttpHeaders.SetCookie,
+					"__Secure-better-auth.session_token=signed.value; Path=/; HttpOnly; Secure",
+				),
+			)
+		}
+
+		val session = KtorAuthGateway(client, BASE_URL).signIn("santi@ignit.ar", "secreto123")
+
+		assertEquals("__Secure-better-auth.session_token=signed.value", session.sessionCookie)
+		assertEquals("signed.value", session.token)
+	}
+
+	@Test
+	fun storesTheLocalSessionCookiePairToo() = runTest {
+		val client = clientWith {
+			respond(
+				content = """{"user":{"id":"usr_123","email":"santi@ignit.ar","name":"Santi"}}""",
+				status = HttpStatusCode.OK,
+				headers = headersOf(
+					HttpHeaders.SetCookie,
+					"better-auth.session_token=signed.local; Path=/; HttpOnly",
+				),
+			)
+		}
+
+		val session = KtorAuthGateway(client, BASE_URL).signIn("santi@ignit.ar", "secreto123")
+
+		assertEquals("better-auth.session_token=signed.local", session.sessionCookie)
+		assertEquals("signed.local", session.token)
+	}
+
+	@Test
+	fun bodyTokenStaysAndTheCookiePairIsKeptWhenBothArrive() = runTest {
+		val client = clientWith {
+			respond(
+				content = """{"token":"tok_body","user":{"id":"usr_123","email":"santi@ignit.ar","name":"Santi"}}""",
+				status = HttpStatusCode.OK,
+				headers = headersOf(
+					HttpHeaders.SetCookie,
+					"__Secure-better-auth.session_token=signed.value; Path=/; HttpOnly; Secure",
+				),
+			)
+		}
+
+		val session = KtorAuthGateway(client, BASE_URL).signIn("santi@ignit.ar", "secreto123")
+
+		assertEquals("tok_body", session.token)
+		assertEquals("__Secure-better-auth.session_token=signed.value", session.sessionCookie)
+	}
+
+	@Test
+	fun bodyOnlyResponseLeavesTheSessionCookieEmpty() = runTest {
+		val client = clientWith {
+			respond(
+				content = """{"token":"tok_abc","user":{"id":"usr_123","email":"santi@ignit.ar","name":"Santi"}}""",
+				status = HttpStatusCode.OK,
+			)
+		}
+
+		val session = KtorAuthGateway(client, BASE_URL).signIn("santi@ignit.ar", "secreto123")
+
+		assertEquals("tok_abc", session.token)
+		assertEquals("", session.sessionCookie)
+	}
+
+	@Test
 	fun failsWhenNoTokenCanBeFoundAtAll() = runTest {
 		val client = clientWith {
 			respond(

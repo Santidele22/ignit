@@ -18,6 +18,9 @@ kotlin {
 			implementation(compose.material3)
 			implementation(libs.androidx.lifecycle.viewmodel.compose)
 			implementation(libs.koin.compose)
+			// Remote cover art: Coil renders it per platform, so the UI never hand-rolls a decoder.
+			implementation(libs.coil.compose)
+			implementation(libs.coil.network.ktor3)
 		}
 		commonTest.dependencies {
 			implementation(kotlin("test"))

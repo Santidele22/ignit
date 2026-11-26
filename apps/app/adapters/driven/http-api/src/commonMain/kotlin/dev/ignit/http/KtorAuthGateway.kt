@@ -34,9 +34,10 @@ private const val CONNECTION_FALLBACK = "No pudimos conectar con el servidor."
 /**
  * Signs in against `POST {baseUrl}/api/auth/sign-in/email`, mirroring the web flow.
  *
- * A 2xx answer is mapped to [UserSession] using the body `token` (or the
- * `better-auth.session_token` cookie). A 4xx/5xx answer throws [AuthException] carrying the
- * backend's own `message`. Transport and parse failures never leak raw exception types.
+ * A 2xx answer is mapped to [UserSession] from the `Set-Cookie` session cookie, which is the
+ * credential the backend actually verifies; the body `token` is kept as its fallback. A
+ * 4xx/5xx answer throws [AuthException] carrying the backend's own `message`. Transport and
+ * parse failures never leak raw exception types.
  */
 class KtorAuthGateway(private val client: HttpClient, private val baseUrl: String) : AuthGateway {
 
@@ -79,25 +80,31 @@ class KtorAuthGateway(private val client: HttpClient, private val baseUrl: Strin
 			null
 		} ?: throw AuthException(SIGN_IN_FALLBACK)
 		val user = payload["user"] as? JsonObject
+		val cookiePair = sessionCookie(headers)
 		val token = payload.string("token")
-			?: sessionCookie(headers)
+			?: cookiePair?.substringAfter('=', missingDelimiterValue = "")
+				?.takeIf { it.isNotBlank() }
 			?: throw AuthException(SIGN_IN_FALLBACK)
 		return UserSession(
 			userId = user?.string("id") ?: "",
 			email = user?.string("email") ?: "",
 			name = user?.string("name") ?: "",
 			token = token,
+			sessionCookie = cookiePair ?: "",
 		)
 	}
 
+	/**
+	 * The session cookie as the full `name=value` pair, attributes (`; Path=/`, `; HttpOnly`,
+	 * `; Secure`) stripped: that pair is exactly what goes back in a `Cookie` header.
+	 */
 	private fun sessionCookie(headers: Headers): String? =
 		headers.getAll(HttpHeaders.SetCookie)
 			.orEmpty()
 			.asSequence()
 			.map { it.substringBefore(';').trim() }
-			.filter { cookieName(it) == SESSION_COOKIE_NAME }
-			.map { it.substringAfter('=', missingDelimiterValue = "").trim() }
-			.firstOrNull { it.isNotEmpty() }
+			.filter { pair -> cookieName(pair) == SESSION_COOKIE_NAME }
+			.firstOrNull { pair -> pair.substringAfter('=', missingDelimiterValue = "").isNotBlank() }
 
 	/**
 	 * Drops the browser security prefixes a cookie arrives with. The backend sets the session cookie

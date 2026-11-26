@@ -29,6 +29,33 @@ class SessionCodecTest {
 	}
 
 	@Test
+	fun roundTripPreservesTheSessionCookiePair() {
+		val withCookie = session.copy(
+			sessionCookie = "__Secure-better-auth.session_token=signed.value",
+		)
+
+		assertEquals(withCookie, SessionCodec.decode(SessionCodec.encode(withCookie)))
+	}
+
+	@Test
+	fun legacyPayloadWithoutTheSessionCookieStillDecodes() {
+		val raw = """{"userId":"usr_123","email":"santi@ignit.ar","name":"Santi","token":"tok_abc"}"""
+
+		val decoded = SessionCodec.decode(raw)
+
+		assertEquals(session, decoded)
+		assertEquals("", decoded?.sessionCookie)
+	}
+
+	@Test
+	fun nullSessionCookieDecodesToAnEmptyString() {
+		val raw = """{"userId":"usr_123","email":"santi@ignit.ar","name":"Santi","token":"tok_abc",""" +
+			""""sessionCookie":null}"""
+
+		assertEquals(session, SessionCodec.decode(raw))
+	}
+
+	@Test
 	fun malformedJsonDecodesToNull() {
 		assertNull(SessionCodec.decode("{"))
 		assertNull(SessionCodec.decode("""{"userId": "usr_123", """))

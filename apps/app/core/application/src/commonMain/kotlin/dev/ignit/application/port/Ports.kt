@@ -4,9 +4,9 @@ package dev.ignit.application.port
 import dev.ignit.domain.model.Book
 import dev.ignit.domain.model.UserSession
 
-/** Outbound port: fetches the user's library from the remote catalog. */
+/** Outbound port: fetches the catalog (`mine = false`) or the caller's own library from the remote catalog. */
 interface LibraryRepository {
-	suspend fun fetchLibrary(): List<Book>
+	suspend fun fetchLibrary(mine: Boolean = false, kind: String? = null): List<Book>
 }
 
 /** Outbound port: persists reading progress locally and syncs it remotely. */
