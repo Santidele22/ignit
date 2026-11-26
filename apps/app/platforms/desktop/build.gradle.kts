@@ -16,6 +16,7 @@ kotlin {
 			implementation(project(":adapters:driven:persistence"))
 			implementation(project(":adapters:driven:auth-session"))
 			implementation(compose.desktop.currentOs)
+			implementation(compose.material3)
 			implementation(libs.kotlinx.coroutines.swing)
 		}
 	}

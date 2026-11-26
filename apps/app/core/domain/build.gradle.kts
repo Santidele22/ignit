@@ -16,3 +16,11 @@ kotlin {
 		}
 	}
 }
+
+android {
+	namespace = "dev.ignit.domain"
+	compileSdk = 35
+	defaultConfig {
+		minSdk = 26
+	}
+}

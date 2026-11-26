@@ -20,5 +20,18 @@ kotlin {
 		jvmMain.dependencies {
 			implementation(libs.ktor.client.okhttp)
 		}
+		commonTest.dependencies {
+			implementation(kotlin("test"))
+			implementation(libs.ktor.client.mock)
+			implementation(libs.kotlinx.coroutines.test)
+		}
+	}
+}
+
+android {
+	namespace = "dev.ignit.http"
+	compileSdk = 35
+	defaultConfig {
+		minSdk = 26
 	}
 }

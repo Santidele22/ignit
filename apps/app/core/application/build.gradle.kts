@@ -9,11 +9,20 @@ kotlin {
 
 	sourceSets {
 		commonMain.dependencies {
-			implementation(project(":core:domain"))
+			api(project(":core:domain"))
 			implementation(libs.kotlinx.coroutines.core)
 		}
 		commonTest.dependencies {
 			implementation(kotlin("test"))
+			implementation(libs.kotlinx.coroutines.test)
 		}
+	}
+}
+
+android {
+	namespace = "dev.ignit.application"
+	compileSdk = 35
+	defaultConfig {
+		minSdk = 26
 	}
 }

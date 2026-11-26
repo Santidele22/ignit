@@ -10,8 +10,8 @@ Issue de origen: [Santidele22/ignit#2](https://github.com/Santidele22/ignit/issu
 
 1. ✅ Estructura hexagonal de carpetas (commit `5490713`).
 2. ✅ Gradle: version catalog, `settings.gradle.kts`, `build.gradle.kts` por módulo, primero dominio/puertos/adaptadores stub (este commit).
-3. ⬜ **Primer build verde**: `:platforms:desktop` funciona con `jvm` (rápido, sin SDK). Luego `:platforms:android` produce un **APK debug** que abre un "Ignit" centrado en pantalla.
-   - Verificación: instalar el APK en el teléfono → se ve la pantalla.
+3. ✅ **Primer build verde**: `:platforms:desktop` funciona con `jvm` (rápido, sin SDK). Luego `:platforms:android` produce un **APK debug** que abre un "Ignit" centrado en pantalla.
+   - Verificación: `:core:domain:jvmTest`, `:platforms:desktop:compileKotlinJvm` y `:platforms:android:assembleDebug` en verde (`platforms/android/build/outputs/apk/debug/android-debug.apk`). Falta instalar el APK en el teléfono para verlo en vivo.
 4. ⬜ CI mínimo opcional: workflow que corra `./gradlew :core:domain:jvmTest` por push.
 
 ## Fase 1 — Primer slice vertical: login (end-to-end de verdad)

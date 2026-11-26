@@ -15,10 +15,10 @@ kotlin {
 	}
 }
 
-sqldelight {
-	databases {
-		create("IgnitLocal") {
-			package.set("dev.ignit.local")
-		}
+android {
+	namespace = "dev.ignit.local"
+	compileSdk = 35
+	defaultConfig {
+		minSdk = 26
 	}
 }

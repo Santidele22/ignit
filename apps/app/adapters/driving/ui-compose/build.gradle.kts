@@ -21,3 +21,11 @@ kotlin {
 		}
 	}
 }
+
+android {
+	namespace = "dev.ignit.ui"
+	compileSdk = 35
+	defaultConfig {
+		minSdk = 26
+	}
+}
