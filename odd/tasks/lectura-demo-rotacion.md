@@ -12,9 +12,9 @@ Producto combinado: cerrar la lectura anónima salvo un libro demo destacado que
 
 ## Tasks
 
-- T1 [S1, S2, S4] · backend · selección determinista del libro demo destacado (rotación por hora entre publicados), anónimo solo con `GET /books/demo-featured`, `GET /books/:id/reading` anónimo solo si `id === demoId`, métricas anónimas bloqueadas · commit: feat(books)
-- T2 [S1, S2, S3] · web · SSR de `/lecturas/[id]`: sin sesión y no-demo → redirect `/login?next=`; demo sin sesión → `canSync=false`, sin métricas ni snapshot local ni anotaciones · commit: feat(lecturas)
-- T3 [S4, S5] · landing · destacado/embed usan la rotación (misma regla que backend), fallback sin catálogo, se quita la CTA de APK y se ajusta el copy «Leer sin cuenta» · commit: feat(landing)
+- T1 [S1, S2, S4] · backend · selección determinista del libro demo destacado (rotación por hora entre publicados), anónimo solo con `GET /books/demo-featured`, `GET /books/:id/reading` anónimo solo si `id === demoId`, métricas anónimas bloqueadas · commit: 60b2fda
+- T2 [S1, S2, S3] · web · SSR de `/lecturas/[id]`: sin sesión y no-demo → redirect `/login?redirect=`; demo sin sesión → `canSync=false`, sin métricas ni snapshot local ni anotaciones · commit: da6cc72
+- T3 [S4, S5] · landing · destacado/embed usan la rotación (misma regla que backend), fallback sin catálogo, se quita la CTA de APK y se ajusta el copy «Leer sin cuenta» · commit: 82485a7
 
 ## Log
 
@@ -22,3 +22,9 @@ Producto combinado: cerrar la lectura anónima salvo un libro demo destacado que
 - L2 (usuario): «el 404 es porque se eligio un libro que se borro (deberia ir rotandose)»
 - L3 (usuario): «1- Estan bien los dos puntos pero no se tienen que guardar ningun cambio que hagan es solamente para mostrar el producto. 2- las demas lecturas quedan bloqueadas hasta que se logeen. 3- saquemos por el momento el descargar la apk. y dejemos la pwa por el momento.»
 - L4 (decisión): demo anónima = únicamente el libro destacado que rota (el de la landing); sin sesión + otro libro → login. Nada persistido para el anónimo, incluido localStorage.
+- L5 (verificación): backend 45/45 archivos (380 tests, incl. demo-featured.spec 9) + build OK; web 50/50 archivos (334 tests) + astro check 0 errores + build OK. En vivo (backend dev sqlite): `/books/demo-featured` → `{id:49}` 200; `/books/50/reading` anónimo → 401 español; `/books/49/reading` anónimo → 200; metric anónimo → 401. SSR smoke sin backend: `/lecturas/7` y `/biblioteca` → 302 `/login?redirect=...`, `/` → 200 (fail-closed). Verificación diferencial del copy: única salida conocida de «Leer sin cuenta» (hero) y la CTA de APK removidas en 82485a7.
+
+## Risk
+
+- T1: riesgo alto item 3 — `GET /books/:id/reading` es un contrato público que hoy consumen lectores anónimos; el gate reduce ese contrato deliberadamente (pedido explícito del usuario S1/S3), con escape demo rotante. Verificado: suite + e2e en vivo.
+- T2/T3: riesgo bajo; copy y embed verificados con suites y build.
