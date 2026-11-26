@@ -81,9 +81,14 @@ export function resolveSafeReaderEmbedPath(
 	return normalizedPath;
 }
 
-export function defaultEmbedPath(books: readonly Pick<Book, 'id' | 'published'>[]): string | null {
-	const firstPublished = books.find(
-		(book) => book.published && Number.isInteger(book.id) && book.id > 0,
-	);
-	return firstPublished ? `/lecturas/${firstPublished.id}` : null;
+/**
+ * Builds the embed path from the backend's rotating demo showcase ruling
+ * (`GET /books/demo-featured`, same gate `GET /books/:id/reading` enforces),
+ * never from a locally recomputed subset: a deleted showcased book falls out
+ * of the rotation instead of leaving a dead 404 link.
+ */
+export function featuredEmbedPath(featuredBookId: number | null): string | null {
+	return featuredBookId && Number.isInteger(featuredBookId) && featuredBookId > 0
+		? `/lecturas/${featuredBookId}`
+		: null;
 }

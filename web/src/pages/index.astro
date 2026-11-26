@@ -3,7 +3,7 @@ import { isBookKind } from '../entities/book/types';
 import { SITE_DESCRIPTION, SITE_NAME } from '../app/config/site';
 import LandingLayout from '../app/layouts/LandingLayout.astro';
 import { getServerSession } from '../features/auth/api/serverSession';
-import { fetchBooksPage } from '../features/book/api/books';
+import { fetchBooksPage, fetchDemoFeaturedBookId } from '../features/book/api/books';
 import CatalogSection from '../features/landing/components/CatalogSection.astro';
 import ClosingSection from '../features/landing/components/ClosingSection.astro';
 import HeroSection from '../features/landing/components/HeroSection.astro';
@@ -11,7 +11,7 @@ import JourneySection from '../features/landing/components/JourneySection.astro'
 import PipelineSection from '../features/landing/components/PipelineSection.astro';
 import ReaderEmbedSection from '../features/landing/components/ReaderEmbedSection.astro';
 import { buildShelfLayout } from '../features/landing/lib/catalog';
-import { defaultEmbedPath } from '../features/landing/lib/embed';
+import { featuredEmbedPath } from '../features/landing/lib/embed';
 import { parseOffset } from '../shared/api/pagination';
 
 const PAGE_SIZE = 8;
@@ -20,17 +20,20 @@ const activeKind = isBookKind(rawKind) ? rawKind : undefined;
 const offset = parseOffset(Astro.url.searchParams.get('offset'));
 const serverOrigin = Astro.url.origin;
 
-const [page, session] = await Promise.all([
+const [page, session, demoFeaturedId] = await Promise.all([
 	fetchBooksPage(serverOrigin, offset, PAGE_SIZE, true, activeKind),
 	getServerSession(Astro.request.headers.get('cookie')),
+	fetchDemoFeaturedBookId(serverOrigin),
 ]);
 
 const books = page?.items ?? null;
 const shelfBooks = books ?? [];
 const shelfLayout = buildShelfLayout(shelfBooks);
 const totalBooks = page?.total ?? 0;
-const embedPath = defaultEmbedPath(shelfBooks);
-const defaultBookTitle = shelfBooks.find((book) => book.published)?.title;
+// The embed showcases the same rotating demo book the anonymous gate allows,
+// so the visitor can read it in full without an account (single source: API).
+const embedPath = featuredEmbedPath(demoFeaturedId);
+const defaultBookTitle = shelfBooks.find((book) => book.id === demoFeaturedId)?.title;
 ---
 
 <LandingLayout

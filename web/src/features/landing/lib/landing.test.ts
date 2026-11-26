@@ -17,7 +17,7 @@ import {
 	SALA_KINDS,
 	salaForKind,
 } from './catalog';
-import { defaultEmbedPath, resolveSafeReaderEmbedPath } from './embed';
+import { featuredEmbedPath, resolveSafeReaderEmbedPath } from './embed';
 import {
 	createInitialJourneyState,
 	setJourneyOffline,
@@ -271,10 +271,11 @@ describe('landing reader embed URL validation', () => {
 		);
 	});
 
-	it('picks the first published book for default embed path or null when empty', () => {
-		expect(defaultEmbedPath(SAMPLE_BOOKS)).toBe('/lecturas/4');
-		expect(defaultEmbedPath([])).toBeNull();
-		expect(defaultEmbedPath([{ id: 0, published: true }])).toBeNull();
+	it("builds the showcase embed path from the API's rotating demo id", () => {
+		expect(featuredEmbedPath(4)).toBe('/lecturas/4');
+		expect(featuredEmbedPath(null)).toBeNull();
+		expect(featuredEmbedPath(0)).toBeNull();
+		expect(featuredEmbedPath(-2)).toBeNull();
 	});
 });
 
