@@ -1,3 +1,4 @@
+import '../config/bootstrap-env.js';
 import { Pool } from 'pg';
 import { DataSource } from 'typeorm';
 

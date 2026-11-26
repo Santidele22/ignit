@@ -4,10 +4,14 @@ import type { IncomingHttpHeaders } from 'node:http';
 import { DataSource } from 'typeorm';
 import type { RouteSession, SessionReader } from './session-reader.js';
 
+const ROLE_CACHE_TTL_MS = 60_000;
+const MAX_ROLE_CACHE_SIZE = 1_000;
+
 @Injectable()
 export class NeonSessionReader implements SessionReader {
   private readonly jwks: ReturnType<typeof createRemoteJWKSet>;
   private readonly issuer: string;
+  private readonly roleCache = new Map<string, { role: string; expiresAt: number }>();
 
   constructor(
     @Optional() private readonly dataSource: DataSource | undefined,
@@ -65,13 +69,30 @@ export class NeonSessionReader implements SessionReader {
       return tokenRole ?? 'authenticated';
     }
 
+    const now = Date.now();
+    const cached = this.roleCache.get(userId);
+    if (cached && cached.expiresAt > now) {
+      return cached.role;
+    }
+
     const rows = await this.dataSource.query<Array<{ role: string | null }>>(
       'SELECT "role" FROM neon_auth."user" WHERE "id" = $1 LIMIT 1',
       [userId],
     );
 
-    return typeof rows[0]?.role === 'string'
-      ? rows[0].role
-      : (tokenRole ?? 'authenticated');
+    const role =
+      typeof rows[0]?.role === 'string'
+        ? rows[0].role
+        : (tokenRole ?? 'authenticated');
+
+    if (this.roleCache.size >= MAX_ROLE_CACHE_SIZE) {
+      const oldestKey = this.roleCache.keys().next().value;
+      if (oldestKey !== undefined) {
+        this.roleCache.delete(oldestKey);
+      }
+    }
+    this.roleCache.set(userId, { role, expiresAt: now + ROLE_CACHE_TTL_MS });
+
+    return role;
   }
 }

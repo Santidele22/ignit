@@ -92,4 +92,26 @@ describe('NeonSessionReader', () => {
     );
     expect(session?.user.role).toBe('admin');
   });
+
+  it('caches the database role across consecutive reads for the same user', async () => {
+    jwtVerify.mockResolvedValue({
+      payload: {
+        sub: 'user-1',
+        email: 'admin@example.com',
+        name: 'Admin',
+        role: 'authenticated',
+      },
+    });
+    const dataSource = {
+      query: vi.fn().mockResolvedValue([{ role: 'admin' }]),
+    };
+    const reader = new NeonSessionReader(dataSource as never, env);
+
+    const first = await reader.read({ authorization: 'Bearer signed-token' });
+    const second = await reader.read({ authorization: 'Bearer signed-token' });
+
+    expect(first?.user.role).toBe('admin');
+    expect(second?.user.role).toBe('admin');
+    expect(dataSource.query).toHaveBeenCalledTimes(1);
+  });
 });
