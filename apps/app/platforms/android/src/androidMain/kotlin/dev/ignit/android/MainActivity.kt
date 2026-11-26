@@ -4,10 +4,7 @@ package dev.ignit.android
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Modifier
 import dev.ignit.application.usecase.GetCurrentSession
 import dev.ignit.application.usecase.LogIn
 import dev.ignit.application.usecase.LogOut
@@ -16,7 +13,6 @@ import dev.ignit.http.createIgnitHttpClient
 import dev.ignit.session.KeystoreAuthSession
 import dev.ignit.ui.IgnitApp
 import dev.ignit.ui.LoginViewModel
-import dev.ignit.ui.theme.IgnitTheme
 import io.ktor.client.HttpClient
 
 /** Production backend the native app signs in against, the same one the web app uses. */
@@ -32,19 +28,16 @@ class MainActivity : ComponentActivity() {
 		val authSession = KeystoreAuthSession(applicationContext)
 		val authGateway = KtorAuthGateway(httpClient, BASE_URL)
 
-		// Driving side gets use cases only — it never sees Ktor or the Keystore.
+		// Driving side gets use cases only — it never sees Ktor or the Keystore. `IgnitApp` owns the
+		// theme and its surface so the palette can change at runtime.
 		setContent {
 			val loginViewModel = remember { LoginViewModel(LogIn(authGateway, authSession)) }
 
-			IgnitTheme {
-				Surface(modifier = Modifier.fillMaxSize()) {
-					IgnitApp(
-						loginViewModel = loginViewModel,
-						getCurrentSession = GetCurrentSession(authSession),
-						logOut = LogOut(authSession),
-					)
-				}
-			}
+			IgnitApp(
+				loginViewModel = loginViewModel,
+				getCurrentSession = GetCurrentSession(authSession),
+				logOut = LogOut(authSession),
+			)
 		}
 	}
 

@@ -108,8 +108,9 @@ fun LoginScreen(viewModel: LoginViewModel, onLoggedIn: (UserSession) -> Unit) {
 }
 
 /**
- * Field colours matching the web form: the brand red (the scheme's `tertiary`) rings the focused
- * field, a hairline `outline` borders it at rest, and supporting labels use the muted ink.
+ * Field colours matching the web form: the focus `--ring` (the scheme's `tertiary`, brand red on
+ * paper and light blue on `noche-azul`) rings the focused field, a hairline `outline` borders it at
+ * rest, and supporting labels use the muted ink.
  */
 @Composable
 private fun ignitFieldColors(): TextFieldColors = OutlinedTextFieldDefaults.colors(
