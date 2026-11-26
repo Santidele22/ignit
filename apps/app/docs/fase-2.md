@@ -7,7 +7,7 @@ Estado: implementado en la rama `feat/app-native-fase-1-login`. La biblioteca co
 ### Dominio y puertos
 
 - `Book` ahora refleja el catálogo real: `author`, `kind`, `coverUrl` (nullable) y `published`, además de `id`, `title`. `totalPages` se alimenta del campo `filePages` que sí manda la API; `roomId` no tiene contraparte en el backend y queda como campo local.
-- `LibraryRepository.fetchLibrary(mine: Boolean = false, kind: String? = null)` y `SyncLibrary(mine, kind)` separan catálogo público de biblioteca personal y permiten filtrar por estante.
+- `LibraryRepository.fetchLibrary(mine, kind, limit = 12, offset = 0): BookPage` y `SyncLibrary(...)` separan catálogo público de biblioteca personal, filtran por estante y **pagina**. `BookPage(items, total, offset, limit)` trae `hasMore` calculado, así la UI no adivina si quedan páginas.
 - **`UserSession` ganó `sessionCookie`**: el par `nombre=valor` completo de la cookie de sesión. Es la credencial que el backend acepta (ver Aprendizaje 1).
 
 ### Adaptadores
@@ -19,8 +19,8 @@ Estado: implementado en la rama `feat/app-native-fase-1-login`. La biblioteca co
 ### UI
 
 - `LibraryViewModel`: `scope` (catálogo / mi biblioteca), `kind`, `books`, `loading`, `error`; `load` no reentra y no se traga `CancellationException`. Una falla **no borra** los libros ya cargados.
-- `LibraryScreen`: header con usuario y cerrar sesión, selector de alcance, chips de estante, grilla `LazyVerticalGrid` de tarjetas 2:3 con portada Coil y placeholder tipográfico, estados loading/error/vacío, y "Actualizar".
-- Los chips de estante **se derivan de los libros cargados**, no de una lista fija.
+- `LibraryScreen`: header con usuario y cerrar sesión, selector de alcance, **desplegable colapsable de categorías**, grilla `LazyVerticalGrid` de tarjetas 2:3 con portada Coil y placeholder tipográfico, **scroll infinito por páginas** con indicador de "cargando más", estados loading/error/vacío, y "Actualizar".
+- La lista de categorías **se deriva del catálogo sin filtrar** y crece de forma monótona: nunca se reduce a la categoría elegida.
 
 ## Tests
 
@@ -31,7 +31,7 @@ Estado: implementado en la rama `feat/app-native-fase-1-login`. La biblioteca co
 | `adapters:driven:http-api` | `KtorLibraryRepositoryProductionPayloadTest` | El **payload real de producción** (dos libros capturados): `id` numérico, `filePages`, `coverUrl` nullable, campos ignorados. |
 | `adapters:driven:http-api` | `KtorAuthGatewayTest` | La cookie firmada se guarda como credencial; el token del body sigue sirviendo de fallback. |
 | `adapters:driven:auth-session` | `SessionCodecTest` | Round-trip con `sessionCookie` y **compatibilidad con payloads viejos**. |
-| `adapters:driving:ui-compose` | `LibraryViewModelTest` | alcance/estante hacia el puerto, error que conserva libros, `availableKinds` derivado, `kindLabel`. |
+| `adapters:driving:ui-compose` | `LibraryViewModelTest` | alcance/estante/`limit`/`offset` hacia el puerto, paginado que apila y deduplica por `id`, error que conserva los libros, supersesión de un `loadMore` viejo, **categorías que no se reducen al filtrar**, `kindLabel`. |
 
 ## Aprendizaje
 
@@ -42,13 +42,16 @@ Estado: implementado en la rama `feat/app-native-fase-1-login`. La biblioteca co
 5. **Ktor: query params opcionales.** `parameter("mine", true)` y `parameter("kind", valor)` **solo cuando aplican**; si mandás `kind=""` el backend filtra por la cadena vacía y devuelve nada. Por eso el caso de `kind` en blanco se normaliza a `null` en el caso de uso, no en el adaptador.
 6. **`expectSuccess = false` otra vez.** Si Ktor lanza en los 4xx, se pierde el `message` del backend (`{"message":"Unauthorized","statusCode":401}`) que es justo lo que la pantalla necesita mostrar.
 7. **Portadas: Coil 3 y un loader único.** Compose Multiplatform no trae cargador de imágenes de red. `coil-compose` + `coil-network-ktor3` resuelven Android y Desktop con el mismo código, y el fetcher se registra una vez con `setSingletonImageLoaderFactory` en la raíz. El placeholder tipográfico se pinta **debajo** del `AsyncImage`, así una portada lenta o rota nunca deja un hueco blanco.
-8. **Descartar un pedido porque ya hay otro en vuelo es un bug, no una optimización.** `if (loading) return` parecía prudente y era peor: tocar "Mi biblioteca" mientras cargaba el catálogo dejaba la pestaña en Mi biblioteca y la grilla con el catálogo público. Ahora cada pedido toma una generación y **gana el último**: el que quedó viejo no escribe `books`, ni `error`, ni `loading`.
-9. **Una sesión sin credencial no es una sesión.** `LogIn` rechaza y no persiste una respuesta sin cookie firmada, y `GetCurrentSession` descarta la que ya no la tenga. Preferible un login que falla con un mensaje que una app "logueada" que responde `Unauthorized` y al reiniciar te desloguea sin explicación.
-10. **El estado de error no borra lo que ya se ve.** `LibraryViewModel` deja `books` intacto cuando falla; si no, un refresh con la red caída vaciaría la pantalla y el usuario perdería el contexto.
+8. **Derivar las opciones de un filtro desde los datos ya filtrados es un error de diseño.** Fue exactamente el bug que reportó el usuario: `availableKinds` salía de `books` después de aplicar el filtro, así que al elegir "Técnico" la única categoría conocida pasaba a ser "Técnico" y el resto desaparecía. La lista de opciones tiene que venir de una fuente **independiente del filtro** (el catálogo sin filtrar) y crecer de forma monótona. Es la regla general: las opciones de un control no pueden depender de la selección de ese control.
+9. **Paginación: `limit`/`offset` cambian la forma de la respuesta.** Sin esos parámetros el backend devuelve un array pelado; con ellos, un envelope `{items,total,offset,limit}`. Medido: 24 libros, página 1 → 12 items con `total:24`, página 2 → los otros 12. El adaptador acepta ambas formas y sintetiza `total` cuando no hay envelope, pero la UI siempre pide páginas.
+10. **Deduplicar al apilar páginas no es paranoia.** Entre dos requests el catálogo puede cambiar y repetir un libro; una clave duplicada revienta `LazyVerticalGrid`. El view model deduplica por `Book.id`.
+11. **Descartar un pedido porque ya hay otro en vuelo es un bug, no una optimización.** `if (loading) return` parecía prudente y era peor: tocar "Mi biblioteca" mientras cargaba el catálogo dejaba la pestaña en Mi biblioteca y la grilla con el catálogo público. Ahora cada pedido toma una generación y **gana el último**: el que quedó viejo no escribe `books`, ni `error`, ni `loading`.
+12. **Una sesión sin credencial no es una sesión.** `LogIn` rechaza y no persiste una respuesta sin cookie firmada, y `GetCurrentSession` descarta la que ya no la tenga. Preferible un login que falla con un mensaje que una app "logueada" que responde `Unauthorized` y al reiniciar te desloguea sin explicación.
+13. **El estado de error no borra lo que ya se ve.** `LibraryViewModel` deja `books` intacto cuando falla; si no, un refresh con la red caída vaciaría la pantalla y el usuario perdería el contexto.
 
 ## Pendiente
 
 - **Verificación visual con sesión real**: la app necesita login para llegar a Biblioteca, y las credenciales son del usuario. Lo que sí está probado sin credenciales: el catálogo público responde `200` con 24 libros, el parser los mapea (payload real en test), y `?mine=true` sin sesión devuelve `401 {"message":"Unauthorized"}`.
-- **Paginación**: hoy se piden los libros sin `limit`/`offset`. Con 24 libros alcanza; cuando el catálogo crezca hay que paginar o el arranque se va a sentir pesado.
+- **Paginación**: hecha con `limit=12`. El scroll infinito se dispara al llegar al último ítem visible; si falla una página, los libros ya cargados quedan y el footer ofrece reintentar.
 - **`roomId`** queda como campo muerto en `Book`: la web usa `kind` como estante. Conviene borrarlo cuando alguien toque el dominio.
 - **`SharedPreferencesStore`/`KeystoreAuthSession`** siguen sin test de instrumentación (solo compilación); es el techo conocido de los adaptadores Android.

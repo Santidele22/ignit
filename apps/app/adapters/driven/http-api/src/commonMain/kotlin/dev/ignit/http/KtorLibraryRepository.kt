@@ -5,6 +5,7 @@ import dev.ignit.application.port.AuthSession
 import dev.ignit.application.port.LibraryRepository
 import dev.ignit.domain.model.AuthException
 import dev.ignit.domain.model.Book
+import dev.ignit.domain.model.BookPage
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.request.header
@@ -24,9 +25,14 @@ private const val BOOKS_PATH = "/api/books"
 
 /** Key of the paginated envelope `{ items, total, offset, limit }` the controller returns. */
 private const val ITEMS_KEY = "items"
+private const val TOTAL_KEY = "total"
+private const val OFFSET_KEY = "offset"
+private const val LIMIT_KEY = "limit"
 
 private const val MINE_PARAM = "mine"
 private const val KIND_PARAM = "kind"
+private const val LIMIT_PARAM = "limit"
+private const val OFFSET_PARAM = "offset"
 
 /** Shown when the catalog answered something unreadable. */
 private const val LIBRARY_FALLBACK = "No pudimos cargar la biblioteca."
@@ -35,18 +41,22 @@ private const val LIBRARY_FALLBACK = "No pudimos cargar la biblioteca."
 private const val CONNECTION_FALLBACK = "No pudimos conectar con el servidor."
 
 /**
- * Reads the Ignit catalog from `GET {baseUrl}/api/books`.
+ * Reads one page of the Ignit catalog from `GET {baseUrl}/api/books`.
  *
  * `mine = true` asks for the caller's own library (`?mine=true`, which the backend only
  * answers for an authenticated caller) and [Book.kind] narrows the shelf through `?kind=`.
- * Authentication rides on the session cookie resolved from [session], because the backend
- * verifies the signed better-auth cookie and accepts no bearer token.
+ * [limit] and [offset] always travel as query parameters, because sending them is what makes
+ * the controller answer the paginated envelope. Authentication rides on the session cookie
+ * resolved from [session], because the backend verifies the signed better-auth cookie and
+ * accepts no bearer token.
  *
  * The response is either a bare array or the paginated envelope whose items live under
- * [ITEMS_KEY]; both are accepted. Anything else — an object without an `items` array, a bare
- * scalar, malformed JSON — is a backend failure, never an empty library. Any non-2xx answer
- * throws [AuthException] with the backend's own `message`, and transport failures become a
- * user-facing Spanish message.
+ * [ITEMS_KEY]. A bare array (the server ignored pagination) still yields a coherent
+ * [BookPage]: its `total` becomes the items count and the requested page is echoed back as
+ * `offset`/`limit`. A missing `total`, `offset` or `limit` in the envelope falls back the same
+ * way. Anything else — an object without an `items` array, a bare scalar, malformed JSON — is a
+ * backend failure, never an empty library. Any non-2xx answer throws [AuthException] with the
+ * backend's own `message`, and transport failures become a user-facing Spanish message.
  */
 class KtorLibraryRepository(
 	private val client: HttpClient,
@@ -54,12 +64,16 @@ class KtorLibraryRepository(
 	private val session: AuthSession,
 ) : LibraryRepository {
 
-	override suspend fun fetchLibrary(mine: Boolean, kind: String?): List<Book> {
+	override suspend fun fetchLibrary(mine: Boolean, kind: String?, limit: Int, offset: Int): BookPage {
+		LibraryRepository.requireValidRequest(limit, offset)
+
 		val (status, body) = try {
 			val cookie = session.load()?.sessionCookie.orEmpty()
 			val response = client.get("$baseUrl$BOOKS_PATH") {
 				if (mine) parameter(MINE_PARAM, "true")
 				kind?.takeIf { it.isNotBlank() }?.let { parameter(KIND_PARAM, it) }
+				parameter(LIMIT_PARAM, limit)
+				parameter(OFFSET_PARAM, offset)
 				if (cookie.isNotBlank()) header(HttpHeaders.Cookie, cookie)
 			}
 			response.status to response.bodyAsText()
@@ -70,21 +84,35 @@ class KtorLibraryRepository(
 		}
 
 		if (!status.isSuccess()) throw AuthException(backendMessage(body) ?: LIBRARY_FALLBACK)
-		return books(body)
+		return pageOf(body, limit, offset)
 	}
 
-	private fun books(body: String): List<Book> {
+	/** Reads [body] as a page, echoing [requestedLimit]/[requestedOffset] wherever it is absent. */
+	private fun pageOf(body: String, requestedLimit: Int, requestedOffset: Int): BookPage {
 		val root = try {
 			Json.parseToJsonElement(body)
 		} catch (malformed: Exception) {
 			throw AuthException(LIBRARY_FALLBACK)
 		}
+		val envelope: JsonObject?
 		val elements = when (root) {
-			is JsonArray -> root
-			is JsonObject -> root[ITEMS_KEY] as? JsonArray ?: throw AuthException(LIBRARY_FALLBACK)
+			is JsonArray -> {
+				envelope = null
+				root
+			}
+			is JsonObject -> {
+				envelope = root
+				root[ITEMS_KEY] as? JsonArray ?: throw AuthException(LIBRARY_FALLBACK)
+			}
 			else -> throw AuthException(LIBRARY_FALLBACK)
 		}
-		return elements.mapNotNull { it as? JsonObject }.map(::bookFrom)
+		val items = elements.mapNotNull { it as? JsonObject }.map(::bookFrom)
+		return BookPage(
+			items = items,
+			total = envelope?.int(TOTAL_KEY) ?: items.size,
+			offset = envelope?.int(OFFSET_KEY) ?: requestedOffset,
+			limit = envelope?.int(LIMIT_KEY) ?: requestedLimit,
+		)
 	}
 
 	private fun bookFrom(payload: JsonObject): Book = Book(

@@ -5,6 +5,7 @@ import dev.ignit.application.port.LibraryRepository
 import dev.ignit.application.usecase.SyncLibrary
 import dev.ignit.domain.model.AuthException
 import dev.ignit.domain.model.Book
+import dev.ignit.domain.model.BookPage
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -21,21 +22,46 @@ import kotlin.test.assertTrue
 private fun book(id: String, kind: String = "") =
 	Book(id = id, title = "Libro $id", roomId = "", totalPages = 0, kind = kind)
 
+/** [count] consecutive books numbered from [from], so a page's contents are obvious in a failure. */
+private fun books(from: Int, count: Int, kind: String = "") =
+	List(count) { index -> book("${from + index}", kind) }
+
+/** One page whose `total` defaults to what it carries, i.e. the last page of a short catalog. */
+private fun page(items: List<Book>, total: Int = items.size, offset: Int = 0) =
+	BookPage(items = items, total = total, offset = offset, limit = LibraryRepository.DEFAULT_PAGE_SIZE)
+
 /**
- * Port fake that records every request as the `(mine, kind)` pair the use case forwarded, so the
- * tests assert what the backend would have been asked instead of internal state.
+ * One request the view model made, exactly as the backend would have received it. Paging is a wire
+ * contract, so the tests assert the pairs `(mine, kind, limit, offset)` instead of internal state.
+ */
+private data class LibraryCall(
+	val mine: Boolean,
+	val kind: String?,
+	val limit: Int,
+	val offset: Int,
+)
+
+private fun call(
+	mine: Boolean = false,
+	kind: String? = null,
+	offset: Int = 0,
+	limit: Int = LibraryRepository.DEFAULT_PAGE_SIZE,
+) = LibraryCall(mine = mine, kind = kind, limit = limit, offset = offset)
+
+/**
+ * Port fake that records every request so the tests assert what the backend would have been asked.
  *
- * [result] receives that same pair, so a test can make two concurrent requests answer differently.
- * [gate] is read when a call starts, so replacing it between two launches gates each request on
- * its own deferred and lets the test decide which answer arrives first.
+ * [result] receives that same request, so a test can make two concurrent requests answer differently
+ * and can answer per offset. [gate] is read when a call starts, so replacing it between two launches
+ * gates each request on its own deferred and lets the test decide which answer arrives first.
  */
 private class RecordingLibrary : LibraryRepository {
-	val calls = mutableListOf<Pair<Boolean, String?>>()
-	var result: (Pair<Boolean, String?>) -> List<Book> = { emptyList() }
+	val calls = mutableListOf<LibraryCall>()
+	var result: (LibraryCall) -> BookPage = { page(emptyList()) }
 	var gate: CompletableDeferred<Unit>? = null
 
-	override suspend fun fetchLibrary(mine: Boolean, kind: String?): List<Book> {
-		val request = mine to kind
+	override suspend fun fetchLibrary(mine: Boolean, kind: String?, limit: Int, offset: Int): BookPage {
+		val request = LibraryCall(mine = mine, kind = kind, limit = limit, offset = offset)
 		calls += request
 		gate?.await()
 		return result(request)
@@ -52,7 +78,7 @@ class LibraryViewModelTest {
 
 		viewModel.load()
 
-		assertEquals(listOf<Pair<Boolean, String?>>(false to null), library.calls)
+		assertEquals(listOf(call()), library.calls)
 	}
 
 	@Test
@@ -63,7 +89,7 @@ class LibraryViewModelTest {
 		viewModel.onScopeChange(LibraryScope.MINE)
 		viewModel.load()
 
-		assertEquals(listOf<Pair<Boolean, String?>>(true to null), library.calls)
+		assertEquals(listOf(call(mine = true)), library.calls)
 	}
 
 	@Test
@@ -74,13 +100,13 @@ class LibraryViewModelTest {
 		viewModel.onKindChange("tecnico")
 		viewModel.load()
 
-		assertEquals(listOf<Pair<Boolean, String?>>(false to "tecnico"), library.calls)
+		assertEquals(listOf(call(kind = "tecnico")), library.calls)
 	}
 
 	@Test
 	fun failureKeepsThePreviousBooksAndSurfacesTheBackendMessage() = runTest {
 		val library = RecordingLibrary()
-		library.result = { listOf(book("1"), book("2")) }
+		library.result = { page(listOf(book("1"), book("2"))) }
 		val viewModel = LibraryViewModel(SyncLibrary(library))
 		viewModel.load()
 
@@ -110,7 +136,7 @@ class LibraryViewModelTest {
 		val viewModel = LibraryViewModel(SyncLibrary(library))
 		viewModel.load()
 
-		library.result = { listOf(book("1")) }
+		library.result = { page(listOf(book("1"))) }
 		viewModel.load()
 
 		assertNull(viewModel.error)
@@ -123,7 +149,7 @@ class LibraryViewModelTest {
 		val secondGate = CompletableDeferred<Unit>()
 		val library = RecordingLibrary()
 		library.result = { request ->
-			if (request.second == "tecnico") listOf(book("second")) else listOf(book("first"))
+			if (request.kind == "tecnico") page(listOf(book("second"))) else page(listOf(book("first")))
 		}
 		val viewModel = LibraryViewModel(SyncLibrary(library))
 
@@ -137,7 +163,7 @@ class LibraryViewModelTest {
 		library.gate = secondGate
 		val second = launch { viewModel.load() }
 		runCurrent()
-		assertEquals(listOf(false to null, false to "tecnico"), library.calls)
+		assertEquals(listOf(call(), call(kind = "tecnico")), library.calls)
 
 		// The newest request answers first: its result is the one on screen.
 		secondGate.complete(Unit)
@@ -159,8 +185,8 @@ class LibraryViewModelTest {
 		val secondGate = CompletableDeferred<Unit>()
 		val library = RecordingLibrary()
 		library.result = { request ->
-			if (request.second == "tecnico") {
-				listOf(book("second"))
+			if (request.kind == "tecnico") {
+				page(listOf(book("second")))
 			} else {
 				throw AuthException("Sesión vencida")
 			}
@@ -191,7 +217,7 @@ class LibraryViewModelTest {
 		val mineGate = CompletableDeferred<Unit>()
 		val library = RecordingLibrary()
 		library.result = { request ->
-			if (request.first) listOf(book("mine")) else listOf(book("catalog"))
+			if (request.mine) page(listOf(book("mine"))) else page(listOf(book("catalog")))
 		}
 		val viewModel = LibraryViewModel(SyncLibrary(library))
 
@@ -205,7 +231,7 @@ class LibraryViewModelTest {
 		library.gate = mineGate
 		val mine = launch { viewModel.load() }
 		runCurrent()
-		assertEquals(listOf<Pair<Boolean, String?>>(false to null, true to null), library.calls)
+		assertEquals(listOf(call(), call(mine = true)), library.calls)
 
 		// The catalog answer lands first and is discarded, leaving the state to the newer request.
 		catalogGate.complete(Unit)
@@ -223,12 +249,12 @@ class LibraryViewModelTest {
 	@Test
 	fun refreshKeepsTheBooksOnScreenUntilTheNewAnswerArrives() = runTest {
 		val library = RecordingLibrary()
-		library.result = { listOf(book("first")) }
+		library.result = { page(listOf(book("first"))) }
 		val viewModel = LibraryViewModel(SyncLibrary(library))
 		viewModel.load()
 
 		val gate = CompletableDeferred<Unit>()
-		library.result = { listOf(book("second")) }
+		library.result = { page(listOf(book("second"))) }
 		library.gate = gate
 		val refreshing = launch { viewModel.refresh() }
 		runCurrent()
@@ -266,11 +292,13 @@ class LibraryViewModelTest {
 	fun availableKindsHoldsTheDistinctSortedNonBlankKindsLoaded() = runTest {
 		val library = RecordingLibrary()
 		library.result = {
-			listOf(
-				book("1", kind = "tecnico"),
-				book("2", kind = "terror_scifi"),
-				book("3", kind = "tecnico"),
-				book("4", kind = "   "),
+			page(
+				listOf(
+					book("1", kind = "tecnico"),
+					book("2", kind = "terror_scifi"),
+					book("3", kind = "tecnico"),
+					book("4", kind = "   "),
+				),
 			)
 		}
 		val viewModel = LibraryViewModel(SyncLibrary(library))
@@ -283,7 +311,7 @@ class LibraryViewModelTest {
 	@Test
 	fun failureKeepsThePreviouslyDerivedKinds() = runTest {
 		val library = RecordingLibrary()
-		library.result = { listOf(book("1", kind = "tecnico"), book("2", kind = "poesia")) }
+		library.result = { page(listOf(book("1", kind = "tecnico"), book("2", kind = "poesia"))) }
 		val viewModel = LibraryViewModel(SyncLibrary(library))
 		viewModel.load()
 
@@ -292,6 +320,193 @@ class LibraryViewModelTest {
 
 		// A failed load leaves `books` untouched, so the chips keep the shelves already on screen.
 		assertEquals(listOf("poesia", "tecnico"), viewModel.availableKinds)
+	}
+
+	@Test
+	fun initialLoadRequestsTheFirstPageAndFillsThePageState() = runTest {
+		val library = RecordingLibrary()
+		library.result = { page(books(1, 12), total = 30) }
+		val viewModel = LibraryViewModel(SyncLibrary(library))
+
+		viewModel.load()
+
+		assertEquals(listOf(call(offset = 0)), library.calls)
+		assertEquals(books(1, 12), viewModel.books)
+		assertEquals(30, viewModel.total)
+		assertTrue(viewModel.hasMore)
+		assertFalse(viewModel.loading)
+	}
+
+	@Test
+	fun loadMoreRequestsTheNextOffsetAndAppendsThePage() = runTest {
+		val library = RecordingLibrary()
+		library.result = { request ->
+			if (request.offset == 0) {
+				page(books(1, 12), total = 30)
+			} else {
+				page(books(13, 12), total = 30, offset = 12)
+			}
+		}
+		val viewModel = LibraryViewModel(SyncLibrary(library))
+		viewModel.load()
+
+		viewModel.loadMore()
+
+		assertEquals(listOf(call(offset = 0), call(offset = 12)), library.calls)
+		assertEquals(books(1, 24), viewModel.books)
+		assertEquals(30, viewModel.total)
+		assertTrue(viewModel.hasMore)
+		assertFalse(viewModel.loadingMore)
+	}
+
+	@Test
+	fun loadMoreIsANoOpOnTheLastPage() = runTest {
+		val library = RecordingLibrary()
+		library.result = { page(books(1, 12), total = 12) }
+		val viewModel = LibraryViewModel(SyncLibrary(library))
+		viewModel.load()
+
+		viewModel.loadMore()
+
+		assertEquals(listOf(call(offset = 0)), library.calls)
+		assertFalse(viewModel.hasMore)
+		assertFalse(viewModel.loadingMore)
+	}
+
+	@Test
+	fun loadMoreIsANoOpWhileAFreshLoadIsInFlight() = runTest {
+		val gate = CompletableDeferred<Unit>()
+		val library = RecordingLibrary()
+		library.result = { page(books(1, 12), total = 30) }
+		val viewModel = LibraryViewModel(SyncLibrary(library))
+
+		library.gate = gate
+		val loading = launch { viewModel.load() }
+		runCurrent()
+
+		viewModel.loadMore()
+
+		assertEquals(listOf(call(offset = 0)), library.calls)
+		assertFalse(viewModel.loadingMore)
+
+		gate.complete(Unit)
+		loading.join()
+	}
+
+	@Test
+	fun selectingAFilterKeepsEveryCatalogShelfAvailable() = runTest {
+		val library = RecordingLibrary()
+		library.result = {
+			page(
+				listOf(
+					book("1", kind = "tecnico"),
+					book("2", kind = "terror_scifi"),
+					book("3", kind = "poesia"),
+				),
+			)
+		}
+		val viewModel = LibraryViewModel(SyncLibrary(library))
+		viewModel.load()
+		val everyShelf = listOf("poesia", "tecnico", "terror_scifi")
+		assertEquals(everyShelf, viewModel.availableKinds)
+
+		// The filtered answer only carries the chosen shelf; the user must still be able to switch away.
+		viewModel.onKindChange("tecnico")
+		library.result = { page(listOf(book("1", kind = "tecnico"))) }
+		viewModel.load()
+
+		assertEquals(listOf(book("1", kind = "tecnico")), viewModel.books)
+		assertEquals(everyShelf, viewModel.availableKinds)
+	}
+
+	@Test
+	fun aMineLoadDoesNotShrinkTheCatalogShelves() = runTest {
+		val library = RecordingLibrary()
+		library.result = {
+			page(listOf(book("1", kind = "tecnico"), book("2", kind = "poesia")), total = 5)
+		}
+		val viewModel = LibraryViewModel(SyncLibrary(library))
+		viewModel.load()
+		val everyShelf = listOf("poesia", "tecnico")
+
+		viewModel.onScopeChange(LibraryScope.MINE)
+		library.result = { page(listOf(book("9", kind = "ficcion"))) }
+		viewModel.load()
+
+		assertEquals(listOf(book("9", kind = "ficcion")), viewModel.books)
+		assertEquals(everyShelf, viewModel.availableKinds)
+	}
+
+	@Test
+	fun appendedPagesDoNotDuplicateARepeatedBook() = runTest {
+		val library = RecordingLibrary()
+		library.result = { request ->
+			if (request.offset == 0) {
+				page(listOf(book("1"), book("2")), total = 3)
+			} else {
+				// The catalog shifted between requests, so the last row of page one came back again.
+				page(listOf(book("2"), book("3")), total = 3, offset = 2)
+			}
+		}
+		val viewModel = LibraryViewModel(SyncLibrary(library))
+		viewModel.load()
+
+		viewModel.loadMore()
+
+		assertEquals(listOf(call(offset = 0), call(offset = 2)), library.calls)
+		assertEquals(listOf(book("1"), book("2"), book("3")), viewModel.books)
+	}
+
+	@Test
+	fun aFailedLoadMoreKeepsTheRowsAndSurfacesTheError() = runTest {
+		val library = RecordingLibrary()
+		library.result = { request ->
+			if (request.offset == 0) page(books(1, 12), total = 30) else throw AuthException("Se cayó la red")
+		}
+		val viewModel = LibraryViewModel(SyncLibrary(library))
+		viewModel.load()
+
+		viewModel.loadMore()
+
+		assertEquals(listOf(call(offset = 0), call(offset = 12)), library.calls)
+		assertEquals(books(1, 12), viewModel.books)
+		assertEquals("Se cayó la red", viewModel.error)
+		assertFalse(viewModel.loadingMore)
+	}
+
+	@Test
+	fun aSupersededLoadMoreDoesNotAppend() = runTest {
+		val gate = CompletableDeferred<Unit>()
+		val library = RecordingLibrary()
+		library.result = { request ->
+			if (request.offset == 0) {
+				page(books(1, 12), total = 30)
+			} else {
+				page(books(13, 12), total = 30, offset = 12)
+			}
+		}
+		val viewModel = LibraryViewModel(SyncLibrary(library))
+		viewModel.load()
+
+		library.gate = gate
+		val appending = launch { viewModel.loadMore() }
+		runCurrent()
+		assertEquals(listOf(call(offset = 0), call(offset = 12)), library.calls)
+		assertTrue(viewModel.loadingMore)
+
+		// Switch scope while the extra page is still in flight: its answer belongs to the old request.
+		viewModel.onScopeChange(LibraryScope.MINE)
+		library.gate = null
+		library.result = { page(listOf(book("mine"))) }
+		viewModel.load()
+		assertEquals(listOf(book("mine")), viewModel.books)
+
+		gate.complete(Unit)
+		appending.join()
+
+		assertEquals(listOf(book("mine")), viewModel.books)
+		assertNull(viewModel.error)
+		assertFalse(viewModel.loadingMore)
 	}
 
 	@Test

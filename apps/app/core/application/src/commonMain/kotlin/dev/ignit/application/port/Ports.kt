@@ -1,12 +1,33 @@
 // core/application: outbound ports. Pure interfaces — adapters/driven implement them.
 package dev.ignit.application.port
 
-import dev.ignit.domain.model.Book
+import dev.ignit.domain.model.BookPage
 import dev.ignit.domain.model.UserSession
 
-/** Outbound port: fetches the catalog (`mine = false`) or the caller's own library from the remote catalog. */
+/** Outbound port: fetches one page of the catalog (`mine = false`) or of the caller's own library from the remote catalog. */
 interface LibraryRepository {
-	suspend fun fetchLibrary(mine: Boolean = false, kind: String? = null): List<Book>
+	suspend fun fetchLibrary(
+		mine: Boolean = false,
+		kind: String? = null,
+		limit: Int = DEFAULT_PAGE_SIZE,
+		offset: Int = 0,
+	): BookPage
+
+	companion object {
+		/** Entries per request when the caller does not ask for another page size. */
+		const val DEFAULT_PAGE_SIZE: Int = 12
+
+		/**
+		 * Rejects a page request no catalog could answer coherently: a page of zero entries, or a
+		 * page starting before the first entry. It throws instead of clamping, because every caller
+		 * builds these values itself — a bad one is a programming error, not user input, and silently
+		 * turning it into `limit = 1` would hide it.
+		 */
+		fun requireValidRequest(limit: Int, offset: Int) {
+			require(limit > 0) { "limit must be positive, was $limit" }
+			require(offset >= 0) { "offset must not be negative, was $offset" }
+		}
+	}
 }
 
 /** Outbound port: persists reading progress locally and syncs it remotely. */

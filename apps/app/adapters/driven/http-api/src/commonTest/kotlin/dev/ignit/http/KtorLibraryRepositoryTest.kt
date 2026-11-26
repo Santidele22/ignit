@@ -71,27 +71,41 @@ private const val PUBLIC_BOOK_JSON =
 
 class KtorLibraryRepositoryTest {
 	@Test
-	fun asksForThePublicCatalogWithoutPaginationOrCookie() = runTest {
+	fun asksForThePublicCatalogPageWithoutCookie() = runTest {
 		val captured = mutableListOf<HttpRequestData>()
 		val repository = repositoryOver(captured, "[$PUBLIC_BOOK_JSON]")
 
-		repository.fetchLibrary()
+		repository.fetchLibrary(limit = 12, offset = 0)
 
 		val request = captured.single()
 		assertEquals(HttpMethod.Get, request.method)
 		assertEquals(BOOKS_PATH, request.url.encodedPath)
-		assertEquals("", request.url.encodedQuery)
+		assertEquals("12", request.url.parameters["limit"])
+		assertEquals("0", request.url.parameters["offset"])
+		assertFalse(request.url.parameters.contains("mine"))
 		assertNull(request.headers[HttpHeaders.Cookie])
 	}
 
 	@Test
-	fun parsesABareJsonArrayIntoBooks() = runTest {
+	fun requestedPageIsSentAsLimitAndOffset() = runTest {
+		val captured = mutableListOf<HttpRequestData>()
+		val repository = repositoryOver(captured, "[]")
+
+		repository.fetchLibrary(limit = 6, offset = 18)
+
+		val request = captured.single()
+		assertEquals("6", request.url.parameters["limit"])
+		assertEquals("18", request.url.parameters["offset"])
+	}
+
+	@Test
+	fun parsesABareJsonArrayIntoAPage() = runTest {
 		val repository = repositoryOver(mutableListOf(), "[$PUBLIC_BOOK_JSON]")
 
-		val books = repository.fetchLibrary()
+		val page = repository.fetchLibrary()
 
-		assertEquals(1, books.size)
-		val book = books.single()
+		assertEquals(1, page.items.size)
+		val book = page.items.single()
 		assertEquals("12", book.id)
 		assertEquals("Clean Architecture", book.title)
 		assertEquals("Robert C. Martin", book.author)
@@ -101,22 +115,65 @@ class KtorLibraryRepositoryTest {
 	}
 
 	@Test
-	fun parsesThePaginatedEnvelopeItems() = runTest {
+	fun bareArraySynthesizesTheTotalAndEchoesTheRequestedPage() = runTest {
+		val repository = repositoryOver(mutableListOf(), "[$PUBLIC_BOOK_JSON]")
+
+		val page = repository.fetchLibrary(limit = 5, offset = 10)
+
+		assertEquals(1, page.total)
+		assertEquals(10, page.offset)
+		assertEquals(5, page.limit)
+		assertFalse(page.hasMore)
+	}
+
+	@Test
+	fun parsesThePaginatedEnvelopeIntoAPage() = runTest {
 		val repository = repositoryOver(
 			mutableListOf(),
 			"""{"items":[$PUBLIC_BOOK_JSON],"total":1,"offset":0,"limit":20}""",
 		)
 
-		val books = repository.fetchLibrary()
+		val page = repository.fetchLibrary(limit = 20, offset = 0)
 
-		assertEquals(listOf("12"), books.map { it.id })
+		assertEquals(listOf("12"), page.items.map { it.id })
+		assertEquals(1, page.total)
+		assertEquals(0, page.offset)
+		assertEquals(20, page.limit)
+	}
+
+	@Test
+	fun envelopeTotalGreaterThanTheItemsCountReportsMorePages() = runTest {
+		val repository = repositoryOver(
+			mutableListOf(),
+			"""{"items":[$PUBLIC_BOOK_JSON],"total":24,"offset":0,"limit":1}""",
+		)
+
+		val page = repository.fetchLibrary(limit = 1, offset = 0)
+
+		assertEquals(24, page.total)
+		assertEquals(1, page.items.size)
+		assertTrue(page.hasMore)
+	}
+
+	@Test
+	fun emptyItemsArrayIsAValidEmptyPage() = runTest {
+		val repository = repositoryOver(
+			mutableListOf(),
+			"""{"items":[],"total":24,"offset":24,"limit":12}""",
+		)
+
+		val page = repository.fetchLibrary(offset = 24)
+
+		assertTrue(page.items.isEmpty())
+		assertEquals(24, page.total)
+		assertFalse(page.hasMore)
 	}
 
 	@Test
 	fun missingScalarsFallBackToSafeDefaults() = runTest {
 		val repository = repositoryOver(mutableListOf(), """[{"id":7,"title":"Sin autor"}]""")
 
-		val book = repository.fetchLibrary().single()
+		val book = repository.fetchLibrary().items.single()
 
 		assertEquals("7", book.id)
 		assertEquals("Sin autor", book.title)
@@ -133,7 +190,7 @@ class KtorLibraryRepositoryTest {
 			"""[{"id":12,"title":"Clean Architecture","kind":"tecnico","filePages":18}]""",
 		)
 
-		val book = repository.fetchLibrary().single()
+		val book = repository.fetchLibrary().items.single()
 
 		assertEquals(18, book.totalPages)
 	}
@@ -145,7 +202,7 @@ class KtorLibraryRepositoryTest {
 			"""[{"id":12,"title":"Clean Architecture","kind":"tecnico"}]""",
 		)
 
-		val book = repository.fetchLibrary().single()
+		val book = repository.fetchLibrary().items.single()
 
 		assertEquals(0, book.totalPages)
 	}
@@ -159,7 +216,7 @@ class KtorLibraryRepositoryTest {
 
 		val request = captured.single()
 		assertEquals(BOOKS_PATH, request.url.encodedPath)
-		assertEquals("mine=true", request.url.encodedQuery)
+		assertEquals("true", request.url.parameters["mine"])
 	}
 
 	@Test
@@ -183,7 +240,7 @@ class KtorLibraryRepositoryTest {
 		repository.fetchLibrary(mine = true, kind = "   ")
 
 		val request = captured.single()
-		assertEquals("mine=true", request.url.encodedQuery)
+		assertEquals("true", request.url.parameters["mine"])
 		assertFalse(request.url.parameters.contains("kind"))
 	}
 
@@ -262,6 +319,16 @@ class KtorLibraryRepositoryTest {
 		val failure = assertFailsWith<AuthException> { repository.fetchLibrary() }
 
 		assertEquals(SPANISH_LIBRARY_FALLBACK, failure.message)
+	}
+
+	@Test
+	fun anInvalidPageIsRejectedBeforeAnyRequestIsMade() = runTest {
+		val captured = mutableListOf<HttpRequestData>()
+		val repository = repositoryOver(captured, "[]")
+
+		assertFailsWith<IllegalArgumentException> { repository.fetchLibrary(limit = 0) }
+		assertFailsWith<IllegalArgumentException> { repository.fetchLibrary(offset = -1) }
+		assertTrue(captured.isEmpty())
 	}
 
 	@Test

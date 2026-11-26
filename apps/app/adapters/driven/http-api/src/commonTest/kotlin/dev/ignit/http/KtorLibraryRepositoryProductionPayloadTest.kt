@@ -100,7 +100,7 @@ class KtorLibraryRepositoryProductionPayloadTest {
 
 	@Test
 	fun anonymousCatalogParsesTheRealPayload() = runTest {
-		val books = repository().fetchLibrary()
+		val books = repository().fetchLibrary().items
 
 		assertEquals(2, books.size)
 		val first = books.first()
@@ -118,7 +118,7 @@ class KtorLibraryRepositoryProductionPayloadTest {
 
 	@Test
 	fun aBookWithoutCoverAndWithANumericIdStaysUsable() = runTest {
-		val second = repository().fetchLibrary()[1]
+		val second = repository().fetchLibrary().items[1]
 
 		assertEquals("9", second.id)
 		assertEquals("tecnico", second.kind)

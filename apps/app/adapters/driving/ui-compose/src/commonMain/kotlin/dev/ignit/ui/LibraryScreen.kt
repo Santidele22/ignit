@@ -1,4 +1,4 @@
-// adapters/driving/ui-compose: driving adapter. Library screen: scopes, kind filters, cover grid and its states.
+// adapters/driving/ui-compose: driving adapter. Library screen: scopes, kind dropdown, paged cover grid and its states.
 package dev.ignit.ui
 
 import androidx.compose.foundation.BorderStroke
@@ -18,9 +18,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -28,7 +32,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -46,6 +55,10 @@ import kotlinx.coroutines.launch
 /** Covers are printed 2:3 like the web's book cards, so the grid keeps a steady rhythm. */
 private const val COVER_ASPECT_RATIO: Float = 2f / 3f
 
+/** Stable keys for the full-width rows the grid adds below the books, so paging never re-keys a card. */
+private const val LOAD_MORE_KEY: String = "library-load-more-row"
+private const val LOAD_MORE_ERROR_KEY: String = "library-load-more-error-row"
+
 /**
  * The library: who is signed in, which shelf is shown, and the books themselves.
  *
@@ -56,6 +69,8 @@ private const val COVER_ASPECT_RATIO: Float = 2f / 3f
 @Composable
 fun LibraryScreen(viewModel: LibraryViewModel, session: UserSession, onLogOut: () -> Unit) {
 	val scope = rememberCoroutineScope()
+	var kindPanelExpanded by remember { mutableStateOf(false) }
+	val gridState = rememberLazyGridState()
 
 	LaunchedEffect(Unit) { viewModel.load() }
 
@@ -94,10 +109,13 @@ fun LibraryScreen(viewModel: LibraryViewModel, session: UserSession, onLogOut: (
 		}
 		Spacer(Modifier.height(12.dp))
 
-		KindFilters(
+		KindDropdown(
 			kinds = viewModel.availableKinds,
 			selected = viewModel.kind,
+			expanded = kindPanelExpanded,
+			onToggle = { kindPanelExpanded = !kindPanelExpanded },
 			onSelect = { value ->
+				kindPanelExpanded = false
 				viewModel.onKindChange(value)
 				scope.launch { viewModel.load() }
 			},
@@ -107,7 +125,9 @@ fun LibraryScreen(viewModel: LibraryViewModel, session: UserSession, onLogOut: (
 		Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
 			LibraryBody(
 				viewModel = viewModel,
+				gridState = gridState,
 				onRetry = { scope.launch { viewModel.load() } },
+				onLoadMore = { scope.launch { viewModel.loadMore() } },
 			)
 		}
 	}
@@ -154,24 +174,82 @@ private fun LibraryHeader(session: UserSession, onRefresh: () -> Unit, onLogOut:
 	}
 }
 
-/** `kind` shelf chips, built from the shelves the loaded books carry, behind an "every shelf" chip. */
+/**
+ * Shelf filter: a collapsed control that shows the current selection and, once opened, an inline
+ * panel with every shelf the complete catalog carries.
+ *
+ * It is deliberately not a `DropdownMenu`: an inline panel keeps the paper look and speaks the same
+ * hairline visual language as [SegmentedToggle]. The panel opens even with no shelf known yet, so
+ * it can never turn into an empty or broken control: "Todos" is always there.
+ */
+@Composable
+private fun KindDropdown(
+	kinds: List<String>,
+	selected: String?,
+	expanded: Boolean,
+	onToggle: () -> Unit,
+	onSelect: (String?) -> Unit,
+) {
+	Column(modifier = Modifier.fillMaxWidth()) {
+		Row(
+			modifier = Modifier
+				.fillMaxWidth()
+				.clip(MaterialTheme.shapes.small)
+				.background(MaterialTheme.colorScheme.surfaceContainerLow)
+				.border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
+				.clickable(onClick = onToggle)
+				.padding(horizontal = 10.dp, vertical = 8.dp)
+				.testTag("library-kind-toggle"),
+			verticalAlignment = Alignment.CenterVertically,
+		) {
+			Text(
+				text = selected?.takeIf { it.isNotBlank() }?.let(LibraryViewModel::kindLabel) ?: "Todos",
+				style = MaterialTheme.typography.labelSmall,
+				color = MaterialTheme.colorScheme.onSurface,
+				fontWeight = FontWeight.SemiBold,
+				maxLines = 1,
+				overflow = TextOverflow.Ellipsis,
+				modifier = Modifier.weight(1f),
+			)
+			// A text chevron keeps the control on the palette's own type instead of a new icon set.
+			Text(
+				text = if (expanded) "▴" else "▾",
+				style = MaterialTheme.typography.labelSmall,
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+			)
+		}
+
+		if (expanded) {
+			Spacer(Modifier.height(8.dp))
+			// The panel sits on the same framed track as the scope selector above it.
+			KindPanel(kinds = kinds, selected = selected, onSelect = onSelect)
+		}
+	}
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun KindFilters(kinds: List<String>, selected: String?, onSelect: (String?) -> Unit) {
+private fun KindPanel(kinds: List<String>, selected: String?, onSelect: (String?) -> Unit) {
 	FlowRow(
+		modifier = Modifier
+			.fillMaxWidth()
+			.clip(RoundedCornerShape(4.dp))
+			.background(MaterialTheme.colorScheme.surfaceContainerLow)
+			.border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp))
+			.padding(8.dp),
 		horizontalArrangement = Arrangement.spacedBy(8.dp),
 		verticalArrangement = Arrangement.spacedBy(8.dp),
 	) {
-		// "Todos" always leads, so an empty or failed load still shows one chip, never a bare row.
-		KindChip(
+		// "Todos" always leads, so an empty or failed catalog still offers one working option.
+		KindOption(
 			label = "Todos",
 			selected = selected == null,
-			// `all` keeps the tag stable for the "every shelf" chip, which has no value.
+			// `all` keeps the tag stable for the "every shelf" option, which has no value.
 			testTag = "library-kind-all",
 			onSelect = { onSelect(null) },
 		)
 		kinds.forEach { kind ->
-			KindChip(
+			KindOption(
 				label = LibraryViewModel.kindLabel(kind),
 				selected = selected == kind,
 				testTag = "library-kind-$kind",
@@ -182,7 +260,7 @@ private fun KindFilters(kinds: List<String>, selected: String?, onSelect: (Strin
 }
 
 @Composable
-private fun KindChip(label: String, selected: Boolean, testTag: String, onSelect: () -> Unit) {
+private fun KindOption(label: String, selected: Boolean, testTag: String, onSelect: () -> Unit) {
 	Row(
 		modifier = Modifier
 			.clip(CircleShape)
@@ -211,16 +289,23 @@ private fun KindChip(label: String, selected: Boolean, testTag: String, onSelect
 }
 
 /**
- * Body states, in the order the user needs them: a failure is louder than progress, progress with
- * nothing to show yet is a spinner, and an empty answer gets calm copy instead of a bare grid.
+ * Body states, in the order the user needs them: a failure with nothing behind it is louder than
+ * progress, progress with nothing to show yet is a spinner, and an empty answer gets calm copy
+ * instead of a bare grid. A failure with rows already on screen keeps the grid and surfaces the
+ * retry in its footer, so a dropped extra page never throws away what the reader was looking at.
  */
 @Composable
-private fun LibraryBody(viewModel: LibraryViewModel, onRetry: () -> Unit) {
+private fun LibraryBody(
+	viewModel: LibraryViewModel,
+	gridState: LazyGridState,
+	onRetry: () -> Unit,
+	onLoadMore: () -> Unit,
+) {
 	val books = viewModel.books
 	val error = viewModel.error
 
 	when {
-		error != null -> LibraryError(message = error, onRetry = onRetry)
+		error != null && books.isEmpty() -> LibraryError(message = error, onRetry = onRetry)
 		viewModel.loading && books.isEmpty() -> Box(
 			modifier = Modifier.fillMaxSize(),
 			contentAlignment = Alignment.Center,
@@ -239,13 +324,89 @@ private fun LibraryBody(viewModel: LibraryViewModel, onRetry: () -> Unit) {
 			)
 		}
 
-		else -> LazyVerticalGrid(
-			columns = GridCells.Adaptive(minSize = 150.dp),
-			modifier = Modifier.fillMaxSize(),
-			horizontalArrangement = Arrangement.spacedBy(12.dp),
-			verticalArrangement = Arrangement.spacedBy(16.dp),
+		else -> BookGrid(
+			viewModel = viewModel,
+			gridState = gridState,
+			onLoadMore = onLoadMore,
+		)
+	}
+}
+
+/**
+ * The cover grid plus its paging footer.
+ *
+ * Reaching the last cell means the reader consumed everything this page holds, so the next one is
+ * requested. [derivedStateOf] keeps the layout check off the frame path, and the effect is keyed by
+ * the row count too: one page fans exactly one request, and a page that does not fill the screen
+ * still lets the following one through.
+ */
+@Composable
+private fun BookGrid(viewModel: LibraryViewModel, gridState: LazyGridState, onLoadMore: () -> Unit) {
+	val books = viewModel.books
+	val error = viewModel.error
+
+	val atLastItem by remember(gridState) {
+		derivedStateOf {
+			val layout = gridState.layoutInfo
+			val lastVisible = layout.visibleItemsInfo.lastOrNull()?.index ?: return@derivedStateOf false
+			layout.totalItemsCount > 0 && lastVisible >= layout.totalItemsCount - 1
+		}
+	}
+
+	LaunchedEffect(atLastItem, books.size) {
+		// Guarded against an initial load: the empty grid also reports "at the last item". A visible
+		// error pauses paging so the footer's retry is what asks again, never a silent loop.
+		if (atLastItem && viewModel.hasMore && viewModel.error == null &&
+			!viewModel.loading && !viewModel.loadingMore
 		) {
-			items(items = books, key = { it.id }) { book -> BookCard(book) }
+			onLoadMore()
+		}
+	}
+
+	LazyVerticalGrid(
+		state = gridState,
+		columns = GridCells.Adaptive(minSize = 150.dp),
+		modifier = Modifier.fillMaxSize(),
+		horizontalArrangement = Arrangement.spacedBy(12.dp),
+		verticalArrangement = Arrangement.spacedBy(16.dp),
+	) {
+		items(items = books, key = { it.id }) { book -> BookCard(book) }
+
+		if (viewModel.loadingMore) {
+			item(key = LOAD_MORE_KEY, span = { GridItemSpan(maxLineSpan) }) {
+				Row(
+					modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+					horizontalArrangement = Arrangement.Center,
+				) {
+					CircularProgressIndicator(modifier = Modifier.testTag("library-load-more"))
+				}
+			}
+		}
+
+		// Rows are already on screen, so the failed extra page becomes a footer instead of a takeover.
+		// Hidden while a retry is in flight, so the spinner is the only thing the reader waits on.
+		if (error != null && !viewModel.loadingMore) {
+			item(key = LOAD_MORE_ERROR_KEY, span = { GridItemSpan(maxLineSpan) }) {
+				Row(
+					modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+					verticalAlignment = Alignment.CenterVertically,
+					horizontalArrangement = Arrangement.spacedBy(12.dp),
+				) {
+					Text(
+						text = error,
+						style = MaterialTheme.typography.bodySmall,
+						color = MaterialTheme.colorScheme.error,
+						modifier = Modifier.weight(1f),
+					)
+					OutlinedButton(
+						onClick = onLoadMore,
+						border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+						modifier = Modifier.testTag("library-load-more-retry"),
+					) {
+						Text("Reintentar")
+					}
+				}
+			}
 		}
 	}
 }
