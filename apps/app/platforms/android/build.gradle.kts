@@ -12,6 +12,8 @@ kotlin {
 
 	sourceSets {
 		androidMain.dependencies {
+			implementation(project(":core:application"))
+			implementation(project(":core:domain"))
 			implementation(project(":adapters:driving:ui-compose"))
 			implementation(project(":adapters:driven:http-api"))
 			implementation(project(":adapters:driven:persistence"))

@@ -1,23 +1,51 @@
-// Entry point Desktop: wiring only.
+// platforms/desktop: entry point. Composition root mirroring MainActivity over the JVM file store.
 package dev.ignit.desktop
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
-import androidx.compose.foundation.layout.Box
+import dev.ignit.application.usecase.GetCurrentSession
+import dev.ignit.application.usecase.LogIn
+import dev.ignit.application.usecase.LogOut
+import dev.ignit.http.KtorAuthGateway
+import dev.ignit.http.createIgnitHttpClient
+import dev.ignit.session.FileAuthSession
+import dev.ignit.ui.IgnitApp
+import dev.ignit.ui.LoginViewModel
+
+/** Production backend the native app signs in against, the same one the web app uses. */
+private const val BASE_URL = "https://ignit.ignit677.workers.dev"
 
 fun main() = application {
-	Window(onCloseRequest = ::exitApplication, title = "Ignit", state = rememberWindowState(width = 800.dp, height = 600.dp)) {
+	val httpClient = remember { createIgnitHttpClient() }
+	val authSession = remember { FileAuthSession() }
+	val authGateway = remember { KtorAuthGateway(httpClient, BASE_URL) }
+
+	DisposableEffect(Unit) {
+		onDispose { httpClient.close() }
+	}
+
+	Window(
+		onCloseRequest = ::exitApplication,
+		title = "Ignit",
+		state = rememberWindowState(width = 420.dp, height = 780.dp),
+	) {
+		val loginViewModel = remember { LoginViewModel(LogIn(authGateway, authSession)) }
+
 		MaterialTheme {
 			Surface(modifier = Modifier.fillMaxSize()) {
-				Box(contentAlignment = Alignment.Center) { Text("Ignit") }
+				IgnitApp(
+					loginViewModel = loginViewModel,
+					getCurrentSession = GetCurrentSession(authSession),
+					logOut = LogOut(authSession),
+				)
 			}
 		}
 	}

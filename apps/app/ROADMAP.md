@@ -18,13 +18,13 @@ Issue de origen: [Santidele22/ignit#2](https://github.com/Santidele22/ignit/issu
 
 La primera feature atraviesa **todas las capas**, es el mejor ejemplo de hexagonal:
 
-1. `core/application`: puerto `AuthSession` + caso de uso `LogIn(email, pass)`.
-2. `adapters/driven/http-api`: llamada real a la API (login del backend actual) con Ktor.
-3. `adapters/driven/auth-session`: token en storage seguro (Android Keystore / Desktop).
-4. `adapters/driving/ui-compose`: pantalla de login con estado (loading/error/success).
-5. `platforms/*`: navegación raíz — pantalla login ⇒ biblioteca.
+1. ✅ `core/application`: puertos `AuthGateway` + `AuthSession` y casos de uso `LogIn`, `GetCurrentSession`, `LogOut` (recorta el email, rechaza vacíos sin tocar la red, persiste solo en éxito).
+2. ✅ `adapters/driven/http-api`: `KtorAuthGateway` contra `POST /api/auth/sign-in/email` de producción, con `Origin` y body JSON espejo del flujo web; propaga el `message` del backend en 4xx/5xx.
+3. ✅ `adapters/driven/auth-session`: Android Keystore (`AES/GCM/NoPadding` + `SharedPreferences`) y Desktop en `~/.config/ignit/session.json` con permisos `rw-------`.
+4. ✅ `adapters/driving/ui-compose`: `LoginViewModel` + `LoginScreen` con estado (loading/error/success).
+5. ✅ `platforms/*`: navegación raíz login ⇒ biblioteca (placeholder con el usuario logueado y cerrar sesión), permiso `INTERNET` y composition root en `MainActivity.kt` / `Main.kt`.
 
-**Verificación**: iniciar sesión real desde la app con la cuenta de la web.
+**Verificación**: APK debug instalado en el emulador `ignit_pixel`; el login end-to-end está probado contra el backend real (rechazo `Invalid email or password` recibido desde producción). **Falta** iniciar sesión con una cuenta real de la web, que requiere credenciales humanas. Detalle en `docs/fase-1.md`.
 Espejo exacto del flujo web (`/login` + serverSession) — misma API, sin duplicar auth.
 
 ## Fase 2 — Biblioteca básica
