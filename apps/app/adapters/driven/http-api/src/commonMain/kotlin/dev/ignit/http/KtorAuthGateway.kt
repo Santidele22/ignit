@@ -44,7 +44,13 @@ class KtorAuthGateway(private val client: HttpClient, private val baseUrl: Strin
 	override suspend fun signIn(email: String, password: String): UserSession {
 		val response = try {
 			client.post("$baseUrl$SIGN_IN_PATH") {
-				header(HttpHeaders.Origin, baseUrl)
+				// Only an HTTPS base is a real deployment behind the Worker proxy, which enforces
+				// same-origin on mutating requests. A native client has no browser origin anyway, and
+				// the local better-auth dev server rejects origins outside its `trustedOrigins`
+				// (`localhost:4321`/`3987`), so a plain-HTTP base sends no Origin header at all.
+				if (baseUrl.startsWith("https://", ignoreCase = true)) {
+					header(HttpHeaders.Origin, baseUrl)
+				}
 				contentType(ContentType.Application.Json)
 				setBody(
 					buildJsonObject {

@@ -19,9 +19,12 @@ import dev.ignit.ui.IgnitApp
 import dev.ignit.ui.LoginViewModel
 import io.ktor.client.HttpClient
 
-/** Production backend the native app signs in against, the same one the web app uses. */
-private const val BASE_URL = "https://ignit.ignit677.workers.dev"
-
+/**
+ * Composition root of the Android app.
+ *
+ * `IgnitApiConfig.API_BASE_URL` is generated from the `ignit.apiBaseUrl` Gradle property, so the same
+ * code builds against production (the default) or a local backend (`-Pignit.apiBaseUrl=http://10.0.2.2:3000`).
+ */
 class MainActivity : ComponentActivity() {
 	private val httpClient: HttpClient by lazy { createIgnitHttpClient() }
 
@@ -31,10 +34,10 @@ class MainActivity : ComponentActivity() {
 		// Driven adapters: the Keystore session store, the plain preferences store, and the HTTP gateway.
 		val authSession = KeystoreAuthSession(applicationContext)
 		val preferences = SharedPreferencesStore(applicationContext)
-		val authGateway = KtorAuthGateway(httpClient, BASE_URL)
+		val authGateway = KtorAuthGateway(httpClient, IgnitApiConfig.API_BASE_URL)
 		val palettePreference = PalettePreference(preferences)
 		// The library adapter reads the session itself: the catalog needs the signed cookie.
-		val syncLibrary = SyncLibrary(KtorLibraryRepository(httpClient, BASE_URL, authSession))
+		val syncLibrary = SyncLibrary(KtorLibraryRepository(httpClient, IgnitApiConfig.API_BASE_URL, authSession))
 
 		// Driving side gets use cases only — it never sees Ktor or the Keystore. `IgnitApp` owns the
 		// theme and its surface so the palette can change at runtime.

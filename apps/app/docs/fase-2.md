@@ -22,6 +22,34 @@ Estado: implementado en la rama `feat/app-native-fase-1-login`. La biblioteca co
 - `LibraryScreen`: header con usuario y cerrar sesión, selector de alcance, **desplegable colapsable de categorías**, grilla `LazyVerticalGrid` de tarjetas 2:3 con portada Coil y placeholder tipográfico, **scroll infinito por páginas** con indicador de "cargando más", estados loading/error/vacío, y "Actualizar".
 - La lista de categorías **se deriva del catálogo sin filtrar** y crece de forma monótona: nunca se reduce a la categoría elegida.
 
+## Ambientes
+
+La URL base de la API se elige **en tiempo de build**, no está hardcodeada: `gradle.properties` trae
+`ignit.apiBaseUrl=https://ignit.ignit677.workers.dev` y cada módulo de plataforma genera
+`IgnitApiConfig.API_BASE_URL` a partir de esa propiedad (`platforms/*/build/generated/ignitApiConfig/kotlin`).
+Un `-P` la pisa sin tocar código.
+
+| Destino | Invocación |
+| --- | --- |
+| Producción (default) | nada que pasar |
+| Emulador Android contra la API local | `./gradlew :platforms:android:installDebug -Pignit.apiBaseUrl=http://10.0.2.2:3000` |
+| Desktop contra la API local | `./gradlew :platforms:desktop:run -Pignit.apiBaseUrl=http://localhost:3000` |
+
+El emulador llega al loopback del host por `10.0.2.2`; `localhost` adentro del emulador es el emulador mismo,
+no la máquina que corre el backend. Por eso las dos invocaciones no son la misma URL.
+
+**Por qué tiene que ser seleccionable.** Producción corre Neon: el guard de la API es sólo bearer
+(`Authorization: Bearer <JWT>` de Neon, verificado contra su JWKS) y no mira cookies. El entorno local
+monta **better-auth**, que emite una cookie de sesión firmada y valida `Origin` contra `trustedOrigins`
+(`backend/src/auth/auth.ts`, default `http://localhost:4321` y `http://localhost:3987`). Son dos modos de
+autenticación distintos: apuntar el binario de desarrollo a producción (o al revés) no es un detalle de
+configuración, es un login que no funciona. De ahí también el `Origin` condicional: sólo se manda cuando
+la base es HTTPS, porque ahí sí hay un deployment real detrás del Worker que exige same-origin.
+
+El cleartext quedó habilitado **sólo** para el loopback (`res/xml/network_security_config.xml`:
+`10.0.2.2`, `127.0.0.1`, `localhost`); el resto del tráfico sigue siendo HTTPS-only, sin
+`usesCleartextTraffic` global.
+
 ## Tests
 
 | Módulo | Test | Qué fija |
@@ -29,7 +57,7 @@ Estado: implementado en la rama `feat/app-native-fase-1-login`. La biblioteca co
 | `core:application` | `SyncLibraryTest` | `(mine, kind)` por defecto, forwarding, `kind` en blanco → `null`, fallo → `Result.failure`. |
 | `adapters:driven:http-api` | `KtorLibraryRepositoryTest` | query string, `Cookie` solo si hay sesión, array y envelope, `401` con mensaje del backend, fallo de transporte. |
 | `adapters:driven:http-api` | `KtorLibraryRepositoryProductionPayloadTest` | El **payload real de producción** (dos libros capturados): `id` numérico, `filePages`, `coverUrl` nullable, campos ignorados. |
-| `adapters:driven:http-api` | `KtorAuthGatewayTest` | La cookie firmada se guarda como credencial; el token del body sigue sirviendo de fallback. |
+| `adapters:driven:http-api` | `KtorAuthGatewayTest` | La cookie firmada se guarda como credencial; el token del body sigue sirviendo de fallback; `Origin` sólo cuando la base es HTTPS. |
 | `adapters:driven:auth-session` | `SessionCodecTest` | Round-trip con `sessionCookie` y **compatibilidad con payloads viejos**. |
 | `adapters:driving:ui-compose` | `LibraryViewModelTest` | alcance/estante/`limit`/`offset` hacia el puerto, paginado que apila y deduplica por `id`, error que conserva los libros, supersesión de un `loadMore` viejo, **categorías que no se reducen al filtrar**, `kindLabel`. |
 

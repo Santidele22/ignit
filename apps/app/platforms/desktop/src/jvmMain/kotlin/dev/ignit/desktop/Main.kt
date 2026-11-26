@@ -20,17 +20,20 @@ import dev.ignit.session.FileAuthSession
 import dev.ignit.ui.IgnitApp
 import dev.ignit.ui.LoginViewModel
 
-/** Production backend the native app signs in against, the same one the web app uses. */
-private const val BASE_URL = "https://ignit.ignit677.workers.dev"
-
+/**
+ * Composition root of the desktop app.
+ *
+ * `IgnitApiConfig.API_BASE_URL` is generated from the `ignit.apiBaseUrl` Gradle property, so the same
+ * code builds against production (the default) or a local backend (`-Pignit.apiBaseUrl=http://localhost:3000`).
+ */
 fun main() = application {
 	val httpClient = remember { createIgnitHttpClient() }
 	val authSession = remember { FileAuthSession() }
 	val preferences = remember { FilePreferencesStore() }
-	val authGateway = remember { KtorAuthGateway(httpClient, BASE_URL) }
+	val authGateway = remember { KtorAuthGateway(httpClient, IgnitApiConfig.API_BASE_URL) }
 	val palettePreference = remember { PalettePreference(preferences) }
 	// The library adapter reads the session itself: the catalog needs the signed cookie.
-	val syncLibrary = remember { SyncLibrary(KtorLibraryRepository(httpClient, BASE_URL, authSession)) }
+	val syncLibrary = remember { SyncLibrary(KtorLibraryRepository(httpClient, IgnitApiConfig.API_BASE_URL, authSession)) }
 
 	DisposableEffect(Unit) {
 		onDispose { httpClient.close() }

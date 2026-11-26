@@ -20,8 +20,10 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 
 private const val BASE_URL = "https://ignit.ignit677.workers.dev"
+private const val LOCAL_BASE_URL = "http://10.0.2.2:3000"
 private const val SIGN_IN_PATH = "/api/auth/sign-in/email"
 private const val SPANISH_SIGN_IN_FALLBACK = "No pudimos iniciar sesión. Probá de nuevo."
 
@@ -48,6 +50,47 @@ class KtorAuthGatewayTest {
 		assertEquals(HttpMethod.Post, request.method)
 		assertEquals(SIGN_IN_PATH, request.url.encodedPath)
 		assertEquals(BASE_URL, request.headers[HttpHeaders.Origin])
+		val body = request.body as TextContent
+		assertEquals(ContentType.Application.Json, body.contentType?.withoutParameters())
+		assertEquals("""{"email":"santi@ignit.ar","password":"secreto123"}""", body.text)
+	}
+
+	@Test
+	fun anHttpsBaseSendsTheOriginHeader() = runTest {
+		var captured: HttpRequestData? = null
+		val client = clientWith { request ->
+			captured = request
+			respond(
+				content = """{"token":"tok_abc","user":{"id":"usr_123"}}""",
+				status = HttpStatusCode.OK,
+			)
+		}
+
+		KtorAuthGateway(client, BASE_URL).signIn("santi@ignit.ar", "secreto123")
+
+		assertEquals(BASE_URL, assertNotNull(captured).headers[HttpHeaders.Origin])
+	}
+
+	@Test
+	fun aPlainHttpBaseSendsNoOriginHeaderAtAll() = runTest {
+		var captured: HttpRequestData? = null
+		val client = clientWith { request ->
+			captured = request
+			respond(
+				content = """{"token":"tok_abc","user":{"id":"usr_123"}}""",
+				status = HttpStatusCode.OK,
+			)
+		}
+
+		KtorAuthGateway(client, LOCAL_BASE_URL).signIn("santi@ignit.ar", "secreto123")
+
+		// The local better-auth backend rejects an origin it does not trust, and a native client
+		// has no browser origin anyway, so the header must be absent rather than different.
+		val request = assertNotNull(captured)
+		assertNull(request.headers[HttpHeaders.Origin])
+		// Everything else about the request is unchanged: same path, method, content type and body.
+		assertEquals(HttpMethod.Post, request.method)
+		assertEquals(SIGN_IN_PATH, request.url.encodedPath)
 		val body = request.body as TextContent
 		assertEquals(ContentType.Application.Json, body.contentType?.withoutParameters())
 		assertEquals("""{"email":"santi@ignit.ar","password":"secreto123"}""", body.text)
