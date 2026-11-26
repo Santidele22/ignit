@@ -1,0 +1,10 @@
+{
+  "title": "Notas sin invadir el libro",
+  "brief": "Formas de tomar notas en el lector Vigilia de Ignit sin invadir la lectura, inspiradas en un libro físico anotado (marginalia a lápiz, solapas de colores, subrayados discretos). Cuatro direcciones: marginalia en el margen exterior, solapas con gaveta, tinta fantasma bajo demanda, y la página de al lado (notas en el recto, alineadas por línea, creación a una tecla).",
+  "artboards": [
+    { "file": "04-pagina-de-al-lado.html", "title": "La página de al lado (recomendada)", "tradeoff": "El verso queda solo texto y las notas viven en el recto, alineadas con su línea; abrir el compositor es seleccionar + N, sin viaje de mouse. Cuesta ancho: el lector necesita reservar una columna a la derecha, y en móvil el compositor baja a hoja inferior", "width": 1440, "height": 900 },
+    { "file": "01-marginalia.html", "title": "Marginalia", "tradeoff": "La nota vive en el margen exterior a mano, como en el libro de papel; el texto queda intacto, pero las páginas dobles necesitan espacio lateral que en pantallas angostas no existe", "width": 1440, "height": 900 },
+    { "file": "02-solapas.html", "title": "Solapas", "tradeoff": "Organización central: cada nota es una solapa anclada a una línea y una gaveta las agrupa por capítulo; a cambio introduce chrome permanente y la página pierde algo de ancho", "width": 1440, "height": 900 },
+    { "file": "03-tinta-fantasma.html", "title": "Tinta fantasma", "tradeoff": "Máxima inmersión: solo subrayados de tinta y una burbuja que aparece al seleccionar; lo mínimo posible a la vista, con descubrimiento más débil para notas ya creadas", "width": 1440, "height": 900 }
+  ]
+}

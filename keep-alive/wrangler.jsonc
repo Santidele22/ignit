@@ -1,0 +1,22 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ignit-keep-alive",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-26",
+  "vars": {
+    "BACKEND_URL": "https://ignit-api-ohm4.onrender.com"
+  },
+  "triggers": {
+    // Window A (08:00-02:00 ART = 11-23,0-4 UTC): ping /session-mode every 10 min
+    //   -> keeps Render Free awake 18h/day (~549/750h/mo) with 0 Neon CU-h spent.
+    // Window B (12:00-00:00 ART = 15-23,0-2 UTC): ping /health-db every 4 min
+    //   -> keeps Neon Free warm during the 12 peak hours (~91/100 CU-h/mo).
+    "crons": [
+      "*/10 11-23,0-4 * * *",
+      "*/4 15-23,0-2 * * *"
+    ]
+  },
+  "observability": {
+    "enabled": true
+  }
+}

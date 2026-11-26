@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ignit — 04 La página de al lado</title>
+<style>
+  :root{
+    --bg:#0d0a07; --fg:#ece5d5; --body:#d6ccb4; --faint:#8f826b; --ghost:#786c57;
+    --border:#352d22; --panel:rgba(18,14,10,.96); --bronce:#b98a44; --aka:#c73e3a;
+    --papel-verso:#1a140d; --papel-recto:#171108;
+  }
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%}
+  body{
+    background:var(--bg); color:var(--body);
+    font-family:Georgia,'Times New Roman',serif; min-height:900px;
+    display:flex; flex-direction:column; -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:rgba(185,138,68,.3); color:var(--fg)}
+  .scene{position:relative; flex:1; display:flex; flex-direction:column; overflow:hidden}
+  .scene::before{content:""; position:absolute; inset:0; pointer-events:none;
+    background:radial-gradient(52% 40% at 50% 0%, rgba(201,62,58,.09), transparent 72%)}
+
+  /* ---------- hilo superior: una sola línea, sin caja ---------- */
+  .hilo{
+    display:flex; align-items:center; gap:18px; padding:18px 44px; z-index:3;
+    font-family:ui-monospace,Menlo,monospace; font-size:10.5px; letter-spacing:.16em;
+    text-transform:uppercase; color:var(--faint);
+  }
+  .hilo .obra{color:var(--body)}
+  .hilo .der{margin-left:auto; display:flex; align-items:center; gap:12px}
+  .pista{width:120px; height:1px; background:var(--border)}
+  .pista i{display:block; height:1px; width:41%; background:var(--bronce)}
+
+  /* ---------- pliego ---------- */
+  .stage{flex:1; display:flex; align-items:center; justify-content:center; padding:8px 48px 26px}
+  .pliego{display:flex; box-shadow:0 34px 90px rgba(0,0,0,.7); border-radius:2px}
+
+  .hoja{width:500px; height:672px; padding:58px 62px; position:relative}
+  .verso{background:linear-gradient(178deg,var(--papel-verso),#160f09);
+         border-radius:3px 0 0 3px;
+         box-shadow:inset -1px 0 0 rgba(0,0,0,.8), inset -26px 0 30px -30px rgba(0,0,0,1)}
+  .recto{background:linear-gradient(182deg,var(--papel-recto),#14100a);
+         border-radius:0 3px 3px 0;
+         box-shadow:inset 1px 0 0 rgba(0,0,0,.85), inset 34px 0 40px -34px rgba(0,0,0,1)}
+
+  .folio{position:absolute; bottom:22px; left:0; right:0; text-align:center;
+    font-family:ui-monospace,Menlo,monospace; font-size:9.5px; letter-spacing:.24em;
+    color:var(--faint); transition:opacity .2s ease}
+  .recto:has(.compositor) .folio{opacity:0}
+
+  /* ---------- texto ---------- */
+  .capitulo{font-family:ui-monospace,Menlo,monospace; font-size:11px; letter-spacing:.32em;
+    text-transform:uppercase; color:var(--faint); font-weight:normal; margin-bottom:30px}
+  .parrafo{font-size:16px; line-height:1.86; color:var(--body); text-indent:2.2em}
+  .parrafo + .parrafo{margin-top:.85em}
+
+  /* marca de nota existente: hairline + tick al canto. Nada más. */
+  .marca{position:relative; border-bottom:1px solid rgba(185,138,68,.4);
+         padding-bottom:1px; cursor:default}
+  .marca::after{content:""; position:absolute; right:-63px; top:15px; width:63px; height:1px;
+    background:rgba(185,138,68,.4)}
+  .marca:hover{border-bottom-color:var(--bronce); color:var(--fg)}
+  .marca:hover::after{background:rgba(185,138,68,.75)}
+
+  /* selección viva: el pasaje que se está anotando */
+  .viva{background:rgba(185,138,68,.17); color:var(--fg); border-bottom:1px solid var(--bronce)}
+  .viva::after{content:""; position:absolute; right:-63px; top:15px; width:63px; height:1px; background:var(--bronce)}
+
+  /* pluma inline: 22px, justo al final de la selección. No hay que viajar. */
+  .pluma{
+    display:inline-flex; align-items:center; justify-content:center; vertical-align:baseline;
+    width:24px; height:24px; margin-left:5px; translate:0 2px;
+    background:var(--bronce); color:#171009; border:0; border-radius:4px; cursor:pointer;
+    font-family:ui-monospace,Menlo,monospace; font-size:11px; font-weight:bold; line-height:1;
+  }
+  .pluma:focus-visible{outline:2px solid var(--fg); outline-offset:2px}
+  .tecla{margin-left:6px; font-family:ui-monospace,Menlo,monospace; font-size:9px;
+    letter-spacing:.1em; color:var(--bronce); border:1px solid rgba(185,138,68,.45);
+    border-radius:3px; padding:1px 4px; vertical-align:middle}
+
+  /* ---------- regla: une la línea con su nota, 1px ---------- */
+  .regla{position:absolute; left:0; width:26px; height:1px; background:rgba(185,138,68,.6); top:0}
+  .regla.fina{background:rgba(185,138,68,.3)}
+
+  /* ---------- la página de al lado ---------- */
+  .nota{position:absolute; top:var(--y,0); left:26px; right:30px; opacity:.62; transition:opacity .18s ease}
+  .nota:hover,.nota:focus-within{opacity:1}
+  .nota .cita{
+    font-family:ui-monospace,Menlo,monospace; font-size:9px; letter-spacing:.08em;
+    text-transform:uppercase; color:var(--faint); white-space:nowrap;
+    overflow:hidden; text-overflow:ellipsis; margin-bottom:5px;
+  }
+  .nota .cita b{color:var(--bronce); font-weight:normal}
+  .nota .tinta{
+    font-family:Georgia,'Times New Roman',serif; font-style:italic;
+    font-size:14px; line-height:1.6; color:var(--fg);
+    transform:rotate(-.45deg); transform-origin:left top;
+  }
+  .nota .metricas{
+    font-family:ui-monospace,Menlo,monospace; font-size:9px; letter-spacing:.1em;
+    text-transform:uppercase; color:var(--faint); margin-top:4px;
+  }
+
+  /* ---------- compositor abierto, pegado a la línea ---------- */
+  .compositor{
+    position:absolute; top:var(--y,0); left:22px; right:26px; opacity:1;
+    background:rgba(30,23,15,.94); border:1px solid rgba(185,138,68,.55);
+    border-radius:6px; padding:10px 13px 9px;
+    box-shadow:0 16px 40px rgba(0,0,0,.55);
+  }
+  .compositor .cita{
+    font-family:ui-monospace,Menlo,monospace; font-size:9px; letter-spacing:.08em;
+    text-transform:uppercase; color:var(--faint); margin-bottom:7px;
+    display:flex; align-items:center; gap:6px;
+  }
+  .compositor .cita b{color:var(--bronce); font-weight:normal; flex:none}
+  .compositor .cita span{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .compositor .tinta-edit{
+    min-height:62px; background:transparent; border:0; outline:none;
+    font-family:Georgia,'Times New Roman',serif; font-style:italic;
+    font-size:14.5px; line-height:1.6; color:var(--fg);
+  }
+  .compositor .tinta-edit:empty::before{content:attr(data-placeholder); color:var(--faint)}
+  .compositor .tinta-edit:focus-visible{outline:2px solid var(--bronce); outline-offset:3px; border-radius:3px}
+  .compositor .barra{
+    display:flex; align-items:center; gap:10px; margin-top:8px; padding-top:7px;
+    border-top:1px solid var(--border);
+    font-family:ui-monospace,Menlo,monospace; font-size:9px; letter-spacing:.1em;
+    text-transform:uppercase; color:var(--faint);
+  }
+  .compositor .barra .atajo{margin-left:auto; display:flex; gap:10px; align-items:center}
+  .compositor .barra kbd{border:1px solid var(--border); border-radius:3px; padding:1px 4px; color:var(--faint)}
+  .compositor .barra .guardar{color:var(--bronce)}
+  .caret{display:inline-block; width:1px; height:14px; background:var(--bronce);
+    vertical-align:-2px; animation:parpadea 1.1s step-end infinite}
+  @keyframes parpadea{50%{opacity:0}}
+
+  /* ---------- pie: solo los atajos, casi invisibles ---------- */
+  .pie{
+    display:flex; align-items:center; justify-content:center; gap:22px; padding:10px 44px 16px;
+    font-family:ui-monospace,Menlo,monospace; font-size:9.5px; letter-spacing:.12em;
+    text-transform:uppercase; color:var(--faint); z-index:3;
+  }
+  .pie b{color:var(--bronce); font-weight:normal}
+  .pie .sep{color:var(--border)}
+
+  /* ---------- pantallas angostas: el pliego se parte en dos ---------- */
+  @media (max-width:1000px){
+    .hilo{padding:14px 22px; font-size:10px}
+    .hilo .obra{display:none}
+    .stage{padding:4px 16px 18px}
+    .pliego{display:block; box-shadow:none}
+    .hoja{width:auto; height:auto; max-width:600px; margin:0 auto}
+    .verso{padding:34px 26px 26px; border:1px solid var(--border); border-radius:4px 4px 0 0}
+    .recto{padding:24px 22px 30px; border:1px solid var(--border); border-top:0;
+           border-radius:0 0 4px 4px; min-height:120px}
+    .recto:empty{display:none}
+    .nota{position:relative; top:auto; left:0; right:0; margin-bottom:22px; opacity:1}
+    .regla,.marca::after,.viva::after{display:none}
+    .recto .folio{position:static; display:block; margin-top:14px}
+    .recto:has(.compositor) .folio{display:none}
+    .pluma{width:32px; height:32px}
+    .tecla{display:none}
+    /* velo bajo la hoja: las notas se pierden en la sombra, el texto no */
+    .stage::after{content:""; position:fixed; left:0; right:0; bottom:0; height:340px;
+      z-index:15; pointer-events:none;
+      background:linear-gradient(transparent, rgba(13,10,7,.86) 46%, rgba(13,10,7,.97))}
+    /* el compositor se acuesta al pie, donde llega el pulgar */
+    .compositor{position:fixed; top:auto; left:10px; right:10px; bottom:10px; z-index:20;
+      padding:12px 16px 14px; border-radius:10px; background:#1e1710;
+      box-shadow:0 -6px 40px rgba(0,0,0,.8), 0 1px 0 rgba(185,138,68,.35) inset}
+    .compositor::before{content:""; display:block; width:38px; height:3px; margin:0 auto 10px;
+      border-radius:2px; background:var(--border)}
+    .compositor .tinta-edit{min-height:72px; font-size:16px}
+    .compositor .barra{font-size:10px}
+    .pie{display:none}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style>
+</head>
+<body>
+<div class="scene">
+  <header class="hilo">
+    <span class="obra">Tres pasos para un mar que no existe</span>
+    <span>·</span>
+    <span>Cap. II — Segunda marea</span>
+    <span class="der"><span>41%</span><span class="pista"><i></i></span></span>
+  </header>
+
+  <main class="stage">
+    <div class="pliego">
+
+      <!-- ================= VERSO: solo texto ================= -->
+      <article class="hoja verso" aria-label="Página 60, texto">
+        <h2 class="capitulo">Segunda marea</h2>
+
+        <p class="parrafo">Lo que llamamos horizonte es, en rigor, una cicatriz
+          que el mar se abrió para recordar dónde estaba la costa. Nadie la
+          tocaba, y aun así miraba.</p>
+
+        <p class="parrafo">Los tripulantes contaban que la isla avanzaba sola:
+          un paso por marea, <span class="marca">siempre contra la corriente y
+          por sus propios medios</span>. Yo no discutía con ellos: era de noche,
+          y discutir con una isla requiere luz.</p>
+
+        <p class="parrafo">Cuatro siglos de cartas navales la omiten por
+          prudencia, no por ignorancia. Los hidrógrafos la conocían; preferían
+          el silencio, que es la forma más antigua de la exactitud. Escribían
+          <span class="marca">«aguas sin fondo»</span> y firmaban.</p>
+
+        <p class="parrafo">Amanecimos frente a un archipiélago de una sola
+          roca. Sobre ella, una casa con la puerta abierta y
+          <span class="viva">el mantel tendido como si nos esperaran hace
+          años</span><button class="pluma" type="button" aria-label="Anotar al margen del pasaje seleccionado"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><span class="tecla" aria-hidden="true">N</span>.</p>
+
+        <p class="parrafo">Bajamos sin hablar. El que primero tocara la arena
+          quedaría obligado a recordarla.</p>
+
+        <span class="folio">60</span>
+      </article>
+
+      <!-- ================= RECTO: el cuaderno ================= -->
+      <article class="hoja recto" aria-label="Página 61, notas del lector">
+
+        <!-- la regla que une la línea anotada con su nota -->
+        <div class="regla fina" style="top:256px" aria-hidden="true"></div>
+        <div class="regla fina" style="top:448px" aria-hidden="true"></div>
+        <div class="regla" style="top:521px" aria-hidden="true"></div>
+        <div class="nota" style="--y:245px">
+          <p class="cita"><b>p.60 · l.9</b> siempre contra la corriente y por sus propios medios</p>
+          <p class="tinta">la isla avanza porque nadie la mira: lo contrario de un libro</p>
+          <p class="metricas">hace 2 días · bronce</p>
+        </div>
+
+        <div class="nota" style="--y:437px">
+          <p class="cita"><b>p.60 · l.16</b> «aguas sin fondo»</p>
+          <p class="tinta">vale como epígrafe del capítulo — ojo con la cursiva en el ensayo</p>
+          <p class="metricas">ayer · salvia</p>
+        </div>
+
+        <!-- compositor vivo, a la altura de su línea -->
+        <aside class="compositor" style="--y:513px" aria-label="Nota nueva para el pasaje seleccionado">
+          <p class="cita"><b>p.60 · l.22</b><span>el mantel tendido como si nos esperaran hace años</span></p>
+          <div class="tinta-edit" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Texto de la nota" data-placeholder="Escribí acá…">el mantel justifica toda la novela: nadie pone mesa sin saber.<span class="caret" aria-hidden="true"></span></div>
+          <div class="barra">
+            <span class="guardar">⌘ ⏎</span><span>guardar</span>
+            <span class="atajo"><kbd>esc</kbd><span>volver a leer</span></span>
+          </div>
+        </aside>
+
+        <span class="folio">61</span>
+      </article>
+
+    </div>
+  </main>
+
+  <footer class="pie">
+    <span><b>N</b> anotar</span><span class="sep">/</span>
+    <span><b>M</b> ver las 3 notas</span><span class="sep">/</span>
+    <span><b>esc</b> volver al texto</span>
+  </footer>
+</div>
+</body>
+</html>

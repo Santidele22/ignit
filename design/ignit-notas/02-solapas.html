@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ignit — 02 Solapas</title>
+<style>
+  :root{
+    --bg:#0d0a07; --fg:#ece5d5; --body:#d6ccb4; --faint:#8f826b; --ghost:#786c57;
+    --border:#352d22; --panel:rgba(18,14,10,.96); --bronce:#b98a44; --aka:#c73e3a;
+    --t-rojo:#a6362f; --t-ocre:#b98a44; --t-salvia:#7d8c6a; --t-niebla:#8c96a0; --t-hueso:#d9c9a3;
+  }
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%}
+  body{background:var(--bg); color:var(--body); font-family:Georgia,'Times New Roman',serif;
+    display:flex; flex-direction:column; min-height:900px; -webkit-font-smoothing:antialiased}
+  .scene{position:relative; flex:1; display:flex}
+  .scene::before{content:""; position:absolute; inset:0; pointer-events:none;
+    background:radial-gradient(50% 40% at 45% 0%, rgba(201,62,58,.09), transparent 70%)}
+  /* ---------- página ---------- */
+  .stage{flex:1; display:flex; flex-direction:column; padding:34px 40px 30px; min-width:0}
+  .pagina{
+    flex:1; background:linear-gradient(180deg,#1a140d,#151009); border:1px solid var(--border);
+    border-radius:4px; max-width:760px; width:100%; margin:0 auto; position:relative;
+    padding:64px 84px 70px 92px; box-shadow:0 26px 70px rgba(0,0,0,.6);
+  }
+  .pagina h2{font-size:13px; letter-spacing:.34em; text-transform:uppercase; color:var(--faint);
+    font-family:ui-monospace,Menlo,monospace; font-weight:normal; margin-bottom:32px; text-align:center}
+  .parrafo{font-size:16.5px; line-height:1.85; color:var(--body); text-indent:2.2em}
+  .parrafo + .parrafo{margin-top:.9em}
+  .folio{position:absolute; bottom:24px; left:50%; transform:translateX(-50%);
+    font-family:ui-monospace,Menlo,monospace; font-size:10px; color:var(--faint); letter-spacing:.2em}
+  /* highlight de la nota activa */
+  .leido{background:rgba(184,140,110,.18); box-shadow:0 0 0 1px rgba(185,138,68,.25); color:var(--fg);
+    border-bottom:1px solid var(--bronce)}
+  .leido.pulso{animation:pulso 2.4s ease-in-out infinite}
+  @keyframes pulso{50%{box-shadow:0 0 0 3px rgba(185,138,68,.12)}}
+  /* solapas colgando del canto derecho */
+  .solapas{position:absolute; right:-13px; top:110px; display:flex; flex-direction:column; gap:10px}
+  .solapa{width:13px; height:27px; border-radius:0 3px 3px 0; cursor:pointer; border:0; padding:0;
+    transition:transform .15s ease}
+  .solapa:hover,.solapa:focus-visible{transform:translateX(3px)}
+  .solapa[aria-pressed="true"]{transform:translateX(6px); box-shadow:0 0 0 1px rgba(236,229,213,.35)}
+  .solapa:focus-visible{outline:2px solid var(--aka); outline-offset:2px}
+  /* ---------- tarjeta flotante de la nota ---------- */
+  .ficha{
+    position:absolute; left:150px; bottom:210px; width:330px; z-index:6;
+    background:var(--panel); border:1px solid var(--bronce); border-radius:8px;
+    box-shadow:0 18px 44px rgba(0,0,0,.6); overflow:visible;
+  }
+  .ficha header{
+    display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px solid var(--border);
+    font-family:ui-monospace,Menlo,monospace; font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint);
+  }
+  .ficha header .hilo{width:8px; height:8px; border-radius:50%; background:var(--t-salvia)}
+  .ficha header .cerrar{margin-left:auto; background:none; border:0; color:var(--ghost); cursor:pointer; padding:4px; border-radius:4px}
+  .ficha header .cerrar:hover,.ficha header .cerrar:focus-visible{color:var(--fg); background:rgba(185,138,68,.12)}
+  .ficha header .cerrar:focus-visible{outline:2px solid var(--aka); outline-offset:1px}
+  .ficha .cuerpo{padding:14px 16px 12px; font-family:'Segoe Script','Bradley Hand',cursive;
+    font-size:14px; line-height:1.6; color:var(--fg)}
+  .ficha .cita{padding:0 16px 12px; font-size:12.5px; line-height:1.6; color:var(--faint); border-left:2px solid rgba(185,138,68,.4); margin:0 16px 4px}
+  .ficha footer{display:flex; gap:8px; padding:10px 14px; border-top:1px solid var(--border);
+    font-family:ui-monospace,Menlo,monospace; font-size:10px; letter-spacing:.08em; text-transform:uppercase}
+  .ficha footer button{background:none; border:0; color:var(--faint); cursor:pointer; padding:6px 8px; border-radius:4px; font:inherit}
+  .ficha footer button:hover,.ficha footer button:focus-visible{color:var(--fg); background:rgba(185,138,68,.1)}
+  .ficha footer button:focus-visible{outline:2px solid var(--aka); outline-offset:1px}
+  .ficha::after{content:""; position:absolute; right:-9px; top:24px; width:14px; height:14px;
+    background:var(--panel); border-right:1px solid var(--bronce); border-top:1px solid var(--bronce);
+    transform:rotate(45deg)}
+  /* ---------- gaveta de solapas (derecha) ---------- */
+  .gaveta{
+    width:300px; background:var(--panel); border-left:1px solid var(--border); z-index:3;
+    display:flex; flex-direction:column;
+  }
+  .gaveta header{padding:20px 20px 14px; border-bottom:1px solid var(--border);
+    font-family:ui-monospace,Menlo,monospace; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--faint);
+    display:flex; align-items:baseline; gap:8px}
+  .gaveta header b{color:var(--fg); font-weight:normal}
+  .gaveta .conjunto{flex:1; overflow:auto; padding:10px 8px 16px}
+  .grupo{margin-bottom:16px}
+  .grupo h3{font-family:ui-monospace,Menlo,monospace; font-size:9px; letter-spacing:.2em; text-transform:uppercase;
+    color:var(--ghost); font-weight:normal; padding:6px 12px 4px}
+  .solapa-fila{
+    display:flex; gap:10px; align-items:flex-start; width:100%; text-align:left; background:none; border:0;
+    border-left:3px solid transparent; padding:9px 12px; cursor:pointer; font:inherit; color:var(--body); border-radius:0 4px 4px 0;
+  }
+  .solapa-fila:hover{background:rgba(185,138,68,.07)}
+  .solapa-fila:focus-visible{outline:2px solid var(--aka); outline-offset:-2px}
+  .solapa-fila[aria-current="true"]{border-left-color:var(--bronce); background:rgba(185,138,68,.12); color:var(--fg)}
+  .solapa-fila .tinta{width:10px; height:10px; border-radius:3px; margin-top:4px; flex:none}
+  .solapa-fila .txt{font-size:13.5px; line-height:1.5}
+  .solapa-fila .dode{margin-left:auto; font-family:ui-monospace,Menlo,monospace; font-size:9.5px; color:var(--ghost); letter-spacing:.06em; flex:none}
+  .gaveta footer{padding:14px 20px; border-top:1px solid var(--border);
+    font-family:ui-monospace,Menlo,monospace; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--ghost);
+    display:flex; justify-content:space-between; align-items:center}
+  .gaveta footer .nuevo{color:var(--bronce); cursor:pointer; border:1px solid rgba(185,138,68,.5);
+    border-radius:4px; padding:8px 10px; font:inherit; background:none}
+  .gaveta footer .nuevo:hover,.gaveta footer .nuevo:focus-visible{color:var(--fg); border-color:var(--bronce)}
+  .gaveta footer .nuevo:focus-visible{outline:2px solid var(--aka); outline-offset:2px}
+  /* ---------- pie ---------- */
+  .pie{display:flex; justify-content:center; gap:24px; padding:12px;
+    font-family:ui-monospace,Menlo,monospace; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--ghost)}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style>
+</head>
+<body>
+<div class="scene">
+  <main class="stage">
+    <article class="pagina">
+      <h2>La Isla del Día Anterior</h2>
+      <p class="parrafo">Renovados los escalones del faro, mi huesped me mostró la biblioteca del
+        náufrago: cajas selladas con lacre azul, mapas corónimos y un cuaderno
+        cuyo índice prometía<span class="leido">hallar el orden del tiempo en la espuma</span>.</p>
+      <p class="parrafo">—Todo libro es un instrumento —dijo—, y la distancia entre lo
+        que se cuenta y lo que se recuerda<span class="leido">es una medida más que cualquiera</span>.</p>
+      <p class="parrafo">Dudé. La espuma, afirmo ahora, no guarda orden alguno; pero
+        la duda ya era una forma de creer, y lo sigo creyendo cuando la marea
+        trae a mi ventana su cartografía fugaz.</p>
+      <!-- solapas del canto -->
+      <div class="solapas" role="tablist" aria-label="Solapas del libro">
+        <button class="solapa" role="tab" style="background:var(--t-ocre)" aria-label="Solapa bronce, pág. 112" aria-pressed="false"></button>
+        <button class="solapa" role="tab" style="background:var(--t-rojo)" aria-label="Solapa roja, pág. 118" aria-pressed="false"></button>
+        <button class="solapa" role="tab" style="background:var(--t-salvia)" aria-label="Solapa salvia, pág. 124" aria-pressed="true"></button>
+        <button class="solapa" role="tab" style="background:var(--t-niebla)" aria-label="Solapa niebla, pág. 137" aria-pressed="false"></button>
+      </div>
+      <span class="folio">124</span>
+
+      <!-- ficha de la nota activa -->
+      <aside class="ficha" aria-label="Nota en pág. 124">
+        <header><span class="hilo" aria-hidden="true"></span> Nota · pág. 124 · línea 9
+          <button class="cerrar" aria-label="Cerrar nota"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+        </header>
+        <p class="cuerpo">la espuma ordena la memoria a su manera: papel rinde como tabla de mareas</p>
+        <p class="cita">…cuyo índice prometía hallar el orden del tiempo en la espuma…</p>
+        <footer>
+          <button type="button">Editar</button>
+          <button type="button">Agregar a la cita</button>
+          <button type="button" style="color:var(--aka)">Quitar solapa</button>
+        </footer>
+      </aside>
+    </article>
+  </main>
+
+  <!-- gaveta -->
+  <aside class="gaveta" aria-label="Solapas e índice de notas">
+    <header><b>4</b> solapas · <span>2 sin leer</span></header>
+    <div class="conjunto">
+      <div class="grupo">
+        <h3>Cap. III — El faro</h3>
+        <button class="solapa-fila" aria-current="true"><span class="tinta" style="background:var(--t-salvia)"></span>
+          <span class="txt">la espuma ordena la memoria a su manera: papel rinde como tabla…</span>
+          <span class="dode">p.124</span></button>
+        <button class="solapa-fila"><span class="tinta" style="background:var(--t-rojo)"></span>
+          <span class="txt">"la distancia entre lo que se cuenta y lo que se recuerda" — clave para el ensayo</span>
+          <span class="dode">p.118</span></button>
+      </div>
+      <div class="grupo">
+        <h3>Cap. II — El náufrago</h3>
+        <button class="solapa-fila"><span class="tinta" style="background:var(--t-ocre)"></span>
+          <span class="txt">el náufrago miente por cortesía; registrarlo al releer</span>
+          <span class="dode">p.112</span></button>
+      </div>
+      <div class="grupo">
+        <h3>Cap. IV — La marea</h3>
+        <button class="solapa-fila"><span class="tinta" style="background:var(--t-niebla)"></span>
+          <span class="txt">comparar cartografía fugaz con cartas del apéndice</span>
+          <span class="dode">p.137</span></button>
+      </div>
+    </div>
+    <footer><span>sync 18:42 · nube</span><button class="nuevo" type="button">+ nueva solapa</button></footer>
+  </aside>
+</div>
+
+<footer class="pie">
+  <span>una solapa = una nota anclada a una línea · la página queda intacta</span>
+</footer>
+</body>
+</html>

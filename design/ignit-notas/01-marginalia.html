@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ignit — 01 Marginalia</title>
+<style>
+  :root{
+    --bg:#0d0a07; --fg:#ece5d5; --body:#d6ccb4; --faint:#8f826b; --ghost:#786c57;
+    --border:#352d22; --panel:rgba(18,14,10,.96); --bronce:#b98a44; --aka:#c73e3a;
+    --tab-rojo:#a6362f; --tab-ocre:#b98a44; --tab-salvia:#7d8c6a; --tab-niebla:#8c96a0; --tab-hueso:#d9c9a3;
+  }
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%}
+  body{
+    background:var(--bg); color:var(--body);
+    font-family:Georgia,'Times New Roman',serif;
+    display:flex; flex-direction:column; min-height:900px;
+    -webkit-font-smoothing:antialiased;
+  }
+  /* ---------- escena ---------- */
+  .scene{position:relative; flex:1; display:flex; flex-direction:column; overflow:hidden}
+  .scene::before{content:""; position:absolute; inset:0; pointer-events:none;
+    background:radial-gradient(60% 45% at 50% 0%, rgba(201,62,58,.10), transparent 70%)}
+  /* ---------- barra superior ---------- */
+  .topbar{
+    display:flex; align-items:center; gap:20px; padding:14px 28px; z-index:2;
+    border-bottom:1px solid var(--border); background:var(--panel);
+    font-family:ui-monospace,'Cascadia Mono',Menlo,monospace; font-size:11px; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--faint);
+  }
+  .topbar .titulo{color:var(--fg); font-family:Georgia,serif; font-size:14px; letter-spacing:.02em; text-transform:none}
+  .topbar .progreso{margin-left:auto; display:flex; align-items:center; gap:10px}
+  .pista{width:160px; height:2px; background:var(--border); border-radius:2px}
+  .pista i{display:block; height:100%; width:38%; background:var(--bronce); border-radius:2px}
+  .modo-notas{
+    display:flex; align-items:center; gap:8px; color:var(--fg);
+    border:1px solid var(--bronce); border-radius:4px; padding:6px 10px;
+  }
+  .modo-notas .punto{width:6px;height:6px;border-radius:50%;background:var(--bronce)}
+  /* ---------- plató ---------- */
+  .stage{flex:1; display:flex; align-items:center; justify-content:center; padding:34px 56px 44px; position:relative}
+  .libro{display:flex; box-shadow:0 30px 80px rgba(0,0,0,.65); border-radius:3px}
+  .pagina{
+    width:470px; height:640px; background:linear-gradient(180deg,#1a140d,#151009);
+    padding:64px 58px; position:relative;
+  }
+  .pagina.izq{border-right:1px solid rgba(0,0,0,.6); border-radius:3px 0 0 3px}
+  .pagina.der{border-left:1px solid var(--border); box-shadow:inset 14px 0 24px -14px rgba(0,0,0,.8); border-radius:0 3px 3px 0}
+  .folio{position:absolute; bottom:22px; font-family:ui-monospace,Menlo,monospace; font-size:10px; color:var(--faint); letter-spacing:.2em}
+  .pag-izq .folio{left:50%; transform:translateX(-50%)} .pag-der .folio{left:50%; transform:translateX(-50%)}
+  .pagina h2{font-size:13px; letter-spacing:.34em; text-transform:uppercase; color:var(--faint);
+    font-family:ui-monospace,Menlo,monospace; font-weight:normal; margin-bottom:34px; text-align:center}
+  .parrafo{font-size:16.5px; line-height:1.85; color:var(--body); text-indent:2.2em; margin-bottom:0}
+  .parrafo + .parrafo{margin-top:.9em}
+  /* subrayado a lápiz (tinta fantasma menor) */
+  .lapiz{border-bottom:1px solid rgba(185,138,68,.55); padding-bottom:1px}
+  /* ---------- marginalia: la columna exterior ---------- */
+  .margen{position:absolute; top:64px; bottom:64px; width:118px; display:flex; flex-direction:column; gap:26px}
+  .pagina.izq .margen{left:14px}
+  .pagina.der .margen{right:14px}
+  .nota{
+    position:relative; padding-left:14px; border-left:2px solid rgba(185,138,68,.45);
+    font-family:'Segoe Script','Bradley Hand','Comic Sans MS',cursive;
+    font-size:12.5px; line-height:1.55; color:rgba(236,229,213,.82); transform:rotate(-.6deg);
+  }
+  .nota small{display:block; margin-top:6px; font-family:ui-monospace,Menlo,monospace; font-size:9px;
+    letter-spacing:.14em; text-transform:uppercase; color:var(--ghost); font-style:normal}
+  .nota .ancla{position:absolute; left:-4px; top:2px; width:9px; height:9px; border-radius:50%;
+    background:var(--bronce); box-shadow:0 0 10px rgba(185,138,68,.5)}
+  .nota.n2{transform:rotate(.8deg)} .nota.n2 .ancla{background:var(--tab-salvia); box-shadow:0 0 10px rgba(125,140,106,.5)}
+  .nota.n3{transform:rotate(-1.2deg)} .nota.n3 .ancla{background:var(--tab-niebla); box-shadow:0 0 10px rgba(140,150,160,.45)}
+  /* pestañas fuera del canto */
+  .solapa{position:absolute; right:-16px; width:16px; height:34px; border-radius:0 3px 3px 0; opacity:.9}
+  .solapa.s{right:auto; left:-16px; border-radius:3px 0 0 3px}
+  /* ---------- selección activa + burbuja de intención ---------- */
+  .seleccion{background:rgba(185,138,68,.22); box-shadow:0 0 0 1px rgba(185,138,68,.15); color:var(--fg)}
+  .burbuja{
+    position:absolute; display:flex; align-items:center; gap:2px; z-index:5;
+    background:var(--panel); border:1px solid var(--bronce); border-radius:8px; padding:6px 10px;
+    box-shadow:0 12px 30px rgba(0,0,0,.55); animation:aparece .18s ease-out;
+  }
+  @keyframes aparece{from{opacity:0; transform:translateY(4px)} to{opacity:1}}
+  .burbuja button{
+    background:none; border:0; color:var(--faint); font:inherit; cursor:pointer;
+    padding:6px 8px; border-radius:5px; display:flex; gap:6px; align-items:center; font-size:12px;
+    font-family:ui-monospace,Menlo,monospace; letter-spacing:.06em; text-transform:uppercase;
+  }
+  .burbuja button:hover,.burbuja button:focus-visible{color:var(--fg); background:rgba(185,138,68,.12)}
+  .burbuja button:focus-visible{outline:2px solid var(--aka); outline-offset:2px}
+  .burbuja .sep{width:1px; height:18px; background:var(--border); margin:0 2px}
+  /* ---------- editor marginal ---------- */
+  .editor-marginal{
+    position:absolute; right:-138px; width:126px; top:150px; padding:12px 12px 10px;
+    background:var(--panel); border:1px solid var(--border); border-radius:6px;
+    box-shadow:0 14px 34px rgba(0,0,0,.55); z-index:6;
+  }
+  .editor-marginal textarea{
+    width:100%; height:88px; resize:none; background:transparent; border:0; outline:none;
+    font-family:'Segoe Script','Bradley Hand',cursive; font-size:12.5px; line-height:1.55; color:var(--fg);
+  }
+  .editor-marginal textarea::placeholder{color:var(--ghost)}
+  .editor-marginal footer{display:flex; align-items:center; gap:6px; border-top:1px solid var(--border); padding-top:8px; margin-top:6px}
+  .chip-color{width:14px; height:14px; border-radius:3px; border:0; cursor:pointer; padding:0}
+  .chip-color[aria-pressed="true"]{outline:2px solid var(--fg); outline-offset:1px}
+  .editor-marginal .guarda{margin-left:auto; font-family:ui-monospace,Menlo,monospace; font-size:9px;
+    letter-spacing:.12em; text-transform:uppercase; color:var(--bronce)}
+  /* ---------- pie ---------- */
+  .pie{
+    display:flex; align-items:center; justify-content:center; gap:24px; padding:14px; z-index:2;
+    font-family:ui-monospace,Menlo,monospace; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--ghost);
+    border-top:1px solid transparent;
+  }
+  .pie .cuenta{color:var(--faint)} .pie .cuenta b{color:var(--bronce); font-weight:normal}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style>
+</head>
+<body>
+<div class="scene">
+  <header class="topbar">
+    <span class="modo-notas"><span class="punto"></span> Lápiz en mano</span>
+    <span class="titulo">La orilla que nadie cartografió</span>
+    <span>Cap. V — Corrientes</span>
+    <span class="progreso"><span>38%</span><span class="pista"><i></i></span></span>
+  </header>
+
+  <main class="stage">
+    <div class="libro">
+      <article class="pagina pag-izq">
+        <h2>Corrientes</h2>
+        <p class="parrafo">El río que navegábamos no aparecía en ninguna carta. Cada mañana
+          la niebla lo desdibujaba un poco más y nosotros aprendimos,
+          sin decirlo, allanarnos<span class="lapiz">a leer el agua como quien lee una página gastada</span>.</p>
+        <p class="parrafo">Cuando al fin divisamos la primera boca del delta, apenas
+          dijimos nada. Guardamos silencio<span class="lapiz">como se guarda una promesa</span>,
+          y el bote siguió avanzando por su cuenta, obediente a una corriente
+          que ninguno de los dos nombraría jamás.</p>
+
+        <!-- selección activa -->
+        <p class="parrafo">—¿Sentís eso? —preguntó ella, sin levantar la vista<span
+          class="seleccion" id="sel"> del cuaderno donde anotaba la temperatura del viento</span>.</p>
+
+        <!-- burbuja de intención flotando sobre la selección -->
+        <div class="burbuja" role="toolbar" aria-label="Acciones de nota para la selección">
+          <button type="button" aria-label="Anotar al margen"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Nota</button>
+          <span class="sep"></span>
+          <button type="button" aria-label="Subrayar a lápiz"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17c3-1 5-1 8 0s5 1 8 0"/><path d="M3 21c3-1 5-1 8 0s5 1 8 0"/></svg> Trazo</button>
+          <span class="sep"></span>
+          <button type="button" aria-label="Marcar con solapa"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h12v18l-6-4-6 4Z"/></svg> Solapa</button>
+        </div>
+
+        <!-- editor marginal abierto sobre el propio margen -->
+        <div class="editor-marginal" aria-label="Nota marginal">
+          <textarea aria-label="Texto de la nota marginal" placeholder="Al margen…">aquí el río = la memoria. volver cuando lea el cap. IX</textarea>
+          <footer>
+            <button class="chip-color" style="background:var(--tab-rojo)" aria-label="Color rojo" aria-pressed="false"></button>
+            <button class="chip-color" style="background:var(--tab-ocre)" aria-label="Color bronce" aria-pressed="true"></button>
+            <button class="chip-color" style="background:var(--tab-salvia)" aria-label="Color salvia" aria-pressed="false"></button>
+            <span class="guarda">✓ guardada</span>
+          </footer>
+        </div>
+
+        <span class="folio">129</span>
+      </article>
+
+      <article class="pagina pag-der">
+        <!-- margen derecho con notas a lápiz -->
+        <div class="margen" style="left:auto; right:14px; top:96px">
+          <div class="nota"><span class="ancla" aria-hidden="true"></span>
+            promesa rota en pág. 112 — la corriente es ella
+            <small>3 · bronce</small>
+            <span class="solapa" style="background:var(--tab-ocre)" aria-hidden="true"></span>
+          </div>
+          <div class="nota n2"><span class="ancla" aria-hidden="true"></span>
+            ¿autor dirá quién anotaba? no lo responde
+            <small>2 · salvia</small>
+            <span class="solapa s" style="background:var(--tab-salvia)" aria-hidden="true"></span>
+          </div>
+          <div class="nota n3"><span class="ancla" aria-hidden="true"></span>
+            leer en voz alta para la niebla
+            <small>hoy · niebla</small>
+            <span class="solapa" style="background:var(--tab-niebla)" aria-hidden="true"></span>
+          </div>
+        </div>
+
+        <h2 style="visibility:hidden" aria-hidden="true">—</h2>
+        <p class="parrafo" style="margin-top:40px">La temperatura del viento era, según ella, un modo
+          honesto de medir el día. Yo ahora pienso que medía otra cosa: el valor
+          que teníamos por decir la verdad<span class="lapiz">sin nombrarla</span>.</p>
+        <p class="parrafo">Ese delta se abrió en tres bocas frente a nosotros,
+          y las tres parecían la misma. Elegimos la del medio porque era la única
+          que conservaba el rumor de un faro a lo lejos.</p>
+        <p class="parrafo">Anoche soñé que todavía remábamos. Desperté con las manos
+          callosas y la certeza de que<span class="lapiz">el cuaderno de ella decía otra cosa</span>.</p>
+        <span class="folio">130</span>
+        <span class="solapa" style="background:var(--tab-rojo); top:120px" aria-hidden="true"></span>
+      </article>
+    </div>
+  </main>
+
+  <footer class="pie">
+    <span class="cuenta"><b>7</b> notas en este libro</span>
+    <span>·</span>
+    <span>las notas viven en el margen, nunca sobre el texto</span>
+  </footer>
+</div>
+</body>
+</html>

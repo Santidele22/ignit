@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ignit — 03 Tinta fantasma</title>
+<style>
+  :root{
+    --bg:#0d0a07; --fg:#ece5d5; --body:#d6ccb4; --faint:#8f826b; --ghost:#786c57;
+    --border:#352d22; --panel:rgba(18,14,10,.96); --bronce:#b98a44; --aka:#c73e3a;
+  }
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%}
+  body{background:var(--bg); color:var(--body); font-family:Georgia,'Times New Roman',serif;
+    display:flex; flex-direction:column; min-height:900px; -webkit-font-smoothing:antialiased}
+  .scene{position:relative; flex:1; display:flex; flex-direction:column; overflow:hidden}
+  .scene::before{content:""; position:absolute; inset:0; pointer-events:none;
+    background:radial-gradient(55% 42% at 50% 0%, rgba(201,62,58,.10), transparent 70%)}
+  /* ---------- barra mínima ---------- */
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between; padding:14px 30px; z-index:2;
+    font-family:ui-monospace,Menlo,monospace; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--ghost);
+  }
+  .topbar .titulo{color:var(--faint)}
+  .topbar .cont-notas{color:var(--faint)}
+  .topbar .cont-notas b{color:var(--bronce); font-weight:normal}
+  /* ---------- página única centrada ---------- */
+  .stage{flex:1; display:flex; justify-content:center; padding:6px 64px 40px}
+  .pagina{
+    width:620px; background:linear-gradient(180deg,#1a140d,#151009); border:1px solid var(--border);
+    border-radius:4px; padding:74px 88px 70px; box-shadow:0 26px 70px rgba(0,0,0,.6);
+    position:relative;
+  }
+  .pagina h2{font-size:13px; letter-spacing:.34em; text-transform:uppercase; color:var(--faint);
+    font-family:ui-monospace,Menlo,monospace; font-weight:normal; margin-bottom:34px; text-align:center}
+  .parrafo{font-size:17px; line-height:1.9; color:var(--body); text-indent:2.3em}
+  .parrafo + .parrafo{margin-top:1em}
+  .folio{position:absolute; bottom:24px; left:50%; transform:translateX(-50%);
+    font-family:ui-monospace,Menlo,monospace; font-size:10px; color:var(--faint); letter-spacing:.2em}
+  /* ---------- marcas fantasma ----------
+     nada invade el renglón: subrayado de tinta bajo palbras, visible solo como gesto */
+  .marca{
+    border-bottom:1px solid rgba(185,138,68,.5);
+    position:relative; cursor:pointer;
+  }
+  .marca::after{ /* punto bronce en el margen, aparece al hover */
+    content:""; position:absolute; left:-26px; top:14px; width:6px; height:6px;
+    border-radius:50%; background:var(--bronce); opacity:0; transition:opacity .15s ease;
+  }
+  .marca:hover,.marca:focus-visible{background:rgba(185,138,68,.09); color:var(--fg); border-bottom-color:var(--bronce)}
+  .marca:hover::after,.marca:focus-visible::after{opacity:1}
+  .marca:focus-visible{outline:2px solid var(--aka); outline-offset:2px}
+  /* marca de selección activa */
+  .marcada{background:rgba(185,138,68,.18); color:var(--fg); border-bottom:1px solid var(--bronce)}
+  .marcada::after{opacity:1}
+  /* ---------- susurro: la nota solo existe al pedirle ---------- */
+  .susurro{
+    position:absolute; top:158px; left:50%; transform:translateX(-50%);
+    width:380px; background:var(--panel); border:1px solid var(--border); border-radius:8px;
+    box-shadow:0 18px 44px rgba(0,0,0,.6); padding:14px 18px 12px; z-index:6;
+    animation:sube .22s ease-out both;
+  }
+  @keyframes sube{from{opacity:0; transform:translateX(-50%) translateY(8px)} to{opacity:1; transform:translateX(-50%) translateY(0)}}
+  .susurro .rot{font-family:ui-monospace,Menlo,monospace; font-size:9px; letter-spacing:.16em;
+    text-transform:uppercase; color:var(--ghost); margin-bottom:6px}
+  .susurro .manuscrito{font-family:'Segoe Script','Bradley Hand',cursive; font-size:14.5px; line-height:1.6; color:var(--fg)}
+  .susurro .acciones{display:flex; gap:8px; margin-top:12px; border-top:1px solid var(--border); padding-top:10px;
+    font-family:ui-monospace,Menlo,monospace; font-size:10px; letter-spacing:.08em; text-transform:uppercase}
+  .susurro .acciones button{background:none; border:0; color:var(--faint); cursor:pointer; padding:6px 8px; border-radius:4px; font:inherit}
+  .susurro .acciones button:hover,.susurro .acciones button:focus-visible{color:var(--fg); background:rgba(185,138,68,.1)}
+  .susurro .acciones button:focus-visible{outline:2px solid var(--aka); outline-offset:1px}
+  .susurro .acciones .luego{margin-left:auto; color:var(--ghost); cursor:default}
+  /* ---------- lápiz fantasma: aparece solo con selección ---------- */
+  .lapiz-flotante{
+    position:fixed; right:40px; bottom:44px; z-index:7;
+    display:flex; align-items:center; gap:10px; padding:10px 16px;
+    background:var(--panel); border:1px solid var(--bronce); border-radius:999px;
+    box-shadow:0 14px 36px rgba(0,0,0,.55); color:var(--fg);
+    font-family:ui-monospace,Menlo,monospace; font-size:10.5px; letter-spacing:.12em; text-transform:uppercase;
+    animation:sube2 .25s ease-out both;
+  }
+  @keyframes sube2{from{opacity:0; transform:translateY(8px)} to{opacity:1}}
+  .lapiz-flotante kbd{border:1px solid var(--border); border-radius:3px; padding:1px 5px; color:var(--ghost); font-size:9px}
+  /* ---------- pie ---------- */
+  .pie{display:flex; justify-content:center; gap:26px; padding:12px; z-index:2;
+    font-family:ui-monospace,Menlo,monospace; font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--ghost)}
+  .pie .lazo{color:var(--faint); cursor:pointer; border-bottom:1px dashed var(--border); padding-bottom:1px}
+  .pie .lazo:hover,.pie .lazo:focus-visible{color:var(--fg); border-bottom-color:var(--bronce)}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style>
+</head>
+<body>
+<div class="scene">
+  <header class="topbar">
+    <span class="titulo">Tres pasos para un mar que no existe</span>
+    <span class="cont-notas"><b>12</b> trazos guardados</span>
+  </header>
+
+  <main class="stage">
+    <article class="pagina" style="margin-top:40px">
+      <h2>Segunda marea</h2>
+      <p class="parrafo">Lo que llamamos horizonte es, en rigor, una cicatriz que el mar
+        se abrió para recordar donde estaba la costa. Nadie la tocó<span
+        class="marcada" id="activa">—pescamos en sus bordes, como quien reza sin dios—</span>,
+        y aun así miraba.</p>
+      <p class="parrafo">Los tripulantes contaban que la isla avanzaba por las solas:
+        un paso cada marea, <span class="marca" tabindex="0" aria-label="Ver nota en este pasaje">siempre contra la corriente y por sus propios medios</span>.
+        Yo no discutí: era de noche, y discutir con una isla requiere luz.</p>
+      <p class="parrafo"><span class="marca" tabindex="0" aria-label="Ver nota en este pasaje">Cuatro siglos de cartas navales la omiten por prudencia</span>,
+        no por ignorancia. Los hidrógrafos la conocían; preferían el silencio,
+        que es la forma más antigua de la exactitud<span class="marca" tabindex="0" aria-label="Ver nota en este pasaje">que nos queda</span>.</p>
+      <span class="folio">61</span>
+      <!-- susurro bajo la pasaje marcado -->
+      <aside class="susurro" aria-label="Nota en pág. 61">
+        <p class="rot">nota · pág. 61 · guardada hoy</p>
+        <p class="manuscrito">la isla avanza porque nadie la mira: lo contrario de un libro</p>
+        <p class="acciones">
+          <button type="button">Editar</button>
+          <button type="button">Abrir todas (12)</button>
+          <span class="luego">✓ guardada en la nube</span>
+        </p>
+      </aside>
+    </article>
+  </main>
+
+  <!-- lápiz que aparece SOLO al seleccionar -->
+  <div class="lapiz-flotante" role="status">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+    <span>¿Anotar?</span><kbd>N</kbd>
+  </div>
+
+  <footer class="pie">
+    <span>Página limpia · las marcas solo se ven si las buscás</span>
+    <span>·</span>
+    <button class="lazo" type="button">Ver las 12 notas</button>
+  </footer>
+</div>
+</body>
+</html>
