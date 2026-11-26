@@ -22,7 +22,6 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.put
 
-private const val SIGN_IN_PATH = "/api/auth/sign-in/email"
 private const val SESSION_COOKIE_NAME = "better-auth.session_token"
 
 /** Shown when the backend rejected the sign-in without a readable message. */
@@ -32,18 +31,27 @@ private const val SIGN_IN_FALLBACK = "No pudimos iniciar sesión. Probá de nuev
 private const val CONNECTION_FALLBACK = "No pudimos conectar con el servidor."
 
 /**
- * Signs in against `POST {baseUrl}/api/auth/sign-in/email`, mirroring the web flow.
+ * Signs in against `POST {baseUrl}{signInPath}`, mirroring the web flow.
+ *
+ * Both the host and the route come from the build-time environment profile, because production and
+ * local development differ in both: production signs in at `/api/auth/sign-in/email` behind the
+ * Worker proxy, while the local dev backend answers `/api/auth/dev-login` and 404s the production
+ * route.
  *
  * A 2xx answer is mapped to [UserSession] from the `Set-Cookie` session cookie, which is the
- * credential the backend actually verifies; the body `token` is kept as its fallback. A
+ * credential the backend itself verifies; the body `token` is kept as its fallback. A
  * 4xx/5xx answer throws [AuthException] carrying the backend's own `message`. Transport and
  * parse failures never leak raw exception types.
  */
-class KtorAuthGateway(private val client: HttpClient, private val baseUrl: String) : AuthGateway {
+class KtorAuthGateway(
+	private val client: HttpClient,
+	private val baseUrl: String,
+	private val signInPath: String,
+) : AuthGateway {
 
 	override suspend fun signIn(email: String, password: String): UserSession {
 		val response = try {
-			client.post("$baseUrl$SIGN_IN_PATH") {
+			client.post("$baseUrl$signInPath") {
 				// Only an HTTPS base is a real deployment behind the Worker proxy, which enforces
 				// same-origin on mutating requests. A native client has no browser origin anyway, and
 				// the local better-auth dev server rejects origins outside its `trustedOrigins`

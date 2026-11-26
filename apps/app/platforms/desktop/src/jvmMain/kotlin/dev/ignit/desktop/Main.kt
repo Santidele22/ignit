@@ -23,17 +23,30 @@ import dev.ignit.ui.LoginViewModel
 /**
  * Composition root of the desktop app.
  *
- * `IgnitApiConfig.API_BASE_URL` is generated from the `ignit.apiBaseUrl` Gradle property, so the same
- * code builds against production (the default) or a local backend (`-Pignit.apiBaseUrl=http://localhost:3000`).
+ * `IgnitApiConfig` is generated from the `ignit.environment` Gradle property, so the same code builds
+ * against production (the default) or a local backend (`-Pignit.environment=local`). The profile carries
+ * the base URL and both API paths, because the two environments differ in the auth endpoint and in the
+ * REST prefix, not just the host.
  */
 fun main() = application {
 	val httpClient = remember { createIgnitHttpClient() }
 	val authSession = remember { FileAuthSession() }
 	val preferences = remember { FilePreferencesStore() }
-	val authGateway = remember { KtorAuthGateway(httpClient, IgnitApiConfig.API_BASE_URL) }
+	val authGateway = remember {
+		KtorAuthGateway(httpClient, IgnitApiConfig.API_BASE_URL, IgnitApiConfig.SIGN_IN_PATH)
+	}
 	val palettePreference = remember { PalettePreference(preferences) }
 	// The library adapter reads the session itself: the catalog needs the signed cookie.
-	val syncLibrary = remember { SyncLibrary(KtorLibraryRepository(httpClient, IgnitApiConfig.API_BASE_URL, authSession)) }
+	val syncLibrary = remember {
+		SyncLibrary(
+			KtorLibraryRepository(
+				httpClient,
+				IgnitApiConfig.API_BASE_URL,
+				authSession,
+				IgnitApiConfig.BOOKS_PATH,
+			),
+		)
+	}
 
 	DisposableEffect(Unit) {
 		onDispose { httpClient.close() }

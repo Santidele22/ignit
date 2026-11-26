@@ -15,6 +15,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
 private const val BASE_URL = "https://ignit.ignit677.workers.dev"
+private const val SIGN_IN_PATH = "/api/auth/sign-in/email"
 
 private const val USER_JSON = """{"user":{"id":"usr_1","email":"a@b.ar","name":"A"}}"""
 
@@ -35,7 +36,7 @@ class KtorAuthGatewayCookieTest {
 	fun securePrefixedCookieIsAcceptedOutsideLocalhost() = runTest {
 		val client = clientReturning("__Secure-better-auth.session_token=tok_secure; Path=/; HttpOnly; Secure")
 
-		val session: UserSession = KtorAuthGateway(client, BASE_URL).signIn("a@b.ar", "pw")
+		val session: UserSession = KtorAuthGateway(client, BASE_URL, SIGN_IN_PATH).signIn("a@b.ar", "pw")
 
 		assertEquals("tok_secure", session.token)
 		assertEquals("__Secure-better-auth.session_token=tok_secure", session.sessionCookie)
@@ -45,7 +46,7 @@ class KtorAuthGatewayCookieTest {
 	fun unprefixedCookieIsStillAccepted() = runTest {
 		val client = clientReturning("better-auth.session_token=tok_local; Path=/; HttpOnly")
 
-		val session = KtorAuthGateway(client, BASE_URL).signIn("a@b.ar", "pw")
+		val session = KtorAuthGateway(client, BASE_URL, SIGN_IN_PATH).signIn("a@b.ar", "pw")
 
 		assertEquals("tok_local", session.token)
 		assertEquals("better-auth.session_token=tok_local", session.sessionCookie)
@@ -58,7 +59,7 @@ class KtorAuthGatewayCookieTest {
 			"__Secure-better-auth.session_token=tok_second; Path=/; HttpOnly; Secure",
 		)
 
-		val session = KtorAuthGateway(client, BASE_URL).signIn("a@b.ar", "pw")
+		val session = KtorAuthGateway(client, BASE_URL, SIGN_IN_PATH).signIn("a@b.ar", "pw")
 
 		assertEquals("__Secure-better-auth.session_token=tok_second", session.sessionCookie)
 		assertEquals("tok_second", session.token)
@@ -68,6 +69,6 @@ class KtorAuthGatewayCookieTest {
 	fun unrelatedCookieDoesNotBecomeTheToken() = runTest {
 		val client = clientReturning("analytics_id=abc123; Path=/")
 
-		assertFailsWith<AuthException> { KtorAuthGateway(client, BASE_URL).signIn("a@b.ar", "pw") }
+		assertFailsWith<AuthException> { KtorAuthGateway(client, BASE_URL, SIGN_IN_PATH).signIn("a@b.ar", "pw") }
 	}
 }

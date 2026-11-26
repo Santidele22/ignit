@@ -24,19 +24,30 @@ Estado: implementado en la rama `feat/app-native-fase-1-login`. La biblioteca co
 
 ## Ambientes
 
-La URL base de la API se elige **en tiempo de build**, no está hardcodeada: `gradle.properties` trae
-`ignit.apiBaseUrl=https://ignit.ignit677.workers.dev` y cada módulo de plataforma genera
-`IgnitApiConfig.API_BASE_URL` a partir de esa propiedad (`platforms/*/build/generated/ignitApiConfig/kotlin`).
-Un `-P` la pisa sin tocar código.
+El entorno de la API se elige **en tiempo de build**, no está hardcodeado: `gradle.properties` trae
+`ignit.environment=production` y cada módulo de plataforma genera `IgnitApiConfig` a partir de esa
+propiedad (`platforms/*/build/generated/ignitApiConfig/kotlin`). Un `-P` lo cambia sin tocar código, y
+cualquier valor que no sea `production` o `local` **rompe el build** con un mensaje explícito.
 
 | Destino | Invocación |
 | --- | --- |
 | Producción (default) | nada que pasar |
-| Emulador Android contra la API local | `./gradlew :platforms:android:installDebug -Pignit.apiBaseUrl=http://10.0.2.2:3000` |
-| Desktop contra la API local | `./gradlew :platforms:desktop:run -Pignit.apiBaseUrl=http://localhost:3000` |
+| Emulador Android contra la API local | `./gradlew :platforms:android:installDebug -Pignit.environment=local` |
+| Desktop contra la API local | `./gradlew :platforms:desktop:run -Pignit.environment=local` |
+
+Un solo base URL no alcanza: producción y local difieren en **el endpoint de login y en el path de
+REST**, además del host. El perfil genera tres constantes (`API_BASE_URL`, `SIGN_IN_PATH`, `BOOKS_PATH`)
+y los adaptadores reciben el path por constructor, así que nada queda hardcodeado adentro del gateway:
+
+| | `production` | `local` |
+| --- | --- | --- |
+| `API_BASE_URL` | `https://ignit.ignit677.workers.dev` | `http://10.0.2.2:3000` (Android) / `http://localhost:3000` (desktop) |
+| `SIGN_IN_PATH` | `/api/auth/sign-in/email` (better-auth) | `/api/auth/dev-login` (dev-auth) |
+| `BOOKS_PATH` | `/api/books` (el prefijo `/api` es del proxy) | `/books` (sin prefijo) |
+| Credencial que devuelve el login | `token` en el body **y** cookie de sesión | **sólo** la cookie firmada (HMAC), sin `token` |
 
 El emulador llega al loopback del host por `10.0.2.2`; `localhost` adentro del emulador es el emulador mismo,
-no la máquina que corre el backend. Por eso las dos invocaciones no son la misma URL.
+no la máquina que corre el backend. Por eso cada plataforma tiene su propio host local.
 
 **Por qué tiene que ser seleccionable.** Producción corre Neon: el guard de la API es sólo bearer
 (`Authorization: Bearer <JWT>` de Neon, verificado contra su JWKS) y no mira cookies. El entorno local
@@ -45,6 +56,9 @@ monta **better-auth**, que emite una cookie de sesión firmada y valida `Origin`
 autenticación distintos: apuntar el binario de desarrollo a producción (o al revés) no es un detalle de
 configuración, es un login que no funciona. De ahí también el `Origin` condicional: sólo se manda cuando
 la base es HTTPS, porque ahí sí hay un deployment real detrás del Worker que exige same-origin.
+
+Además, el login local responde **sólo** la cookie: no hay `token` en el body. Por eso el gateway cae a la
+cookie cuando el body no trae token, y esa rama es la que hace funcionar el modo `local`.
 
 El cleartext quedó habilitado **sólo** para el loopback (`res/xml/network_security_config.xml`:
 `10.0.2.2`, `127.0.0.1`, `localhost`); el resto del tráfico sigue siendo HTTPS-only, sin
@@ -55,9 +69,9 @@ El cleartext quedó habilitado **sólo** para el loopback (`res/xml/network_secu
 | Módulo | Test | Qué fija |
 | --- | --- | --- |
 | `core:application` | `SyncLibraryTest` | `(mine, kind)` por defecto, forwarding, `kind` en blanco → `null`, fallo → `Result.failure`. |
-| `adapters:driven:http-api` | `KtorLibraryRepositoryTest` | query string, `Cookie` solo si hay sesión, array y envelope, `401` con mensaje del backend, fallo de transporte. |
+| `adapters:driven:http-api` | `KtorLibraryRepositoryTest` | query string, path de libros **inyectado** (`/books` y `/api/books`), `Cookie` solo si hay sesión, array y envelope, `401` con mensaje del backend, fallo de transporte. |
 | `adapters:driven:http-api` | `KtorLibraryRepositoryProductionPayloadTest` | El **payload real de producción** (dos libros capturados): `id` numérico, `filePages`, `coverUrl` nullable, campos ignorados. |
-| `adapters:driven:http-api` | `KtorAuthGatewayTest` | La cookie firmada se guarda como credencial; el token del body sigue sirviendo de fallback; `Origin` sólo cuando la base es HTTPS. |
+| `adapters:driven:http-api` | `KtorAuthGatewayTest` | El path de sign-in **inyectado** (`/api/auth/sign-in/email` y `/api/auth/dev-login`); la respuesta local sin `token` igual produce credencial desde la cookie; `Origin` sólo cuando la base es HTTPS. |
 | `adapters:driven:auth-session` | `SessionCodecTest` | Round-trip con `sessionCookie` y **compatibilidad con payloads viejos**. |
 | `adapters:driving:ui-compose` | `LibraryViewModelTest` | alcance/estante/`limit`/`offset` hacia el puerto, paginado que apila y deduplica por `id`, error que conserva los libros, supersesión de un `loadMore` viejo, **categorías que no se reducen al filtrar**, `kindLabel`. |
 

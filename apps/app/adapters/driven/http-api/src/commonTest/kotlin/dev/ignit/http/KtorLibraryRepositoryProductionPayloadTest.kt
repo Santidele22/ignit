@@ -15,6 +15,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
 private const val BASE_URL = "https://ignit.ignit677.workers.dev"
+private const val BOOKS_PATH = "/api/books"
 
 /**
  * Captured from `GET {BASE_URL}/api/books` (anonymous, HTTP 200) with two entries kept verbatim
@@ -96,6 +97,7 @@ class KtorLibraryRepositoryProductionPayloadTest {
 		}) { expectSuccess = false },
 		BASE_URL,
 		AnonymousSession(),
+		BOOKS_PATH,
 	)
 
 	@Test

@@ -21,16 +21,64 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 private const val BASE_URL = "https://ignit.ignit677.workers.dev"
 private const val LOCAL_BASE_URL = "http://10.0.2.2:3000"
 private const val SIGN_IN_PATH = "/api/auth/sign-in/email"
+private const val LOCAL_SIGN_IN_PATH = "/api/auth/dev-login"
 private const val SPANISH_SIGN_IN_FALLBACK = "No pudimos iniciar sesión. Probá de nuevo."
 
 private fun clientWith(handler: MockRequestHandler): HttpClient =
 	HttpClient(MockEngine(handler)) { expectSuccess = false }
 
 class KtorAuthGatewayTest {
+
+	@Test
+	fun requestTargetsTheProductionSignInPath() = runTest {
+		var captured: HttpRequestData? = null
+		val client = clientWith { request ->
+			captured = request
+			respond(
+				content = """{"token":"tok_abc","user":{"id":"usr_123"}}""",
+				status = HttpStatusCode.OK,
+			)
+		}
+
+		KtorAuthGateway(client, BASE_URL, SIGN_IN_PATH).signIn("santi@ignit.ar", "secreto123")
+
+		// The path is injected, not hardcoded: production signs in through the better-auth route the
+		// Worker proxy exposes under /api.
+		val request = assertNotNull(captured)
+		assertEquals(HttpMethod.Post, request.method)
+		assertEquals("/api/auth/sign-in/email", request.url.encodedPath)
+		assertEquals("ignit.ignit677.workers.dev", request.url.host)
+	}
+
+	@Test
+	fun requestTargetsTheLocalDevLoginPath() = runTest {
+		var captured: HttpRequestData? = null
+		val client = clientWith { request ->
+			captured = request
+			respond(
+				content = """{"user":{"id":"usr_local"}}""",
+				status = HttpStatusCode.OK,
+				headers = headersOf(
+					HttpHeaders.SetCookie,
+					"better-auth.session_token=signed.local; Path=/; HttpOnly",
+				),
+			)
+		}
+
+		KtorAuthGateway(client, LOCAL_BASE_URL, LOCAL_SIGN_IN_PATH).signIn("local@ignit.ar", "secreto123")
+
+		// Local dev mounts the dev-auth controller at a different route: /api/auth/sign-in/email is a
+		// 404 there, so the injected path has to be the one actually requested.
+		val request = assertNotNull(captured)
+		assertEquals(HttpMethod.Post, request.method)
+		assertEquals("/api/auth/dev-login", request.url.encodedPath)
+		assertEquals("10.0.2.2", request.url.host)
+	}
 
 	@Test
 	fun requestMirrorsTheWebSignInFlow() = runTest {
@@ -44,7 +92,7 @@ class KtorAuthGatewayTest {
 			)
 		}
 
-		KtorAuthGateway(client, BASE_URL).signIn("santi@ignit.ar", "secreto123")
+		KtorAuthGateway(client, BASE_URL, SIGN_IN_PATH).signIn("santi@ignit.ar", "secreto123")
 
 		val request = assertNotNull(captured)
 		assertEquals(HttpMethod.Post, request.method)
@@ -66,7 +114,7 @@ class KtorAuthGatewayTest {
 			)
 		}
 
-		KtorAuthGateway(client, BASE_URL).signIn("santi@ignit.ar", "secreto123")
+		KtorAuthGateway(client, BASE_URL, SIGN_IN_PATH).signIn("santi@ignit.ar", "secreto123")
 
 		assertEquals(BASE_URL, assertNotNull(captured).headers[HttpHeaders.Origin])
 	}
@@ -82,7 +130,7 @@ class KtorAuthGatewayTest {
 			)
 		}
 
-		KtorAuthGateway(client, LOCAL_BASE_URL).signIn("santi@ignit.ar", "secreto123")
+		KtorAuthGateway(client, LOCAL_BASE_URL, SIGN_IN_PATH).signIn("santi@ignit.ar", "secreto123")
 
 		// The local better-auth backend rejects an origin it does not trust, and a native client
 		// has no browser origin anyway, so the header must be absent rather than different.
@@ -105,12 +153,37 @@ class KtorAuthGatewayTest {
 			)
 		}
 
-		val session = KtorAuthGateway(client, BASE_URL).signIn("santi@ignit.ar", "secreto123")
+		val session = KtorAuthGateway(client, BASE_URL, SIGN_IN_PATH).signIn("santi@ignit.ar", "secreto123")
 
 		assertEquals(
 			UserSession(userId = "usr_123", email = "santi@ignit.ar", name = "Santi", token = "tok_abc"),
 			session,
 		)
+	}
+
+	@Test
+	fun aLocalAnswerWithoutABodyTokenYieldsTheCookieCredential() = runTest {
+		val client = clientWith {
+			respond(
+				content = """{"user":{"id":"usr_local","email":"local@ignit.ar","name":"Local"}}""",
+				status = HttpStatusCode.OK,
+				headers = headersOf(
+					HttpHeaders.SetCookie,
+					"better-auth.session_token=signed.local; Path=/; HttpOnly; SameSite=Lax",
+				),
+			)
+		}
+
+		val session = KtorAuthGateway(client, LOCAL_BASE_URL, LOCAL_SIGN_IN_PATH)
+			.signIn("local@ignit.ar", "secreto123")
+
+		// `dev-login` answers with a signed cookie only -- no `token` field at all -- so the cookie
+		// fallback, not the body, is what has to carry the credential.
+		assertTrue(session.token.isNotBlank())
+		assertEquals("signed.local", session.token)
+		assertEquals("better-auth.session_token=signed.local", session.sessionCookie)
+		assertEquals("usr_local", session.userId)
+		assertEquals("local@ignit.ar", session.email)
 	}
 
 	@Test
@@ -126,7 +199,7 @@ class KtorAuthGatewayTest {
 			)
 		}
 
-		val session = KtorAuthGateway(client, BASE_URL).signIn("santi@ignit.ar", "secreto123")
+		val session = KtorAuthGateway(client, BASE_URL, SIGN_IN_PATH).signIn("santi@ignit.ar", "secreto123")
 
 		assertEquals("tok_cookie", session.token)
 		assertEquals("usr_123", session.userId)
@@ -147,7 +220,7 @@ class KtorAuthGatewayTest {
 			)
 		}
 
-		val session = KtorAuthGateway(client, BASE_URL).signIn("santi@ignit.ar", "secreto123")
+		val session = KtorAuthGateway(client, BASE_URL, SIGN_IN_PATH).signIn("santi@ignit.ar", "secreto123")
 
 		assertEquals("__Secure-better-auth.session_token=signed.value", session.sessionCookie)
 		assertEquals("signed.value", session.token)
@@ -166,7 +239,7 @@ class KtorAuthGatewayTest {
 			)
 		}
 
-		val session = KtorAuthGateway(client, BASE_URL).signIn("santi@ignit.ar", "secreto123")
+		val session = KtorAuthGateway(client, BASE_URL, SIGN_IN_PATH).signIn("santi@ignit.ar", "secreto123")
 
 		assertEquals("better-auth.session_token=signed.local", session.sessionCookie)
 		assertEquals("signed.local", session.token)
@@ -185,7 +258,7 @@ class KtorAuthGatewayTest {
 			)
 		}
 
-		val session = KtorAuthGateway(client, BASE_URL).signIn("santi@ignit.ar", "secreto123")
+		val session = KtorAuthGateway(client, BASE_URL, SIGN_IN_PATH).signIn("santi@ignit.ar", "secreto123")
 
 		assertEquals("tok_body", session.token)
 		assertEquals("__Secure-better-auth.session_token=signed.value", session.sessionCookie)
@@ -200,7 +273,7 @@ class KtorAuthGatewayTest {
 			)
 		}
 
-		val session = KtorAuthGateway(client, BASE_URL).signIn("santi@ignit.ar", "secreto123")
+		val session = KtorAuthGateway(client, BASE_URL, SIGN_IN_PATH).signIn("santi@ignit.ar", "secreto123")
 
 		assertEquals("tok_abc", session.token)
 		assertEquals("", session.sessionCookie)
@@ -216,7 +289,7 @@ class KtorAuthGatewayTest {
 		}
 
 		val failure = assertFailsWith<AuthException> {
-			KtorAuthGateway(client, BASE_URL).signIn("santi@ignit.ar", "secreto123")
+			KtorAuthGateway(client, BASE_URL, SIGN_IN_PATH).signIn("santi@ignit.ar", "secreto123")
 		}
 		assertEquals(SPANISH_SIGN_IN_FALLBACK, failure.message)
 	}
@@ -231,7 +304,7 @@ class KtorAuthGatewayTest {
 		}
 
 		val failure = assertFailsWith<AuthException> {
-			KtorAuthGateway(client, BASE_URL).signIn("santi@ignit.ar", "wrong")
+			KtorAuthGateway(client, BASE_URL, SIGN_IN_PATH).signIn("santi@ignit.ar", "wrong")
 		}
 		assertEquals("Invalid email or password", failure.message)
 	}
@@ -243,7 +316,7 @@ class KtorAuthGatewayTest {
 		}
 
 		val failure = assertFailsWith<AuthException> {
-			KtorAuthGateway(client, BASE_URL).signIn("santi@ignit.ar", "secreto123")
+			KtorAuthGateway(client, BASE_URL, SIGN_IN_PATH).signIn("santi@ignit.ar", "secreto123")
 		}
 		assertEquals(SPANISH_SIGN_IN_FALLBACK, failure.message)
 	}
@@ -253,7 +326,7 @@ class KtorAuthGatewayTest {
 		val client = clientWith { throw IOException("connection reset") }
 
 		val failure = assertFailsWith<AuthException> {
-			KtorAuthGateway(client, BASE_URL).signIn("santi@ignit.ar", "secreto123")
+			KtorAuthGateway(client, BASE_URL, SIGN_IN_PATH).signIn("santi@ignit.ar", "secreto123")
 		}
 		assertEquals("No pudimos conectar con el servidor.", failure.message)
 	}

@@ -1,4 +1,4 @@
-// adapters/driven/http-api: implements the LibraryRepository port over `GET /api/books`.
+// adapters/driven/http-api: implements the LibraryRepository port over the books endpoint.
 package dev.ignit.http
 
 import dev.ignit.application.port.AuthSession
@@ -21,8 +21,6 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
 
-private const val BOOKS_PATH = "/api/books"
-
 /** Key of the paginated envelope `{ items, total, offset, limit }` the controller returns. */
 private const val ITEMS_KEY = "items"
 private const val TOTAL_KEY = "total"
@@ -41,7 +39,11 @@ private const val LIBRARY_FALLBACK = "No pudimos cargar la biblioteca."
 private const val CONNECTION_FALLBACK = "No pudimos conectar con el servidor."
 
 /**
- * Reads one page of the Ignit catalog from `GET {baseUrl}/api/books`.
+ * Reads one page of the Ignit catalog from `GET {baseUrl}{booksPath}`.
+ *
+ * [booksPath] comes from the build-time environment profile: production serves the catalog at
+ * `/api/books` behind the Worker proxy, while the local backend mounts it at `/books` and 404s the
+ * prefixed route.
  *
  * `mine = true` asks for the caller's own library (`?mine=true`, which the backend only
  * answers for an authenticated caller) and [Book.kind] narrows the shelf through `?kind=`.
@@ -64,6 +66,7 @@ class KtorLibraryRepository(
 	private val client: HttpClient,
 	private val baseUrl: String,
 	private val session: AuthSession,
+	private val booksPath: String,
 ) : LibraryRepository {
 
 	override suspend fun fetchLibrary(mine: Boolean, kind: String?, limit: Int, offset: Int): BookPage {
@@ -73,7 +76,7 @@ class KtorLibraryRepository(
 			val stored = session.load()
 			val token = stored?.token.orEmpty()
 			val cookie = stored?.sessionCookie.orEmpty()
-			val response = client.get("$baseUrl$BOOKS_PATH") {
+			val response = client.get("$baseUrl$booksPath") {
 				if (mine) parameter(MINE_PARAM, "true")
 				kind?.takeIf { it.isNotBlank() }?.let { parameter(KIND_PARAM, it) }
 				parameter(LIMIT_PARAM, limit)

@@ -43,6 +43,7 @@ private fun repositoryOver(
 	contentType: ContentType = ContentType.Application.Json,
 	sessionCookie: String = "",
 	token: String = "tok_body",
+	booksPath: String = BOOKS_PATH,
 ): KtorLibraryRepository {
 	val client = HttpClient(
 		MockEngine { request ->
@@ -63,7 +64,7 @@ private fun repositoryOver(
 			sessionCookie = sessionCookie,
 		),
 	)
-	return KtorLibraryRepository(client, BASE_URL, session)
+	return KtorLibraryRepository(client, BASE_URL, session, booksPath)
 }
 
 private const val PUBLIC_BOOK_JSON =
@@ -71,6 +72,32 @@ private const val PUBLIC_BOOK_JSON =
 		""""coverUrl":"https://covers.test/clean.jpg","published":true}"""
 
 class KtorLibraryRepositoryTest {
+	@Test
+	fun requestsTheProductionBooksPath() = runTest {
+		val captured = mutableListOf<HttpRequestData>()
+		val repository = repositoryOver(captured, "[]", booksPath = "/api/books")
+
+		// Production serves the catalog behind the Worker proxy, so the /api prefix is part of the
+		// profile and never added by the adapter.
+		repository.fetchLibrary()
+
+		assertEquals("/api/books", captured.single().url.encodedPath)
+	}
+
+	@Test
+	fun requestsTheLocalBooksPath() = runTest {
+		val captured = mutableListOf<HttpRequestData>()
+		val repository = repositoryOver(captured, "[]", booksPath = "/books")
+
+		// The local backend mounts the REST routes at the root: `/api/books` is a 404 there.
+		repository.fetchLibrary(limit = 12, offset = 0)
+
+		val request = captured.single()
+		assertEquals("/books", request.url.encodedPath)
+		assertEquals("12", request.url.parameters["limit"])
+		assertEquals("0", request.url.parameters["offset"])
+	}
+
 	@Test
 	fun asksForThePublicCatalogPageWithoutCookie() = runTest {
 		val captured = mutableListOf<HttpRequestData>()
@@ -374,7 +401,7 @@ class KtorLibraryRepositoryTest {
 		val client = HttpClient(MockEngine { throw IOException("connection reset") }) {
 			expectSuccess = false
 		}
-		val repository = KtorLibraryRepository(client, BASE_URL, FakeSession(null))
+		val repository = KtorLibraryRepository(client, BASE_URL, FakeSession(null), BOOKS_PATH)
 
 		val failure = assertFailsWith<AuthException> { repository.fetchLibrary() }
 
