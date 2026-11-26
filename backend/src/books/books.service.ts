@@ -1,4 +1,10 @@
-import { BadRequestException, ForbiddenException, Inject, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { FindOptionsWhere, Repository } from 'typeorm';
 import type { RouteSessionUser } from '../auth/guards/session-reader.js';
@@ -29,6 +35,10 @@ import {
 } from './lib/open-licenses.js';
 import { downloadDescriptor } from './lib/book-download.js';
 import { attachBookFile, type UploadedPdf } from './lib/book-file.js';
+import {
+  DEMO_FEATURED_POOL_LIMIT,
+  pickDemoFeaturedBookId,
+} from './lib/demo-featured.js';
 import { findBookOrFail, requireStoredFile } from './lib/book-lookup.js';
 import { resolveReadingDocument } from './lib/book-reading.js';
 import {
@@ -163,11 +173,36 @@ export class BooksService {
     id: number,
     user?: RouteSessionUser | null,
   ): Promise<BookReadingDocument> {
+    if (!user) {
+      // Anonymous visitors may read exactly the rotating demo showcase; every
+      // other reading doc requires an authenticated session (401).
+      const featuredId = await this.getDemoFeaturedBookId();
+      if (featuredId !== id) {
+        throw new UnauthorizedException(
+          'Ingresá con tu cuenta para leer este libro. Sólo la muestra destacada (demo) es de lectura libre.',
+        );
+      }
+    }
     const book = await this.findOne(id);
     assertCanReadBook(book, user);
     const filePath = requireStoredFile(book);
 
     return resolveReadingDocument(id, filePath, this.bookStorage);
+  }
+
+  /**
+   * Id of the currently rotating demo showcase book among published+approved
+   * titles, or `null` when the public shelf is empty. Exported for web SSR so
+   * backend and landing always agree on which book is the demo.
+   */
+  async getDemoFeaturedBookId(): Promise<number | null> {
+    const rows = await this.booksRepository.find({
+      where: { published: true, reviewStatus: 'approved' } as FindOptionsWhere<Book>,
+      select: { id: true },
+      order: { id: 'ASC' },
+      take: DEMO_FEATURED_POOL_LIMIT,
+    });
+    return pickDemoFeaturedBookId(rows.map((row) => row.id));
   }
 
   async getReadingState(
@@ -244,6 +279,9 @@ export class BooksService {
     event: BookMetricEvent,
     user?: RouteSessionUser | null,
   ): Promise<{ ok: true }> {
+    // Demo showcase reads are anonymous and must persist nothing (S2):
+    // metric counters count authenticated readers only.
+    requireSessionUser(user);
     const book = await this.findOne(id);
     assertCanReadBook(book, user);
 

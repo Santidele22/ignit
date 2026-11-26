@@ -286,7 +286,7 @@ describe('BooksService multi-user isolation and reading state', () => {
     expect(updated.ctaUrl).toBeNull();
   });
 
-  it('records atomic per-book metrics only for readable books', async () => {
+  it('records atomic per-book metrics only for authenticated readers of readable books', async () => {
     books.push(
       bookRow({
         id: 12,
@@ -299,15 +299,25 @@ describe('BooksService multi-user isolation and reading state', () => {
     );
     books.push(bookRow({ id: 13, ownerId: 'user-a', published: false }));
 
-    await service.recordMetric(12, 'read_started', null);
+    // The anonymous demo showcase persists nothing: any metric ping without
+    // a session is rejected and leaves every counter untouched.
+    await expect(service.recordMetric(12, 'read_started', null)).rejects.toThrow(
+      UnauthorizedException,
+    );
+    expect(books[0].readsStartedCount).toBe(0);
+
+    await service.recordMetric(12, 'read_started', { id: 'user-b', role: 'user' });
     await service.recordMetric(12, 'offline_download', { id: 'user-b', role: 'user' });
-    await service.recordMetric(12, 'cta_click', null);
+    await service.recordMetric(12, 'cta_click', { id: 'user-a', role: 'user' });
 
     expect(books[0].readsStartedCount).toBe(1);
     expect(books[0].offlineDownloadsCount).toBe(1);
     expect(books[0].ctaClicksCount).toBe(1);
 
-    await expect(service.recordMetric(13, 'read_started', null)).rejects.toThrow(NotFoundException);
+    // Private books are not readable by others (404 hides existence).
+    await expect(
+      service.recordMetric(13, 'read_started', { id: 'user-b', role: 'user' }),
+    ).rejects.toThrow(NotFoundException);
 
     // presentBook strips internal metric counters from public/owner payloads
     const presented = presentBook(books[0], null);

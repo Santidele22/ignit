@@ -146,6 +146,23 @@ export class BooksController {
     return searchGoogleBookCovers(title, author, globalThis.fetch, { altQueries });
   }
 
+  /**
+   * Rotating demo showcase: the single book an anonymous visitor may read
+   * without an account. Declared before `@Get(':id')` so the literal path
+   * wins over the `:id` parameter route.
+   */
+  @Get('demo-featured')
+  @AllowAnonymous()
+  @ApiOperation({
+    summary: 'Get the rotating demo showcase book id',
+    description:
+      'Returns `{ id: number | null }` for the book an anonymous visitor may read without an account. Rotates hourly across published books; `null` when the public shelf is empty.',
+  })
+  @ApiOkResponse({ description: 'Demo showcase book id envelope' })
+  async getDemoFeatured(): Promise<{ id: number | null }> {
+    return { id: await this.booksService.getDemoFeaturedBookId() };
+  }
+
   @Get(':id')
   @AllowAnonymous()
   @ApiOperation({
@@ -242,7 +259,7 @@ export class BooksController {
   @ApiOperation({
     summary: 'Record a basic book metric event',
     description:
-      'Atomically increments one per-book counter (`read_started`, `offline_download`, or `cta_click`) for books readable by the caller.',
+      'Atomically increments one per-book counter (`read_started`, `offline_download`, or `cta_click`) for books readable by the caller; demo showcase reads persist nothing, so an authenticated session is required.',
   })
   @ApiParam({ name: 'id', type: Number })
   @ApiOkResponse({ description: 'Metric recorded' })
@@ -260,7 +277,8 @@ export class BooksController {
   @AllowAnonymous()
   @ApiOperation({
     summary: 'Get extracted reading document for Vigilia reader',
-    description: 'Returns `{ bookId, pdfPages, ocrPending, chunks[] }` for published books or owner/admin private books.',
+    description:
+      'Returns `{ bookId, pdfPages, ocrPending, chunks[] }` for published books or owner/admin private books. Anonymous access is limited to the rotating demo showcase book (`GET /books/demo-featured`); every other book requires an authenticated session.',
   })
   @ApiParam({ name: 'id', type: Number })
   @ApiOkResponse({ description: 'Extracted reading document' })
