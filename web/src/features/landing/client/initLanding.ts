@@ -635,6 +635,58 @@ export function initLanding(): () => void {
 		const activeSala = () =>
 			chips.find((chip) => chip.dataset.activa === 'true')?.dataset.sala ?? null;
 
+		/* S1 pagination feedback: the server paginates the shelf 8 at a time,
+		 * but a room lens spans pages — once the user scopes to a room (or
+		 * searches), silently pull every remaining page and append the tomos,
+		 * then retire the server pagination («dinámico» per user feedback).
+		 * Follows each page's own «Siguiente» link, so no page size constant.
+		 */
+		let allPagesLoaded = false;
+		let appendingPages = false;
+
+		const appendRemainingPages = async () => {
+			if (allPagesLoaded || appendingPages || !catalogGrid) return;
+			appendingPages = true;
+			try {
+				let href = document.querySelector<HTMLAnchorElement>(
+					'#s2 .cat-pagination a[aria-label="Ir a la página"], #s2 .cat-pagination a:not([aria-current])',
+				)?.href ?? null;
+				const seen = new Set(getTomos().map((tomo) => tomo.dataset.search ?? ''));
+				let hops = 0;
+
+				while (href && hops < 12) {
+					hops += 1;
+					const res = await fetch(href, { headers: { accept: 'text/html' } });
+					if (!res.ok) break;
+					const parsed = new DOMParser().parseFromString(await res.text(), 'text/html');
+					const nextGrid = parsed.getElementById('rejilla');
+					if (!nextGrid) break;
+
+					let appended = 0;
+					for (const tomo of Array.from(nextGrid.querySelectorAll('.tomo'))) {
+						const key = tomo.getAttribute('data-search') ?? '';
+						if (!key || seen.has(key)) continue;
+						seen.add(key);
+						catalogGrid.appendChild(document.adoptNode(tomo));
+						appended += 1;
+					}
+					if (appended === 0) break;
+
+					bindTomoButtons();
+					const next = parsed
+						.querySelector('#s2 .cat-pagination a[aria-label="Ir a la página"], #s2 .cat-pagination a:not([aria-current])');
+					href = next instanceof HTMLAnchorElement ? next.href : null;
+				}
+				allPagesLoaded = true;
+				document
+					.querySelector('#s2 .cat-pagination')
+					?.setAttribute('hidden', '');
+				applyCatalogFilter();
+			} finally {
+				appendingPages = false;
+			}
+		};
+
 		const applyCatalogFilter = () => {
 			const tomos = getTomos();
 			const query = normalizeSearchText(catalogSearch?.value ?? '');
@@ -776,13 +828,17 @@ export function initLanding(): () => void {
 						other.dataset.activa = active ? 'true' : 'false';
 						other.setAttribute('aria-pressed', String(active));
 					}
+					void appendRemainingPages();
 					applyCatalogFilter();
 				},
 				{ signal },
 			);
 		}
 
-		catalogSearch?.addEventListener('input', applyCatalogFilter, { signal });
+		catalogSearch?.addEventListener('input', () => {
+			void appendRemainingPages();
+			applyCatalogFilter();
+		}, { signal });
 
 		/* ---------------------------------------------------------------
 		 * c2) Two rooms (S1 + S2 feedback) — the room cards carry their own
@@ -799,6 +855,7 @@ export function initLanding(): () => void {
 		const activateSala = (sala: string, scroll: boolean) => {
 			const chip = salaHeadChip(sala);
 			if (!chip) return;
+			void appendRemainingPages();
 			chip.click();
 			if (scroll) {
 				byId<HTMLElement>('s2')?.scrollIntoView({
