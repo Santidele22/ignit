@@ -12,7 +12,7 @@ Estado: implementado en la rama `feat/app-native-fase-1-login`. El login atravie
 
 ### Adaptadores driven
 
-- `adapters/driven/http-api`: `KtorAuthGateway` hace `POST {baseUrl}/api/auth/sign-in/email` con `Content-Type: application/json`, `Origin: {baseUrl}` y body `{"email","password"}` — espejo exacto del flujo web. En 2xx toma el `token` del body o, si no viene, la cookie `better-auth.session_token` del `Set-Cookie`, más `user.id/email/name`. En 4xx/5xx propaga el `message` del backend tal cual (por ejemplo `Invalid email or password`).
+- `adapters/driven/http-api`: `KtorAuthGateway` hace `POST {baseUrl}/api/auth/sign-in/email` con `Content-Type: application/json`, `Origin: {baseUrl}` y body `{"email","password"}` — espejo exacto del flujo web. En 2xx toma el `token` del body o, si no viene, la cookie de sesión del `Set-Cookie` (el backend la emite como `__Secure-better-auth.session_token` en producción y sin prefijo en localhost; el adaptador acepta ambas formas), más `user.id/email/name`. En 4xx/5xx propaga el `message` del backend tal cual (por ejemplo `Invalid email or password`).
 - `adapters/driven/auth-session`: `AuthSession` real por plataforma.
   - Android: `KeystoreAuthSession` cifra con `AES/GCM/NoPadding` usando una clave del Android Keystore y deja en `SharedPreferences` solo IV + ciphertext en Base64.
   - Desktop: `FileAuthSession` escribe `~/.config/ignit/session.json` de forma atómica y con permisos `rw-------` (dir `rwx------`).
@@ -31,9 +31,11 @@ Estado: implementado en la rama `feat/app-native-fase-1-login`. El login atravie
 | `core:application` | `LogInTest` | Trim del email, rechazo de email/contraseña vacíos sin llamar al gateway, persistencia solo en éxito, mensaje del backend ante credenciales inválidas, sesión previa intacta tras un fallo. |
 | `core:application` | `SessionUseCasesTest` | `GetCurrentSession` devuelve lo que hay (o `null`) y `LogOut` limpia. |
 | `adapters:driven:http-api` | `KtorAuthGatewayTest` (MockEngine) | Método, path, header `Origin`, body exacto, token por body, token por cookie, `401` con mensaje del backend, `500` con fallback, fallo de transporte envuelto. |
-| `adapters:driven:auth-session` | `SessionCodecTest`, `FileAuthSessionTest` | Round-trip con caracteres raros, `null` ante datos corruptos, sobrescritura atómica, permisos POSIX. |
+| `adapters:driven:http-api` | `KtorAuthGatewayCookieTest` | La cookie de producción con prefijo `__Secure-` se reconoce, la de localhost también, y una cookie ajena nunca se convierte en token. |
+| `adapters:driving:ui-compose` | `LoginViewModelTest` | El login exitoso publica la sesión, el rechazo muestra el mensaje del caso de uso, editar un campo limpia el error, y cerrar sesión olvida la contraseña tipeada. |
+| `adapters:driven:auth-session` | `SessionCodecTest`, `FileAuthSessionTest` | Round-trip con caracteres raros, `null` ante datos corruptos, sobrescritura, permisos POSIX. La atomicidad de la escritura (temp + `ATOMIC_MOVE` en el mismo directorio) está implementada pero **ningún test la afirma**: el test cubre la semántica de sobrescritura. |
 
-`KeystoreAuthSession` se prueba solo a nivel compilación + ejecución en el emulador: necesita un dispositivo real para el Keystore.
+`KeystoreAuthSession` no tiene test ejecutable (necesita un dispositivo y el Keystore real). Queda probado a nivel compilación y por inspección; la corrida en vivo del emulador ejercitó solo el camino de *rechazo*, que nunca llega a `save()`.
 
 ## Aprendizaje
 
@@ -46,5 +48,7 @@ Estado: implementado en la rama `feat/app-native-fase-1-login`. El login atravie
 
 ## Pendiente
 
-- Iniciar sesión con una cuenta real de la web desde el emulador (requiere credenciales humanas). La conectividad end-to-end ya está probada: el emulador recibe del backend de producción el rechazo `Invalid email or password` ante credenciales inválidas.
-- `CI` mínimo que corra `:core:domain:jvmTest`, `:core:application:jvmTest` y los tests de adaptadores por push.
+- Iniciar sesión con una cuenta real de la web desde el emulador (requiere credenciales humanas). **Lo probado en vivo es el camino de rechazo**: el emulador recibe del backend de producción el `Invalid email or password` y lo renderiza. El camino de éxito (parseo del token ⇒ cifrado en Keystore ⇒ aterrizar en Biblioteca) no se ejecutó en ningún entorno todavía.
+- `CI` mínimo que corra los tests de `core` y de adaptadores por push.
+- **Deuda para la fase 2 (biblioteca):** el token que guardamos es el `token` del body de la respuesta, mientras que la web se queda con una cookie `HttpOnly` *firmada*. Cuando la biblioteca llame a la API, hay que decidir si se manda el token crudo o si se persiste la cookie firmada; conviene resolverlo antes de escribir el primer request autenticado.
+- **Desktop:** el archivo `~/.config/ignit/session.json` guarda el JSON en claro (con permisos `rw-------`). Es lo que el alcance de esta fase acepta, pero no equivale al Keystore de Android; para el empaquetado de la fase 5 hay que decidir cifrado con clave derivada o llavero del sistema.

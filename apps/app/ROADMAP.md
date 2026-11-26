@@ -24,8 +24,8 @@ La primera feature atraviesa **todas las capas**, es el mejor ejemplo de hexagon
 4. ✅ `adapters/driving/ui-compose`: `LoginViewModel` + `LoginScreen` con estado (loading/error/success).
 5. ✅ `platforms/*`: navegación raíz login ⇒ biblioteca (placeholder con el usuario logueado y cerrar sesión), permiso `INTERNET` y composition root en `MainActivity.kt` / `Main.kt`.
 
-**Verificación**: APK debug instalado en el emulador `ignit_pixel`; el login end-to-end está probado contra el backend real (rechazo `Invalid email or password` recibido desde producción). **Falta** iniciar sesión con una cuenta real de la web, que requiere credenciales humanas. Detalle en `docs/fase-1.md`.
-Espejo exacto del flujo web (`/login` + serverSession) — misma API, sin duplicar auth.
+**Verificación**: APK debug instalado en el emulador `ignit_pixel`; permiso `INTERNET` otorgado. Probado en vivo: el rechazo de credenciales inválidas llega desde producción (`Invalid email or password`) y se muestra en la UI, y tras un login fallido no se persiste ninguna sesión. **Falta** iniciar sesión con una cuenta real de la web (requiere credenciales humanas), que es lo único que ejercita el camino de éxito: token ⇒ Keystore ⇒ Biblioteca. Detalle en `docs/fase-1.md`.
+Misma API que la web (`/api/auth/sign-in/email`), sin duplicar auth; ojo con que la web se queda con una cookie `HttpOnly` firmada y la app guarda el `token` del body — resolverlo en la fase 2.
 
 ## Fase 2 — Biblioteca básica
 
