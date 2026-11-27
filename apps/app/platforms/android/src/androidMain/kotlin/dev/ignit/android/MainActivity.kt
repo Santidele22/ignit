@@ -8,16 +8,24 @@ import androidx.compose.runtime.remember
 import dev.ignit.application.usecase.GetCurrentSession
 import dev.ignit.application.usecase.LogIn
 import dev.ignit.application.usecase.LogOut
+import dev.ignit.application.usecase.OpenBookReading
 import dev.ignit.application.usecase.PalettePreference
+import dev.ignit.application.usecase.SaveReadingProgress
 import dev.ignit.application.usecase.SyncLibrary
+import dev.ignit.application.usecase.SyncReadingProgress
 import dev.ignit.http.KtorAuthGateway
 import dev.ignit.http.KtorLibraryRepository
+import dev.ignit.http.KtorReadingGateway
 import dev.ignit.http.createIgnitHttpClient
+import dev.ignit.local.AndroidIgbFileStore
+import dev.ignit.local.AndroidSqliteLocalStore
+import dev.ignit.local.LocalProgressRepository
 import dev.ignit.preferences.SharedPreferencesStore
 import dev.ignit.session.KeystoreAuthSession
 import dev.ignit.ui.IgnitApp
 import dev.ignit.ui.LoginViewModel
 import io.ktor.client.HttpClient
+import java.io.File
 
 /**
  * Composition root of the Android app.
@@ -51,6 +59,18 @@ class MainActivity : ComponentActivity() {
 				IgnitApiConfig.BOOKS_PATH,
 			),
 		)
+		val localStore = AndroidSqliteLocalStore(applicationContext)
+		val igbStore = AndroidIgbFileStore(File(applicationContext.filesDir, "igb"))
+		val progressRepository = LocalProgressRepository(localStore, igbStore)
+		val readingGateway = KtorReadingGateway(
+			httpClient,
+			IgnitApiConfig.API_BASE_URL,
+			authSession,
+			IgnitApiConfig.BOOKS_PATH,
+		)
+		val openBookReading = OpenBookReading(readingGateway, progressRepository)
+		val saveReadingProgress = SaveReadingProgress(progressRepository)
+		val syncReadingProgress = SyncReadingProgress(readingGateway, progressRepository)
 
 		// Driving side gets use cases only — it never sees Ktor or the Keystore. `IgnitApp` owns the
 		// theme and its surface so the palette can change at runtime.
@@ -63,6 +83,9 @@ class MainActivity : ComponentActivity() {
 				getCurrentSession = GetCurrentSession(authSession),
 				logOut = LogOut(authSession),
 				palettePreference = palettePreference,
+				openBookReading = openBookReading,
+				saveReadingProgress = saveReadingProgress,
+				syncReadingProgress = syncReadingProgress,
 			)
 		}
 	}

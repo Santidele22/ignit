@@ -67,7 +67,12 @@ private const val LOAD_MORE_ERROR_KEY: String = "library-load-more-error-row"
  * supersedes an older in-flight answer, and only the last request paints the grid.
  */
 @Composable
-fun LibraryScreen(viewModel: LibraryViewModel, session: UserSession, onLogOut: () -> Unit) {
+fun LibraryScreen(
+	viewModel: LibraryViewModel,
+	session: UserSession,
+	onLogOut: () -> Unit,
+	onOpenBook: (Book) -> Unit = {},
+) {
 	val scope = rememberCoroutineScope()
 	var kindPanelExpanded by remember { mutableStateOf(false) }
 	val gridState = rememberLazyGridState()
@@ -128,6 +133,7 @@ fun LibraryScreen(viewModel: LibraryViewModel, session: UserSession, onLogOut: (
 				gridState = gridState,
 				onRetry = { scope.launch { viewModel.load() } },
 				onLoadMore = { scope.launch { viewModel.loadMore() } },
+				onOpenBook = onOpenBook,
 			)
 		}
 	}
@@ -300,6 +306,7 @@ private fun LibraryBody(
 	gridState: LazyGridState,
 	onRetry: () -> Unit,
 	onLoadMore: () -> Unit,
+	onOpenBook: (Book) -> Unit,
 ) {
 	val books = viewModel.books
 	val error = viewModel.error
@@ -328,6 +335,7 @@ private fun LibraryBody(
 			viewModel = viewModel,
 			gridState = gridState,
 			onLoadMore = onLoadMore,
+			onOpenBook = onOpenBook,
 		)
 	}
 }
@@ -341,7 +349,12 @@ private fun LibraryBody(
  * still lets the following one through.
  */
 @Composable
-private fun BookGrid(viewModel: LibraryViewModel, gridState: LazyGridState, onLoadMore: () -> Unit) {
+private fun BookGrid(
+	viewModel: LibraryViewModel,
+	gridState: LazyGridState,
+	onLoadMore: () -> Unit,
+	onOpenBook: (Book) -> Unit,
+) {
 	val books = viewModel.books
 	val error = viewModel.error
 
@@ -370,7 +383,7 @@ private fun BookGrid(viewModel: LibraryViewModel, gridState: LazyGridState, onLo
 		horizontalArrangement = Arrangement.spacedBy(12.dp),
 		verticalArrangement = Arrangement.spacedBy(16.dp),
 	) {
-		items(items = books, key = { it.id }) { book -> BookCard(book) }
+		items(items = books, key = { it.id }) { book -> BookCard(book, onClick = { onOpenBook(book) }) }
 
 		if (viewModel.loadingMore) {
 			item(key = LOAD_MORE_KEY, span = { GridItemSpan(maxLineSpan) }) {
@@ -436,8 +449,8 @@ private fun LibraryError(message: String, onRetry: () -> Unit) {
 
 /** One catalog entry: the printed cover (or its typographic stand-in), title, and author. */
 @Composable
-private fun BookCard(book: Book) {
-	Column(modifier = Modifier.fillMaxWidth()) {
+private fun BookCard(book: Book, onClick: () -> Unit = {}) {
+	Column(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)) {
 		Box(
 			modifier = Modifier
 				.fillMaxWidth()

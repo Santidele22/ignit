@@ -2,6 +2,8 @@
 package dev.ignit.application.port
 
 import dev.ignit.domain.model.BookPage
+import dev.ignit.domain.model.DomainReadingDocument
+import dev.ignit.domain.model.ReadingProgress
 import dev.ignit.domain.model.UserSession
 
 /** Outbound port: fetches one page of the catalog (`mine = false`) or of the caller's own library from the remote catalog. */
@@ -30,10 +32,23 @@ interface LibraryRepository {
 	}
 }
 
-/** Outbound port: persists reading progress locally and syncs it remotely. */
+/** Outbound port: persists reading progress & cached reading documents locally and syncs remotely. */
 interface ProgressRepository {
 	suspend fun saveLocally(bookId: String, page: Int)
 	suspend fun syncPending(): Boolean
+	suspend fun getLocal(bookId: String): ReadingProgress? = null
+	suspend fun saveProgress(progress: ReadingProgress) {
+		saveLocally(progress.bookId, progress.page)
+	}
+	suspend fun getCachedDocument(bookId: String): DomainReadingDocument? = null
+	suspend fun cacheDocument(document: DomainReadingDocument) {}
+}
+
+/** Outbound port: fetches extracted reading document and remote reading state from backend. */
+interface ReadingContentGateway {
+	suspend fun fetchReading(bookId: String): DomainReadingDocument
+	suspend fun fetchRemoteProgress(bookId: String): ReadingProgress?
+	suspend fun pushRemoteProgress(progress: ReadingProgress)
 }
 
 /**

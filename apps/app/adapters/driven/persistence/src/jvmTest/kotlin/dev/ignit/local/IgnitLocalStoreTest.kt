@@ -4,6 +4,10 @@ import dev.ignit.local.igb.BookReadingDocument
 import dev.ignit.local.igb.ContentTier
 import dev.ignit.local.igb.Igb1Codec
 import dev.ignit.local.igb.ReadingChunk
+import dev.ignit.domain.model.DomainReadingChunk
+import dev.ignit.domain.model.DomainReadingDocument
+import dev.ignit.domain.model.ReadingProgress
+import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.nio.file.Files
 import kotlin.test.Test
@@ -170,6 +174,33 @@ class IgnitLocalStoreTest {
             assertEquals("500", store.getMeta("last_sync_at"))
             assertEquals(18, store.getReadingState("10")?.page)
             assertEquals(remoteDoc, blobs.readDecoded("10", ContentTier.PRIVATE_USER, key = key))
+        } finally {
+            dir.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun localProgressRepositoryPersistsProgressAndCachesDocumentAsIgb1() = runBlocking {
+        val dir = Files.createTempDirectory("ignit-progress-repo-").toFile()
+        try {
+            val store = InMemoryIgnitLocalStore()
+            val blobs = TempDirIgbBlobStore(dir)
+            val repo = LocalProgressRepository(store, blobs)
+
+            val doc = DomainReadingDocument(
+                bookId = "42",
+                pdfPages = 15,
+                chunks = listOf(
+                    DomainReadingChunk(id = "c1", type = "para", page = 1, offset = 0, text = "Contenido cacheado."),
+                ),
+            )
+            repo.cacheDocument(doc)
+            assertEquals(doc, repo.getCachedDocument("42"))
+
+            val progress = ReadingProgress(bookId = "42", page = 7, pct = 0.46, updatedAtEpochMs = 1234L)
+            repo.saveProgress(progress)
+            assertEquals(progress, repo.getLocal("42"))
+            assertEquals(false, repo.syncPending())
         } finally {
             dir.deleteRecursively()
         }
