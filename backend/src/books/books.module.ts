@@ -24,5 +24,6 @@ import { BOOK_STORAGE, createBookStorage } from './storage/book-storage.js';
       useFactory: () => createBookStorage(process.env),
     },
   ],
+  exports: [BOOK_STORAGE],
 })
 export class BooksModule {}
