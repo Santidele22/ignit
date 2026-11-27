@@ -1,0 +1,154 @@
+{
+  "spec": {
+    "magic": "IGB1",
+    "version": 1,
+    "headerBytes": 18,
+    "nonceBytes": 12,
+    "gcmTagBytes": 16,
+    "aadFormat": "${bookId}|${version}|${tier}",
+    "flags": {
+      "bit0_brotli": 1,
+      "bit1_encrypted": 2,
+      "bit2_chunked": 4
+    }
+  },
+  "vectors": [
+    {
+      "name": "tier1_public_gzip",
+      "bookId": "101",
+      "tier": "public_open",
+      "compression": "gzip",
+      "encrypted": false,
+      "aadUtf8": "101|1|public_open",
+      "igb1Base64": "SUdCMQEAAAAAAAAAAAAAAAAAH4sIAAAAAAACA03MsQrCQBAE0F9Zpl4lF622txTsxWJzWZJAvNMjF5SQr/IT/DGJQbCcYeZNGCGOUUHgCgfGDVIyPOQ8oYPAb4q1dYwIKRgPCE7p/epjE8EYIGhN6y40YPTfoS5HC4MlzPxz3L9T7lfoECgH6nOjiWqjXumowbfKS/L5GSnEa5WMQqR77ixFUh9TrelqW8wXho2Q3fwBE6ld78kAAAA=",
+      "expectedDocument": {
+        "bookId": "101",
+        "pdfPages": 2,
+        "ocrPending": false,
+        "extractorVersion": 3,
+        "chunks": [
+          {
+            "id": "c-0",
+            "type": "heading",
+            "page": 1,
+            "offset": 0,
+            "text": "Prólogo",
+            "mood": "espera",
+            "cues": [],
+            "level": 1,
+            "align": "center"
+          },
+          {
+            "id": "c-1",
+            "type": "para",
+            "page": 1,
+            "offset": 24,
+            "text": "En un lugar de la Mancha, de cuyo nombre no quiero acordarme.",
+            "mood": "espera",
+            "cues": [],
+            "align": "left"
+          }
+        ]
+      }
+    },
+    {
+      "name": "tier1_public_brotli",
+      "bookId": "101",
+      "tier": "public_open",
+      "compression": "brotli",
+      "encrypted": false,
+      "aadUtf8": "101|1|public_open",
+      "igb1Base64": "SUdCMQEBAAAAAAAAAAAAAAAAG8gAAMSMOZXNvU7LKr5y4LlAZNWE3Ae3Zl3a5VhjlHRiTqSmG8OwLTQvCGL0Z8cEMRgeBIZugNFATIYPeexIIfAV3QMG1Kgzlrp3/99rhmAM4I6RVjGtCFY3WcaWOLkWMdy0NZyKxoo2daEgpMKli1v5icuW9se1plt4pqqmdkzDribXr7vA7cpQxflihBPEOgE=",
+      "expectedDocument": {
+        "bookId": "101",
+        "pdfPages": 2,
+        "ocrPending": false,
+        "extractorVersion": 3,
+        "chunks": [
+          {
+            "id": "c-0",
+            "type": "heading",
+            "page": 1,
+            "offset": 0,
+            "text": "Prólogo",
+            "mood": "espera",
+            "cues": [],
+            "level": 1,
+            "align": "center"
+          },
+          {
+            "id": "c-1",
+            "type": "para",
+            "page": 1,
+            "offset": 24,
+            "text": "En un lugar de la Mancha, de cuyo nombre no quiero acordarme.",
+            "mood": "espera",
+            "cues": [],
+            "align": "left"
+          }
+        ]
+      }
+    },
+    {
+      "name": "tier2_private_gzip_aes256gcm",
+      "bookId": "202",
+      "tier": "private_user",
+      "compression": "gzip",
+      "encrypted": true,
+      "keyHex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "ivHex": "a0a1a2a3a4a5a6a7a8a9aaab",
+      "aadUtf8": "202|1|private_user",
+      "igb1Base64": "SUdCMQECoKGio6Slpqeoqaqr+ZN0LUXLAr9gZqIeOnACnmAsiLu+6H8mPtMSGL6R0Zku1lzLBLB/X1d4FJbLuLDxPYjaDLImLxFh/KIOBNwXpXa12GQVP+mYYJBu5LrbziDFXD/df37GoTAKIDcCLH/zdEtYSOVH0WK4Y7wltFSxSal9cJRK/0AdwzXERTw3dbcXCHJmHsphUQm/vJZt9+jilWaaKNZIZ4z9zY8u6N0rbv5MYEOErl6S82M=",
+      "expectedDocument": {
+        "bookId": "202",
+        "pdfPages": 3,
+        "ocrPending": false,
+        "extractorVersion": 3,
+        "refinedByAi": true,
+        "chunks": [
+          {
+            "id": "c-0",
+            "type": "dialogue",
+            "page": 1,
+            "offset": 0,
+            "text": "—¿Quién anda ahí? —dijo en voz baja.",
+            "mood": "alerta",
+            "cues": [
+              "voz"
+            ],
+            "align": "left"
+          }
+        ]
+      }
+    },
+    {
+      "name": "tier3_editorial_gzip_aes256gcm",
+      "bookId": "303",
+      "tier": "editorial_closed",
+      "compression": "gzip",
+      "encrypted": true,
+      "keyHex": "ffeeddccbbaa9988776655443322110000112233445566778899aabbccddeeff",
+      "ivHex": "102030405060708090a0b0c0",
+      "aadUtf8": "303|1|editorial_closed",
+      "igb1Base64": "SUdCMQECECAwQFBgcICQoLDAEEhNf571KaYHIJIwKRjdPPjXRRwSL1MsAAPOuhjeZdNOQMuSTvCb/e5v823UXrnlsUiG9c0D7OiAMy6SKVnfXRtGIxpsrmS1NK5AKbLuVbZt2cpHo7C6vBMo1ieippJcN+vKcq6c1SU+GvFF0QBrvu9FPXd21sbP3JDdADnw7GANsZWIHhA7710U",
+      "expectedDocument": {
+        "bookId": "303",
+        "pdfPages": 5,
+        "ocrPending": false,
+        "extractorVersion": 3,
+        "chunks": [
+          {
+            "id": "c-0",
+            "type": "quote",
+            "page": 2,
+            "offset": 100,
+            "text": "El conocimiento es poder.",
+            "mood": "polvo",
+            "cues": [],
+            "align": "right"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -147,4 +147,33 @@ export class S3BookStorage implements BookStorage {
       }),
     );
   }
+
+  async getBuffer(key: string): Promise<Buffer | null> {
+    try {
+      const res = await this.client.send(
+        new GetObjectCommand({ Bucket: this.bucket, Key: key }),
+      );
+      const body = res.Body as { transformToByteArray?: () => Promise<Uint8Array> } | undefined;
+      if (!body || typeof body.transformToByteArray !== 'function') return null;
+      return Buffer.from(await body.transformToByteArray());
+    } catch {
+      return null;
+    }
+  }
+
+  async putBuffer(
+    key: string,
+    data: Buffer,
+    options?: { contentType?: string; cacheControl?: string },
+  ): Promise<void> {
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        Body: data,
+        ContentType: options?.contentType ?? 'application/octet-stream',
+        ...(options?.cacheControl ? { CacheControl: options.cacheControl } : {}),
+      }),
+    );
+  }
 }

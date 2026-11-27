@@ -11,6 +11,8 @@ import { extractReadingFromEpub } from '../reading/reading.epub.js';
 import { detectBookFormat, detectBookFormatFromHeader } from '../pdf.util.js';
 import { readCachedReading } from './book-reading-cache.js';
 import { readingJsonKey } from './book-sidecar-keys.js';
+import type { Book } from '../entities/book.entity.js';
+import { readBookIgb1 } from '../igb/igb1.storage.js';
 
 /** Placeholder doc used whenever extraction cannot produce chunks yet. */
 export function emptyReadingDocument(bookId: number): BookReadingDocument {
@@ -31,7 +33,15 @@ export async function resolveReadingDocument(
   bookId: number,
   filePath: string,
   bookStorage: BookStorage,
+  book?: Pick<Book, 'id' | 'ownerId' | 'published' | 'contentTier' | 'igbPath' | 'filePath'>,
 ): Promise<BookReadingDocument> {
+  if (book) {
+    const fromIgb = await readBookIgb1(bookStorage, book).catch(() => null);
+    if (fromIgb) {
+      return fromIgb;
+    }
+  }
+
   const { current, fallback } = await readCachedReading(bookId, bookStorage);
   if (current) {
     return current;
