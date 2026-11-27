@@ -173,7 +173,8 @@ async function compressGzip(bytes: Uint8Array): Promise<Uint8Array> {
 			new CompressionStream('gzip') as unknown as TransformStream<Uint8Array, Uint8Array>,
 		);
 	}
-	const zlib = await import('node:zlib');
+	const nodeZlib = 'node:zlib';
+	const zlib = await import(/* @vite-ignore */ nodeZlib);
 	return new Uint8Array(zlib.gzipSync(bytes, { level: 9 }));
 }
 
@@ -197,7 +198,8 @@ async function decompressPayload(bytes: Uint8Array, useBrotli: boolean): Promise
 			// Fall back to node:zlib when running in SSR / Vitest without browser brotli stream support.
 		}
 	}
-	const zlib = await import('node:zlib');
+	const nodeZlib = 'node:zlib';
+	const zlib = await import(/* @vite-ignore */ nodeZlib);
 	return new Uint8Array(useBrotli ? zlib.brotliDecompressSync(bytes) : zlib.gunzipSync(bytes));
 }
 

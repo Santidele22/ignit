@@ -109,7 +109,7 @@ export default function BooksEditorPanel() {
 		setUploadingId(id);
 		try {
 			await crud.mutate(
-				() => uploadBookFile(id, file),
+				() => uploadBookFile(id, file).then(() => undefined),
 				'PDF subido. Ya podés abrirlo en Vigilia.',
 			);
 		} finally {

@@ -21,7 +21,7 @@ describe('deltaSyncClient (Web & Desktop convergence)', () => {
 		const transport: DeltaSyncTransport = {
 			push: vi.fn(async (items) => ({
 				serverTime: 2000,
-				acked: items.map((it) => ({
+				acked: items.map((it: { clientOpId: string }) => ({
 					clientOpId: String(it.clientOpId),
 					status: 'applied' as const,
 					remoteId: 10,

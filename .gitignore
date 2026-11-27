@@ -8,6 +8,8 @@ dist/
 .dev.vars
 backend/uploads/
 backend/database.sqlite
+database.sqlite
+uploads/
 *.log
 *.tsbuildinfo
 .DS_Store

@@ -1,4 +1,3 @@
-import type { Book } from '../../../entities/book/types';
 import { isReaderRoute } from '../../auth/paths';
 
 const POSITIVE_INT_RE = /^[1-9]\d*$/;

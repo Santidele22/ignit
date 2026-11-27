@@ -27,7 +27,7 @@ export const POST: APIRoute = async ({ request }) => {
 	}
 
 	const session = await getServerSession(request.headers.get('cookie'));
-	if (!session.authenticated) {
+	if (!session.authenticated || !session.user?.id) {
 		return new Response(JSON.stringify({ message: 'No autorizado' }), {
 			status: 401,
 			headers: { 'content-type': 'application/json; charset=utf-8' },

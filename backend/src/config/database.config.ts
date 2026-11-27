@@ -15,6 +15,19 @@ export const POSTGRES_POOL_EXTRA = {
   keepAliveInitialDelayMillis: 10_000,
 } as const;
 
+export function ensureVerifyFullSslMode(rawUrl: string): string {
+  try {
+    const parsed = new URL(rawUrl);
+    const mode = parsed.searchParams.get('sslmode');
+    if (!mode || mode === 'require' || mode === 'prefer' || mode === 'verify-ca') {
+      parsed.searchParams.set('sslmode', 'verify-full');
+    }
+    return parsed.toString();
+  } catch {
+    return rawUrl;
+  }
+}
+
 export function buildDatabaseOptions(
   env: NodeJS.ProcessEnv,
   mode: DbMode,
@@ -39,9 +52,9 @@ export function buildDatabaseOptions(
       // `DATABASE_URL_UNPOOLED` for schema work. `synchronize` is DDL, so
       // while it is on the pool must use the direct connection — session
       // state does not survive the pooler.
-      url: synchronize
-        ? (env.DATABASE_URL_UNPOOLED ?? databaseUrl)
-        : databaseUrl,
+      url: ensureVerifyFullSslMode(
+        synchronize ? (env.DATABASE_URL_UNPOOLED ?? databaseUrl) : databaseUrl,
+      ),
       autoLoadEntities: true,
       synchronize,
       extra: { ...POSTGRES_POOL_EXTRA },

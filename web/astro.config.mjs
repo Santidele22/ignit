@@ -1,5 +1,6 @@
 // @ts-check
 
+import { resolve } from 'node:path';
 import solidJs from '@astrojs/solid-js';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig, fontProviders } from 'astro/config';
@@ -13,6 +14,9 @@ export default defineConfig({
 	integrations: [solidJs()],
 	adapter: cloudflare(),
 	output: 'server',
+	markdown: {
+		syntaxHighlight: false,
+	},
 	security: {
 		csp: {
 			directives: [
@@ -40,6 +44,11 @@ export default defineConfig({
 	},
 	vite: {
 		plugins: [tailwindcss()],
+		resolve: {
+			alias: {
+				'@supabase/auth-js': resolve('./src/shared/api/empty-stub.ts'),
+			},
+		},
 		server: {
 			proxy: {
 				'/api': {

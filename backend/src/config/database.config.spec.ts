@@ -15,7 +15,7 @@ describe('buildDatabaseOptions', () => {
 
     expect(options).toMatchObject({
       type: 'postgres',
-      url: 'postgresql://user:pass@ep-pooler.neon.tech/db',
+      url: 'postgresql://user:pass@ep-pooler.neon.tech/db?sslmode=verify-full',
       synchronize: false,
       extra: {
         max: 10,

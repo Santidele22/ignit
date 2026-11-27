@@ -1,7 +1,6 @@
 import {
 	parseBookKind,
 	type Book,
-	type BookKind,
 	type BookMetricEvent,
 	type BookReadingDocument,
 	type BookReadingState,
