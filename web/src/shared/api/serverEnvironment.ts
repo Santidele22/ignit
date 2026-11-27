@@ -8,11 +8,13 @@ export type ServerEnvironmentSources = {
 	workerEnv: {
 		BACKEND_URL?: string;
 		NEON_AUTH_BASE_URL?: string;
+		DATABASE_URL?: string;
 		CONTENT_CACHE?: EdgeCacheStore;
 	};
 	devEnv?: {
 		DEV_BACKEND_URL?: string;
 		DEV_NEON_AUTH_BASE_URL?: string;
+		DEV_DATABASE_URL?: string;
 	};
 };
 
@@ -40,10 +42,14 @@ export function resolveServerEnvironment(sources: ServerEnvironmentSources) {
 	const rawNeonAuthUrl = sources.isDev
 		? sources.devEnv?.DEV_NEON_AUTH_BASE_URL
 		: sources.workerEnv.NEON_AUTH_BASE_URL;
+	const rawDatabaseUrl = sources.isDev
+		? sources.devEnv?.DEV_DATABASE_URL
+		: sources.workerEnv.DATABASE_URL;
 
 	return {
 		backendUrl: trimTrailingSlashes(rawBackendUrl) ?? DEFAULT_LOCAL_BACKEND_URL,
 		neonAuthUrl: trimTrailingSlashes(rawNeonAuthUrl),
+		databaseUrl: rawDatabaseUrl?.trim() || undefined,
 		contentCacheKv: sources.workerEnv.CONTENT_CACHE,
 	};
 }
@@ -54,9 +60,11 @@ const resolved = resolveServerEnvironment({
 	devEnv: {
 		DEV_BACKEND_URL: import.meta.env.DEV_BACKEND_URL,
 		DEV_NEON_AUTH_BASE_URL: import.meta.env.DEV_NEON_AUTH_BASE_URL,
+		DEV_DATABASE_URL: import.meta.env.DEV_DATABASE_URL,
 	},
 });
 
 export const backendUrl = resolved.backendUrl;
 export const neonAuthUrl = resolved.neonAuthUrl;
+export const databaseUrl = resolved.databaseUrl;
 export const contentCacheKv = resolved.contentCacheKv;
