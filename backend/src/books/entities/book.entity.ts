@@ -6,6 +6,7 @@ import {
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 import { BookKind } from '../../common/enums/book-kind.enum.js';
 import { ReadingStatus } from '../../common/enums/reading-status.enum.js';
@@ -202,6 +203,12 @@ export class Book {
 
   @CreateDateColumn()
   createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+
+  @Column({ type: Date, nullable: true })
+  deletedAt?: Date | null;
 
   @ManyToOne(() => User, (user) => user.books, {
     nullable: false,

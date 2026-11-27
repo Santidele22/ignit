@@ -49,6 +49,8 @@ export interface BookStorage {
     data: Buffer,
     options?: { contentType?: string; cacheControl?: string },
   ): Promise<void>;
+  /** Short-lived presigned upload URL for client-side Tier 2 `.igb` sync. */
+  resolveUpload?(key: string, contentType?: string): Promise<string | null>;
 }
 
 export type BookDownload =

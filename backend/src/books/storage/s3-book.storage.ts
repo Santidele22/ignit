@@ -176,4 +176,19 @@ export class S3BookStorage implements BookStorage {
       }),
     );
   }
+
+  async resolveUpload(
+    key: string,
+    contentType = 'application/vnd.ignit.igb1',
+  ): Promise<string> {
+    return getSignedUrl(
+      this.client,
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        ContentType: contentType,
+      }),
+      { expiresIn: this.urlTtlSeconds },
+    );
+  }
 }

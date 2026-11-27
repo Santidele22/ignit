@@ -14,7 +14,7 @@ Relacionado: `odd/tasks/app-native-fase-4-offline-sync.md`, `odd/tasks/desktop-t
 Este documento actúa como **índice maestro y arquitectura global**. Cada fase tiene su propio ODD ejecutable con specs, tasks y checks granulares:
 
 1. **Fase 1 — Formato compacto `IGB1`, AES-256-GCM estándar (sin UniFFI) y fin de PDFs crudos**: `odd/tasks/storage-fase-1-igb1-compacto.md` (`T1–T4`, status: done)
-2. **Fase 2 — Local-First SQLite (Desktop + Mobile), IndexedDB Web y Delta Sync completo**: `odd/tasks/storage-fase-2-local-first-sync.md` (`T1–T5`, status: pending)
+2. **Fase 2 — Local-First SQLite (Desktop + Mobile), IndexedDB Web y Delta Sync completo**: `odd/tasks/storage-fase-2-local-first-sync.md` (`T1–T5`, status: done)
 3. **Fase 3 — Protección editorial anti-piratería estilo Kindle (`Tier 3`)**: `odd/tasks/storage-fase-3-drm-kindle-editoriales.md` (`T1–T5`, status: pending)
 
 ## Specs
