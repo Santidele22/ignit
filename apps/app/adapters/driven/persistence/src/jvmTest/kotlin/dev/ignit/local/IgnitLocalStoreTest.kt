@@ -114,4 +114,64 @@ class IgnitLocalStoreTest {
             dir.deleteRecursively()
         }
     }
+
+    @Test
+    fun deltaSyncCoordinatorFlushesOutboxPullsPrivateIgbAndAppliesLww() {
+        val dir = Files.createTempDirectory("ignit-kmp-sync-").toFile()
+        try {
+            val store = InMemoryIgnitLocalStore()
+            val blobs = TempDirIgbBlobStore(dir)
+            store.enqueueOutbox("reading_state", "10", "upsert", """{"page":5}""", 100L)
+
+            val key = ByteArray(32) { 0x55 }
+            val iv = ByteArray(12) { 0x12 }
+            val remoteDoc = BookReadingDocument(
+                bookId = "10",
+                pdfPages = 2,
+                ocrPending = false,
+                chunks = listOf(
+                    ReadingChunk(id = "c1", type = "para", page = 1, offset = 0, text = "Sync móvil completo."),
+                ),
+            )
+            val igbBytes = Igb1Codec.encode(remoteDoc, "10", ContentTier.PRIVATE_USER, key = key, iv = iv)
+
+            val coordinator = DeltaSyncCoordinator(
+                store = store,
+                blobStore = blobs,
+                transport = object : DeltaSyncTransport {
+                    override fun push(items: List<SyncOutboxRecord>): List<SyncPushAck> =
+                        items.map { SyncPushAck(clientOpId = it.id.toString(), status = "applied", remoteId = 10L) }
+
+                    override fun pull(sinceEpochMs: Long): SyncPullPayload = SyncPullPayload(
+                        serverTime = 500L,
+                        books = listOf(
+                            SyncPulledBook(
+                                id = 10L,
+                                title = "Libro Privado",
+                                author = "Autor",
+                                kind = "ficcion",
+                                status = "reading",
+                                contentTier = "private_user",
+                                igbSize = igbBytes.size.toLong(),
+                                igbBytes = igbBytes,
+                                updatedAt = 500L,
+                            ),
+                        ),
+                        readingStates = listOf(
+                            SyncPulledReadingState(bookId = 10L, page = 18, pct = 0.3, updatedAt = 450L),
+                        ),
+                    )
+                },
+            )
+
+            val serverTime = coordinator.syncOnce()
+            assertEquals(500L, serverTime)
+            assertTrue(store.listPendingOutbox().isEmpty())
+            assertEquals("500", store.getMeta("last_sync_at"))
+            assertEquals(18, store.getReadingState("10")?.page)
+            assertEquals(remoteDoc, blobs.readDecoded("10", ContentTier.PRIVATE_USER, key = key))
+        } finally {
+            dir.deleteRecursively()
+        }
+    }
 }
