@@ -270,6 +270,11 @@ export class BooksService {
       );
     }
     const book = await this.findOne(id);
+    if (book.contentTier === 'private_user' || book.contentTier === 'editorial_closed') {
+      throw new ForbiddenException(
+        'La descarga y distribución directa está deshabilitada para libros privados y de licencia editorial cerrada.',
+      );
+    }
     const filePath = requireStoredFile(book);
 
     return downloadDescriptor(book, filePath);

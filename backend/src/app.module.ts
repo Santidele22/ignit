@@ -5,7 +5,9 @@ import { AppService } from './app.service.js';
 import { AuthModule } from './auth/auth.module.js';
 import { BooksModule } from './books/books.module.js';
 import { DatabaseModule } from './database/database.module.js';
+import { DevicesModule } from './devices/devices.module.js';
 import { HealthModule } from './health/health.module.js';
+import { LicensesModule } from './licenses/licenses.module.js';
 import { SyncModule } from './sync/sync.module.js';
 import { UsersModule } from './users/users.module.js';
 
@@ -19,6 +21,8 @@ export const { ObserveInstrument } = createObserveModule();
     UsersModule,
     BooksModule,
     SyncModule,
+    DevicesModule,
+    LicensesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -44,11 +44,11 @@ Test runners:
 
 ## Tasks
 
-- T1 [S1] · `backend` · Entidades y endpoints de `devices` (registro, listado, revocación, límite por cuenta) y `licenses` + migraciones DB (surfaces: `backend/src/devices/**`, `backend/src/licenses/**`) · status: pending
-- T2 [S2] · `backend` · Custodia de `CEK` por libro editorial, *device-bound key wrapping* en `/licenses/acquire`, soporte de `.igb` chunked por capítulo y bloqueo estricto `403` de descarga/exportación para Tier 2 y Tier 3 (surfaces: `backend/src/licenses/**`, `backend/src/books/igb/**`, `backend/src/books/books.controller.ts`, `backend/src/books/books.service.ts`) · status: pending
-- T3 [S3] · `apps/desktop` · Custodia de clave privada en OS Keychain (`keyring`), desenvolvimiento de `CEK` y descifrado justo-a-tiempo por capítulo en RAM con limpieza de buffers (`zeroize`) (surfaces: `apps/desktop/src-tauri/src/**`) · status: pending
-- T4 [S4] · `apps/app` · Custodia de clave privada en Android Keystore (TEE), desenvolvimiento de `CEK`, descifrado por capítulo en RAM y `FLAG_SECURE` dinámico en `ReaderScreen` para Tier 3 (surfaces: `apps/app/platforms/android/**`, `apps/app/adapters/driven/**`, `apps/app/adapters/driving/**`) · status: pending
-- T5 [S5] · `web` + `apps/desktop` + `apps/app` · Bloqueo de copia masiva en Tier 3, watermark forense invisible (`userId + licenseId`) compatible con accesibilidad y política Web de streaming por capítulo sin caché offline en IndexedDB (surfaces: `web/src/features/book/reader/**`, `web/src/features/library/lib/**`, `apps/app/adapters/driving/ui-compose/**`) · status: pending
+- T1 [S1] · `backend` · Entidades y endpoints de `devices` (registro, listado, revocación, límite por cuenta) y `licenses` + migraciones DB (surfaces: `backend/src/devices/**`, `backend/src/licenses/**`) · status: done (`nest build` + `drm-kindle.spec.ts` 3/3)
+- T2 [S2] · `backend` · Custodia de `CEK` por libro editorial, *device-bound key wrapping* en `/licenses/acquire`, soporte de `.igb` chunked por capítulo y bloqueo estricto `403` de descarga/exportación para Tier 2 y Tier 3 (surfaces: `backend/src/licenses/**`, `backend/src/books/igb/**`, `backend/src/books/books.controller.ts`, `backend/src/books/books.service.ts`) · status: done (`drm-kindle.spec.ts` + `igb1.chapters.ts`)
+- T3 [S3] · `apps/desktop` · Custodia de clave privada en OS Keychain (`keyring`), desenvolvimiento de `CEK` y descifrado justo-a-tiempo por capítulo en RAM con limpieza de buffers (`zeroize`) (surfaces: `apps/desktop/src-tauri/src/**`) · status: done (`cargo test --offline` 10/10)
+- T4 [S4] · `apps/app` · Custodia de clave privada en Android Keystore (TEE), desenvolvimiento de `CEK`, descifrado por capítulo en RAM y `FLAG_SECURE` dinámico en `ReaderScreen` para Tier 3 (surfaces: `apps/app/platforms/android/**`, `apps/app/adapters/driven/**`, `apps/app/adapters/driving/**`) · status: done (`jvmTest` + `compileDebugKotlinAndroid` BUILD SUCCESSFUL)
+- T5 [S5] · `web` + `apps/desktop` + `apps/app` · Bloqueo de copia masiva en Tier 3, watermark forense invisible (`userId + licenseId`) compatible con accesibilidad y política Web de streaming por capítulo sin caché offline en IndexedDB (surfaces: `web/src/features/book/reader/**`, `web/src/features/library/lib/**`, `apps/app/adapters/driving/ui-compose/**`) · status: done (`vitest` 54/54 files, 347 tests)
 
 ## Log
 
