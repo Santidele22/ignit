@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
 	alias(libs.plugins.kotlin.multiplatform)
 	alias(libs.plugins.android.application)
@@ -108,6 +110,64 @@ android {
 		minSdk = 26
 		targetSdk = 35
 	}
+
+	val keystorePropsFile = rootProject.file("keystore.properties")
+	val keystoreProps = Properties().apply {
+		if (keystorePropsFile.exists()) {
+			keystorePropsFile.inputStream().use(::load)
+		}
+	}
+	val releaseStorePath = System.getenv("IGNIT_KEYSTORE_PATH")
+		?: keystoreProps.getProperty("storeFile")
+		?: rootProject.file("../twa/android.keystore").absolutePath
+	val releaseStorePassword = System.getenv("IGNIT_KEYSTORE_PASSWORD")
+		?: keystoreProps.getProperty("storePassword")
+	val releaseKeyAlias = System.getenv("IGNIT_KEY_ALIAS")
+		?: keystoreProps.getProperty("keyAlias")
+		?: "ignit"
+	val releaseKeyPassword = System.getenv("IGNIT_KEY_PASSWORD")
+		?: keystoreProps.getProperty("keyPassword")
+		?: releaseStorePassword
+	val hasReleaseSigning = !releaseStorePassword.isNullOrBlank() &&
+		!releaseKeyPassword.isNullOrBlank() &&
+		file(releaseStorePath).exists()
+
+	signingConfigs {
+		if (hasReleaseSigning) {
+			create("release") {
+				storeFile = file(releaseStorePath)
+				storePassword = releaseStorePassword
+				keyAlias = releaseKeyAlias
+				keyPassword = releaseKeyPassword
+			}
+		}
+	}
+
+	buildTypes {
+		release {
+			isMinifyEnabled = true
+			isShrinkResources = true
+			proguardFiles(
+				getDefaultProguardFile("proguard-android-optimize.txt"),
+				"proguard-rules.pro",
+			)
+			if (hasReleaseSigning) {
+				signingConfig = signingConfigs.getByName("release")
+			}
+		}
+	}
+
+	tasks.matching { it.name.contains("Release") && (it.name.startsWith("assemble") || it.name.startsWith("bundle")) }
+		.configureEach {
+			doFirst {
+				if (!hasReleaseSigning) {
+					throw GradleException(
+						"Missing release signing credentials. Set IGNIT_KEYSTORE_PATH/IGNIT_KEYSTORE_PASSWORD/IGNIT_KEY_PASSWORD or create apps/app/keystore.properties.",
+					)
+				}
+			}
+		}
+
 	compileOptions {
 		sourceCompatibility = JavaVersion.VERSION_17
 		targetCompatibility = JavaVersion.VERSION_17

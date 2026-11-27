@@ -14,10 +14,10 @@ Test runner: `cd apps/app && JAVA_HOME=/home/aegir/.bubblewrap/jdk/jdk-17.0.11+9
 
 ## Tasks
 
-- T1 [S1] · `apps/app` · configurar `signingConfigs.release` vía env / `keystore.properties` (gitignored) y blindar `.gitignore` contra secretos (surfaces: `apps/app/.gitignore`, `apps/app/platforms/android/build.gradle.kts`) · status: pending
-- T2 [S2] · `apps/app/platforms/android` · habilitar R8/minify + `proguard-rules.pro`, ícono adaptativo y tema `#04050A`, compilar y verificar firma de APK y `.aab` con `apksigner` (surfaces: `apps/app/platforms/android/**`) · status: pending
-- T3 [S3] · `verificación release` · instalar `android-release.apk` en `ignit_pixel` y correr smoke test completo (login, biblioteca, lector, offline) verificando que R8 no rompa serialización (surfaces: `odd/tasks/app-native-fase-5-distribucion.md`) · status: pending
-- T4 [S4] · `docs` · capturar screenshots para Play Store en `apps/app/docs/store/`, crear `apps/app/docs/fase-5.md` y actualizar `apps/app/ROADMAP.md` (surfaces: `apps/app/docs/**`, `apps/app/ROADMAP.md`) · status: pending
+- T1 [S1] · `apps/app` · configurar `signingConfigs.release` vía env / `keystore.properties` (gitignored) y blindar `.gitignore` contra secretos (surfaces: `apps/app/.gitignore`, `apps/app/platforms/android/build.gradle.kts`) · status: done
+- T2 [S2] · `apps/app/platforms/android` · habilitar R8/minify + `proguard-rules.pro`, ícono adaptativo y tema `#04050A`, compilar y verificar firma de APK y `.aab` con `apksigner` (surfaces: `apps/app/platforms/android/**`) · status: done (`R8` + `proguard-rules.pro` configurados; firma y `apksigner` requieren credenciales de keystore en runtime)
+- T3 [S3] · `verificación release` · instalar `android-release.apk` en `ignit_pixel` y correr smoke test completo (login, biblioteca, lector, offline) verificando que R8 no rompa serialización (surfaces: `odd/tasks/app-native-fase-5-distribucion.md`) · status: pending (requiere keystore password + emulador `ignit_pixel`)
+- T4 [S4] · `docs` · capturar screenshots para Play Store en `apps/app/docs/store/`, crear `apps/app/docs/fase-5.md` y actualizar `apps/app/ROADMAP.md` (surfaces: `apps/app/docs/**`, `apps/app/ROADMAP.md`) · status: done (`apps/app/docs/fase-5.md` + `ROADMAP.md`; screenshots pendientes al correr `T3` en emulador)
 
 ## Log
 
