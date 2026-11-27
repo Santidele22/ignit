@@ -5,6 +5,7 @@ import {
 	createIndexedDbAdapter,
 	createMemoryOfflineAdapter,
 	createOfflineBookStore,
+	createSyncOutboxStore,
 	measureReadingBytes,
 } from './offlineStore';
 
@@ -187,5 +188,54 @@ describe('offlineStore', () => {
 		expect(await store.get(42)).toBeNull();
 		await store.clear();
 		expect(closeCount).toBeGreaterThanOrEqual(5);
+	});
+
+	it('stores compact IGB1 bytes instead of raw reading JSON and blocks Tier 3 offline caching', async () => {
+		const adapter = createMemoryOfflineAdapter();
+		const store = createOfflineBookStore(adapter);
+
+		const largeReading = sampleReading('77', 'Lectura repetitiva para comprimir con IGB1. '.repeat(40));
+		const rec = await store.put({
+			book: { id: 77, title: 'Compacto', author: 'Ignit', kind: 'tecnico', contentTier: 'public_open' },
+			reading: largeReading,
+		});
+
+		const rawStored = await adapter.get(77);
+		expect(rawStored?.igb).toBeInstanceOf(Uint8Array);
+		expect(rawStored?.reading).toBeUndefined();
+		expect(rec.igbBytes).toBeLessThan(rec.bytes / 2);
+
+		const hydrated = await store.get(77);
+		expect(hydrated?.reading.chunks[0]?.text).toBe(largeReading.chunks[0]?.text);
+
+		await expect(
+			store.put({
+				book: {
+					id: 99,
+					title: 'Editorial Cerrado',
+					author: 'Editorial',
+					kind: 'no_tecnico',
+					contentTier: 'editorial_closed',
+				},
+				reading: sampleReading('99'),
+			}),
+		).rejects.toThrow(/Tier 3/i);
+	});
+
+	it('enqueues, lists, and removes items in sync_outbox fallback store', async () => {
+		const outbox = createSyncOutboxStore(null);
+		const id = await outbox.enqueue({
+			entityType: 'reading_state',
+			entityId: '77',
+			op: 'upsert',
+			payloadJson: '{"page":12}',
+			createdAt: 1000,
+		});
+		const pending = await outbox.list();
+		expect(pending).toHaveLength(1);
+		expect(pending[0]?.entityId).toBe('77');
+
+		await outbox.remove(id);
+		expect(await outbox.list()).toEqual([]);
 	});
 });
