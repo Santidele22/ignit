@@ -188,7 +188,7 @@ export class BooksService {
     assertCanReadBook(book, user);
     const filePath = requireStoredFile(book);
 
-    return resolveReadingDocument(id, filePath, this.bookStorage);
+    return resolveReadingDocument(id, filePath, this.bookStorage, book);
   }
 
   /**

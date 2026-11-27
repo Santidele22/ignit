@@ -1,5 +1,6 @@
 import { createReadStream } from 'node:fs';
-import { access, unlink } from 'node:fs/promises';
+import { access, mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
 import { NotFoundException } from '@nestjs/common';
 import type { BookStorage, BookDownload } from './book-storage.js';
 
@@ -43,5 +44,19 @@ export class LocalBookStorage implements BookStorage {
     // resolution (before piping), so a file vanishing between this check
     // and the open cannot crash the process either.
     return { strategy: 'local', stream: createReadStream(ref) };
+  }
+
+  async getBuffer(key: string): Promise<Buffer | null> {
+    try {
+      return await readFile(join(this.uploadDir, key));
+    } catch {
+      return null;
+    }
+  }
+
+  async putBuffer(key: string, data: Buffer): Promise<void> {
+    const target = join(this.uploadDir, key);
+    await mkdir(dirname(target), { recursive: true });
+    await writeFile(target, data);
   }
 }

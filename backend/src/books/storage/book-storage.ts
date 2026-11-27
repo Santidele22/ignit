@@ -41,6 +41,14 @@ export interface BookStorage {
    */
   getJson?<T>(key: string): Promise<T | null>;
   putJson?(key: string, data: unknown): Promise<void>;
+
+  /** Binary buffer storage for compact `.igb` book blobs. */
+  getBuffer?(key: string): Promise<Buffer | null>;
+  putBuffer?(
+    key: string,
+    data: Buffer,
+    options?: { contentType?: string; cacheControl?: string },
+  ): Promise<void>;
 }
 
 export type BookDownload =

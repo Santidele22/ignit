@@ -11,6 +11,7 @@ import { BookKind } from '../../common/enums/book-kind.enum.js';
 import { ReadingStatus } from '../../common/enums/reading-status.enum.js';
 import { User } from '../../users/entities/user.entity.js';
 import type { AiSafety, AiStatus } from '../ai/ai-analysis.types.js';
+import type { ContentTier } from '../igb/igb1.types.js';
 
 /** Every PDF upload starts in the review queue (S4). */
 export const REVIEW_STATUS_PENDING = 'pending' as const;
@@ -99,6 +100,24 @@ export class Book {
   /** MIME type of the uploaded file (always application/pdf for now). */
   @Column({ type: 'text', nullable: true })
   mimeType?: string | null;
+
+  /** Content distribution tier: `public_open`, `private_user`, or `editorial_closed`. */
+  @Index()
+  @Column({ type: 'varchar', length: 24, default: 'private_user' })
+  contentTier: ContentTier;
+
+  /** SHA-256 hex digest of the canonical compact reading payload (used for Tier 1 deduplication). */
+  @Index()
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  contentHash?: string | null;
+
+  /** Object key or local relative path of the compact `.igb` reading blob. */
+  @Column({ type: 'text', nullable: true })
+  igbPath?: string | null;
+
+  /** Byte size of the stored `.igb` blob. */
+  @Column({ type: 'int', nullable: true })
+  igbSize?: number | null;
 
   /** Optional external cover image URL (e.g. from Google Books search). */
   @Column({ type: 'text', nullable: true })

@@ -34,6 +34,7 @@ import { detectBookFormat, EPUB_MIME_TYPE } from '../pdf.util.js';
 import { saveBookFirewallReport } from './book-firewall-report.js';
 import { emptyReadingDocument } from './book-reading.js';
 import { readingDeterministicJsonKey, readingJsonKey } from './book-sidecar-keys.js';
+import { persistBookIgb1 } from '../igb/igb1.storage.js';
 
 /** The multer temp file as the controller forwards it. */
 export type UploadedPdf = {
@@ -195,7 +196,29 @@ export async function attachBookFile(
   const mimeType = isEpub ? EPUB_MIME_TYPE : file.mimetype;
   const filePages = isEpub ? deterministicDoc.pdfPages : pdfPageCount;
 
-  const ref = await persistUploadedPdf(bookStorage, book.id, { ...file, mimetype: mimeType });
+  let ref: string;
+  if (typeof bookStorage.putBuffer === 'function') {
+    try {
+      const igb = await persistBookIgb1(bookStorage, book, readingDoc);
+      book.contentTier = igb.contentTier;
+      book.contentHash = igb.contentHash;
+      book.igbPath = igb.igbPath;
+      book.igbSize = igb.igbSize;
+      ref = igb.igbPath;
+    } catch (error) {
+      throw new HttpException(
+        error instanceof Error && error.message
+          ? `No se pudo almacenar el libro: ${error.message}`
+          : 'No se pudo almacenar el libro',
+        HttpStatus.BAD_GATEWAY,
+      );
+    } finally {
+      // Never persist the raw PDF/EPUB binary: discard temp file immediately.
+      await unlink(file.path).catch(() => undefined);
+    }
+  } else {
+    ref = await persistUploadedPdf(bookStorage, book.id, { ...file, mimetype: mimeType });
+  }
 
   const previousRef = book.filePath;
   book.filePath = ref;
@@ -224,11 +247,13 @@ export async function attachBookFile(
     }
   }
 
-  await writeBookReadingJson(book.id, readingDoc).catch(() => undefined);
-  if (bookStorage.putJson) {
-    await bookStorage
-      .putJson(readingJsonKey(book.id), readingDoc)
-      .catch(() => undefined);
+  if (!book.igbPath) {
+    await writeBookReadingJson(book.id, readingDoc).catch(() => undefined);
+    if (bookStorage.putJson) {
+      await bookStorage
+        .putJson(readingJsonKey(book.id), readingDoc)
+        .catch(() => undefined);
+    }
   }
 
   if (firewallReport) {
