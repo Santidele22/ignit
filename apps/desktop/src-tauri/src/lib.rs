@@ -1,4 +1,5 @@
 pub mod igb1;
+pub mod local_db;
 mod offline;
 
 use std::net::{TcpStream, ToSocketAddrs};
@@ -150,7 +151,17 @@ pub fn run() {
             offline::save_offline_book,
             offline::read_offline_book,
             offline::list_offline_books,
-            offline::delete_offline_book
+            offline::delete_offline_book,
+            local_db::local_db_list_books,
+            local_db::local_db_upsert_book,
+            local_db::local_db_delete_book,
+            local_db::local_db_get_reading_state,
+            local_db::local_db_save_reading_state,
+            local_db::local_db_save_igb_book,
+            local_db::local_db_read_igb_book,
+            local_db::local_db_pending_outbox,
+            local_db::local_db_get_meta,
+            local_db::local_db_set_meta
         ])
         .setup(|app| {
             let override_url = std::env::var("IGNIT_DESKTOP_URL").ok();

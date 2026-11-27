@@ -25,3 +25,4 @@ flate2 = "1.1"
 brotli = "9.1"
 base64 = "0.23"
 hex = "0.4"
+rusqlite = { version = "0.32", features = ["bundled"] }
