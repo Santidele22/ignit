@@ -2,6 +2,7 @@ export const READING_EXTRACTOR_VERSION = 3;
 
 export type ReadingChunkType =
   | 'para'
+  | 'dialogue'
   | 'heading'
   | 'verse'
   | 'toc'

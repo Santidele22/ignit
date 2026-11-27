@@ -1,4 +1,5 @@
 import JSZip from 'jszip';
+import { isDialogueText, looksLikeSpokenProse } from './reading.block-rules.js';
 import { ILLEGIBLE_READING_MESSAGE, assessReadingLegibility } from './reading.legibility.js';
 import { classifyMoodAndCues } from './reading.mood.js';
 import { dedentRawCodeLines } from './reading.noise.js';
@@ -469,7 +470,7 @@ function pushParagraph(element: MiniElement, out: EpubBlock[]): void {
   const runs = inlineRuns(element.children);
   const text = runsText(runs);
   if (!text.trim()) return;
-  const block: EpubBlock = { type: 'para', text };
+  const block: EpubBlock = { type: isDialogueText(text) ? 'dialogue' : 'para', text };
   const marked = markedRuns(runs);
   if (marked) block.runs = marked;
   out.push(block);
@@ -501,7 +502,7 @@ function pushQuote(element: MiniElement, out: EpubBlock[]): void {
 
   const text = parts.join('\n').trim();
   if (!text) return;
-  out.push({ type: 'quote', text });
+  out.push({ type: isDialogueText(text) ? 'dialogue' : 'quote', text });
 }
 
 function isInlineNode(node: MiniNode): node is MiniElement | string {
@@ -515,6 +516,14 @@ function pushCode(element: MiniElement, out: EpubBlock[]): void {
   while (lines.length > 0 && !lines[lines.length - 1].trim()) lines.pop();
   const text = lines.join('\n');
   if (!text.trim()) return;
+  if (isDialogueText(text)) {
+    out.push({ type: 'dialogue', text });
+    return;
+  }
+  if (looksLikeSpokenProse(text)) {
+    out.push({ type: 'para', text });
+    return;
+  }
   out.push({ type: 'code', text });
 }
 

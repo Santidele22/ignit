@@ -1,3 +1,32 @@
+/* ===== Accesibilidad: salto al contenido, lector de pantalla y TTS ===== */
+.skip-link {
+	position:fixed; left:16px; top:-64px; z-index:100;
+	background:var(--aka); color:var(--aka-foreground, #04050a);
+	padding:10px 16px; border-radius:6px;
+	font:600 12px/1 var(--font-zen-stack); text-decoration:none;
+	transition:top .15s ease;
+}
+.skip-link:focus { top:14px; }
+.sr-only {
+	position:absolute; width:1px; height:1px;
+	padding:0; margin:-1px; overflow:hidden;
+	clip:rect(0, 0, 0, 0); white-space:nowrap; border:0;
+}
+.tts-group {
+	display:inline-flex; align-items:center;
+	border:1px solid var(--w-border); border-radius:6px; overflow:hidden;
+}
+.tts-group .view-trigger {
+	border:none; border-radius:0;
+}
+.tts-group .tts-speed {
+	border-left:1px solid var(--w-border);
+	padding:6px 8px;
+}
+.tts-group .view-trigger[aria-pressed="true"] {
+	background:var(--aka); color:var(--aka-foreground, #04050a);
+}
+
 /* ===== Top bar: identidad + progreso susurrado ===== */
 .topbar {
 	position:fixed; top:0; left:0; right:0; z-index:25;

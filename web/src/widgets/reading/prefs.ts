@@ -28,6 +28,7 @@ function applyReaderPrefs(save = true) {
 	body.dataset.font = prefs.font;
 	body.dataset.align = prefs.align;
 	body.dataset.focus = prefs.focus;
+	body.dataset.contrast = prefs.contrast ?? 'aa';
 	body.style.setProperty('--reader-scale', String(prefs.scale));
 	if (fontPctEl) fontPctEl.textContent = `${Math.round(prefs.scale * 100)}%`;
 
@@ -39,6 +40,9 @@ function applyReaderPrefs(save = true) {
 	});
 	document.querySelectorAll<HTMLButtonElement>('[data-pref-focus]').forEach((b) => {
 		b.setAttribute('aria-pressed', String(b.dataset.prefFocus === prefs.focus));
+	});
+	document.querySelectorAll<HTMLButtonElement>('[data-pref-contrast]').forEach((b) => {
+		b.setAttribute('aria-pressed', String(b.dataset.prefContrast === (prefs.contrast ?? 'aa')));
 	});
 
 	updateFovealGeometry();

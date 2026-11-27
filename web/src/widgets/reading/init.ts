@@ -9,6 +9,7 @@ import { initScrollInput } from './scroll';
 import { initSelection } from './selection';
 import { initSaveButton } from './status';
 import { initTimer } from './timer';
+import { initTts } from './tts';
 import { initZen } from './zen';
 
 // Entry point of the reading page. Everything reads its state from the
@@ -28,4 +29,5 @@ export function initReader(): void {
 	initSaveButton();
 	initSelection();
 	initMarkActions();
+	initTts();
 }

@@ -6,6 +6,7 @@ import {
 	type BookDisplayItem,
 	type PreparedBookDisplay,
 } from './displayModel';
+import { isDialogueText, looksLikeSpokenProse } from './dialogue';
 import {
 	flushPendingTocHeading,
 	pushMetaItem,
@@ -192,10 +193,26 @@ export function prepareBookDisplayItems(
 			continue;
 		}
 
+		if (chunk.type === 'dialogue') {
+			const runs = chunk.runs && chunk.runs.length > 0 ? chunk.runs : undefined;
+			items.push({
+				kind: 'dialogue',
+				chunkId: chunk.id,
+				page: chunk.page,
+				mood: chunk.mood,
+				cues: chunk.cues,
+				text: chunk.text,
+				...(runs ? { runs } : {}),
+				paraIndex: totalParas,
+			});
+			totalParas += 1;
+			continue;
+		}
+
 		if (chunk.type === 'quote') {
 			const runs = chunk.runs && chunk.runs.length > 0 ? chunk.runs : undefined;
 			items.push({
-				kind: 'quote',
+				kind: isDialogueText(chunk.text) ? 'dialogue' : 'quote',
 				chunkId: chunk.id,
 				page: chunk.page,
 				mood: chunk.mood,
@@ -230,17 +247,32 @@ export function prepareBookDisplayItems(
 		}
 
 		if (chunk.type === 'code') {
-			items.push({
-				kind: 'code',
-				chunkId: chunk.id,
-				page: chunk.page,
-				mood: chunk.mood,
-				cues: chunk.cues,
-				text: chunk.text,
-				paraIndex: totalParas,
-			});
-			totalParas += 1;
-			continue;
+			if (isDialogueText(chunk.text)) {
+				items.push({
+					kind: 'dialogue',
+					chunkId: chunk.id,
+					page: chunk.page,
+					mood: chunk.mood,
+					cues: chunk.cues,
+					text: chunk.text,
+					paraIndex: totalParas,
+				});
+				totalParas += 1;
+				continue;
+			}
+			if (!looksLikeSpokenProse(chunk.text)) {
+				items.push({
+					kind: 'code',
+					chunkId: chunk.id,
+					page: chunk.page,
+					mood: chunk.mood,
+					cues: chunk.cues,
+					text: chunk.text,
+					paraIndex: totalParas,
+				});
+				totalParas += 1;
+				continue;
+			}
 		}
 
 		if (chunk.type === 'caption') {
@@ -254,11 +286,39 @@ export function prepareBookDisplayItems(
 		}
 
 		if (chunk.type === 'meta') {
+			if (isDialogueText(chunk.text)) {
+				items.push({
+					kind: 'dialogue',
+					chunkId: chunk.id,
+					page: chunk.page,
+					mood: chunk.mood,
+					cues: chunk.cues,
+					text: chunk.text,
+					paraIndex: totalParas,
+				});
+				totalParas += 1;
+				continue;
+			}
 			pushMetaItem(items, chunk);
 			continue;
 		}
 
 		const isVerse = chunk.type === 'verse';
+		if (!isVerse && isDialogueText(chunk.text)) {
+			const runs = chunk.runs && chunk.runs.length > 0 ? chunk.runs : undefined;
+			items.push({
+				kind: 'dialogue',
+				chunkId: chunk.id,
+				page: chunk.page,
+				mood: chunk.mood,
+				cues: chunk.cues,
+				text: chunk.text,
+				...(runs ? { runs } : {}),
+				paraIndex: totalParas,
+			});
+			totalParas += 1;
+			continue;
+		}
 		const chapter = !isVerse ? extractLeadingChapterMarker(chunk.text) : null;
 		const paraText = chapter ? chapter.rest : chunk.text;
 		const canDropcap = /^[A-ZÁÉÍÓÚÜÑ«"“¡¿—-]/.test(paraText.trim());

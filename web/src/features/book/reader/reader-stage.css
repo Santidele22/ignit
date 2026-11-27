@@ -68,6 +68,20 @@ body.vigilia-body[data-focus="wide"] .text :is(p, blockquote.reader-quote, ol.re
 body.vigilia-body[data-focus="narrow"] .text :is(p, blockquote.reader-quote, ol.reader-list, ul.reader-list, pre.reader-code):not(.reading):not(.reader-caption) { opacity:.58; }
 body.vigilia-body[data-focus="off"] .text :is(p, blockquote.reader-quote, ol.reader-list, ul.reader-list, pre.reader-code) { opacity:1; }
 .text :is(p, blockquote.reader-quote, ol.reader-list, ul.reader-list, pre.reader-code).reading { opacity:1; }
+.text p.reader-dialogue {
+	margin-bottom:28px;
+	padding:14px 18px 14px 24px;
+	border-left:2px solid var(--aka);
+	border-radius:6px;
+	background:var(--w-dialogue-bg);
+	color:var(--w-foreground);
+	text-align:left;
+	transition:opacity .55s ease, background .2s ease;
+}
+.text p.reader-dialogue.reading,
+.text p.reader-dialogue:focus-visible {
+	background:var(--w-dialogue-bg-active);
+}
 .text p.verse {
 	font-style:italic; text-align:left; padding-left:24px;
 	border-left:1px solid var(--w-border);

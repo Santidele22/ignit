@@ -21,6 +21,7 @@ import { cycleFocusMode } from './prefs';
 import { cancelSmoothScroll, stepLine } from './scroll';
 import { hideSelbar } from './selection';
 import { closeVigiliaSummary } from './timer';
+import { toggleTtsPlayback } from './tts';
 import { hasActiveOverlay, setZen, toggleFullscreen } from './zen';
 
 // Keyboard map of the vigilia: line and chapter stepping, the decks, zen,
@@ -118,6 +119,9 @@ export function initKeyboard(): void {
 		} else if (key === 'v') {
 			e.preventDefault();
 			cycleFocusMode();
+		} else if (key === 'r') {
+			e.preventDefault();
+			toggleTtsPlayback();
 		}
 	});
 }

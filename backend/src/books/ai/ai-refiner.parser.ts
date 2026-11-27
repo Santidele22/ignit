@@ -8,6 +8,7 @@ import type { RefinerPatch, RefinementResult } from './ai-refiner.types.js';
 
 const VALID_CHUNK_TYPES = new Set<ReadingChunkType>([
   'para',
+  'dialogue',
   'heading',
   'verse',
   'toc',

@@ -129,6 +129,16 @@ export type BookDisplayItem =
 			runs?: ReadingInlineRun[];
 	  }
 	| {
+			kind: 'dialogue';
+			chunkId: string;
+			page: number;
+			mood: ReadingMood;
+			cues: string[];
+			text: string;
+			runs?: ReadingInlineRun[];
+			paraIndex: number;
+	  }
+	| {
 			kind: 'quote';
 			chunkId: string;
 			page: number;

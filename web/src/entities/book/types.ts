@@ -71,6 +71,7 @@ export type Book = {
 
 export type ReadingChunkType =
 	| 'para'
+	| 'dialogue'
 	| 'heading'
 	| 'verse'
 	| 'toc'

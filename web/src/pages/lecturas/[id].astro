@@ -132,6 +132,9 @@ const pageDescription = book
 	style={`--prog-pct: ${initialPct}%; --reader-scale: 1`}
 >
 
+	<a class="skip-link" href="#stage">Saltar al texto del libro</a>
+	<div id="srLive" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
 	<ReaderAtmosphere />
 
 	<ReaderTopbar

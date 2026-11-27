@@ -234,10 +234,28 @@ function buildDisplayItemFragment(item: BookDisplayItem, itemIndex: number): Doc
 			}
 
 			const p = document.createElement('p');
+			p.tabIndex = 0;
 			const classes: string[] = [];
 			if (item.isFirstPara || (item.chapterMarker && !item.verse)) classes.push('dropcap');
 			if (item.verse) classes.push('verse');
 			if (classes.length > 0) p.className = classes.join(' ');
+			p.dataset.chunkId = item.chunkId;
+			p.dataset.page = String(item.page);
+			p.dataset.itemIndex = String(itemIndex);
+			p.dataset.mood = item.mood;
+			p.dataset.cues = item.cues.join(', ');
+			p.dataset.paraIndex = String(item.paraIndex);
+			appendFormattedContent(p, item.text, item.runs);
+			applySavedAnnotationsToHost(p, [item.chunkId]);
+			io.observe(p);
+			frag.appendChild(p);
+			return frag;
+		}
+
+		case 'dialogue': {
+			const p = document.createElement('p');
+			p.className = 'reader-dialogue';
+			p.tabIndex = 0;
 			p.dataset.chunkId = item.chunkId;
 			p.dataset.page = String(item.page);
 			p.dataset.itemIndex = String(itemIndex);

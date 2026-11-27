@@ -3,12 +3,14 @@
 export type ReaderFont = 'serif' | 'sans';
 export type ReaderAlign = 'left' | 'justify';
 export type ReaderFocusMode = 'wide' | 'narrow' | 'off';
+export type ReaderContrast = 'aa' | 'aaa';
 
 export type ReaderPrefs = {
 	font: ReaderFont;
 	align: ReaderAlign;
 	focus: ReaderFocusMode;
 	scale: number;
+	contrast?: ReaderContrast;
 };
 
 export const DEFAULT_READER_PREFS: ReaderPrefs = {
@@ -46,7 +48,9 @@ export function parseReaderPrefs(raw: string | null): ReaderPrefs {
 			typeof parsed.scale === 'number'
 				? clampReaderScale(parsed.scale)
 				: DEFAULT_READER_PREFS.scale;
-		return { font, align, focus, scale };
+		const contrast: ReaderContrast | undefined =
+			parsed.contrast === 'aaa' ? 'aaa' : parsed.contrast === 'aa' ? 'aa' : undefined;
+		return contrast ? { font, align, focus, scale, contrast } : { font, align, focus, scale };
 	} catch {
 		return { ...DEFAULT_READER_PREFS };
 	}

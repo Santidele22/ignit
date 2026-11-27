@@ -31,9 +31,11 @@ import {
   collectSuppressedLabelIndices,
   inferHeadingLevelFromText,
   isDedicationLine,
+  isDialogueText,
   isEdgeRunningLine,
   isFrontmatterMetaLine,
   isStandaloneChapterNumber,
+  looksLikeSpokenProse,
   mergeCrossPageParagraphs,
   parseXmlTocLine,
 } from './reading.block-rules.js';
@@ -404,16 +406,19 @@ export function extractReadingFromPdftohtmlXml(
             (totalScore >= 3 && scoredLineCount >= 2));
 
         if (isAdmittedCode) {
-          pushBlock({
-            type: 'code',
-            page: pageNum,
-            text: formatXmlCodeLines(codeLines, stats.bodyLineStep, stats.bodySize),
-            endsWithSentencePunct: true,
-            startsLowercase: false,
-            firstLineIndented: false,
-          });
-          i = j;
-          continue;
+          const codeText = formatXmlCodeLines(codeLines, stats.bodyLineStep, stats.bodySize);
+          if (!isDialogueText(codeText) && !looksLikeSpokenProse(codeText)) {
+            pushBlock({
+              type: 'code',
+              page: pageNum,
+              text: codeText,
+              endsWithSentencePunct: true,
+              startsLowercase: false,
+              firstLineIndented: false,
+            });
+            i = j;
+            continue;
+          }
         }
       }
 
@@ -529,7 +534,7 @@ export function extractReadingFromPdftohtmlXml(
           }
         }
         pushBlock({
-          type: 'quote',
+          type: isDialogueText(quoteText) ? 'dialogue' : 'quote',
           page: pageNum,
           text: quoteText,
           runs: quoteRuns,
@@ -563,6 +568,7 @@ export function extractReadingFromPdftohtmlXml(
           BULLET_LIST_RE.test(nextL.text) ||
           DASH_LIST_RE.test(nextL.text) ||
           CAPTION_RE.test(nextL.text) ||
+          /^\s*(?:—|–)\s*[A-ZÁÉÍÓÚÜÑa-záéíóúüñ¿¡«"“‘']/.test(nextL.text) ||
           isFrontmatterMetaLine(nextL, pageNum, totalPages, stats.bodySize)
         ) {
           break;
@@ -592,7 +598,7 @@ export function extractReadingFromPdftohtmlXml(
             ? trimRuns(paraRuns)
             : undefined;
         pushBlock({
-          type: 'para',
+          type: isDialogueText(cleanedPara) ? 'dialogue' : 'para',
           page: pageNum,
           text: cleanedPara,
           runs: finalRuns && finalRuns.some((r) => r.marks && r.marks.length > 0) ? finalRuns : undefined,

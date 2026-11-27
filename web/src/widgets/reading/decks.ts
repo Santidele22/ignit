@@ -123,6 +123,13 @@ export function initDecks(): void {
 			applyReaderPrefs(true);
 		});
 	});
+	document.querySelectorAll<HTMLButtonElement>('[data-pref-contrast]').forEach((btn) => {
+		btn.addEventListener('click', () => {
+			const contrast = btn.dataset.prefContrast === 'aaa' ? 'aaa' : 'aa';
+			setPrefs({ ...getPrefs(), contrast });
+			applyReaderPrefs(true);
+		});
+	});
 }
 
 export { closeAllDecks, closeChapterDeck, closeTimerDeck, closeViewDeck, openChapterDeck, openTimerDeck };

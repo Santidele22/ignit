@@ -10,7 +10,7 @@ const { backHref = '/', backLabel = 'Volver al catálogo' } = Astro.props;
 	<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 	<footer class="bottombar" id="bottombar" aria-label="Controles de lectura">
-		<p class="hint">seleccioná para subrayar · j / k línea · [ / ] o h / l capítulo · c capítulos · t vigilia · f inmersión · v foco</p>
+		<p class="hint">seleccioná para subrayar · j / k línea · [ / ] o h / l capítulo · c capítulos · r voz · t vigilia · f inmersión · v foco</p>
 		<div class="bottombar-row">
 			<div class="session" aria-label="Sesión de lectura">
 				<button class="save" type="button" id="saveBtn">
@@ -40,6 +40,12 @@ const { backHref = '/', backLabel = 'Volver al catálogo' } = Astro.props;
 					<i class="timer-dot" id="timerBtnDot" hidden aria-hidden="true"></i>
 					<span id="timerBtnLabel">Vigilia</span>
 				</button>
+				<div class="tts-group" role="group" aria-label="Lectura en voz alta">
+					<button class="view-trigger" type="button" id="ttsPlayBtn" aria-pressed="false" aria-label="Escuchar lectura en voz alta (R)">
+						<span>Escuchar</span>
+					</button>
+					<button class="view-trigger tts-speed" type="button" id="ttsSpeedBtn" aria-label="Velocidad de lectura en voz alta">1×</button>
+				</div>
 				<button class="view-trigger" type="button" id="viewBtn" aria-expanded="false" aria-label="Tipografía y foco">
 					<span>Aa · Foco</span>
 				</button>

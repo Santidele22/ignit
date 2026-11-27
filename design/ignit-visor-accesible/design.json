@@ -1,0 +1,27 @@
+{
+  "title": "Visor accesible y lectura de conversaciones",
+  "brief": "Rediseño del visor Vigilia de Ignit para resolver dos problemas centrales: (1) legibilidad de conversaciones y diálogos (hoy rotos al caer en bloques monospace tenues) y (2) accesibilidad integral enfocada en personas ciegas y con baja visión (TTS nativo, navegación por hitos, alto contraste AAA, atajos de teclado y cortina visual).",
+  "artboards": [
+    {
+      "file": "01-dialogo-editorial-y-voz.html",
+      "title": "Diálogo Editorial + Barra de Voz (recomendada)",
+      "tradeoff": "Conserva la estética calma de Vigilia, corrige los diálogos con tipografía de cuerpo real y borde lateral de turno, e integra una barra de lectura en voz alta + alto contraste AAA; suma una fila fija inferior cuando el audio está abierto",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "02-turnos-y-mapa-semantico.html",
+      "title": "Turnos de Diálogo + Mapa Semántico",
+      "tradeoff": "Máxima claridad para ficción con mucho diálogo y navegación rápida por hitos del capítulo con lector de pantalla; ocupa un riel izquierdo en desktop que reduce el vacío lateral",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "03-vigilia-audio-primero.html",
+      "title": "Vigilia Audio-Primero (Visor Ciego / Sin Pantalla)",
+      "tradeoff": "Ergonomía total para personas ciegas: foco por unidad con aria-live, controles táctiles grandes, atajos sin mouse y cortina visual; se siente más como reproductor accesible que como página de papel",
+      "width": 1440,
+      "height": 900
+    }
+  ]
+}
