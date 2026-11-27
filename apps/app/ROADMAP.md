@@ -45,9 +45,9 @@ Una advertencia para quien siga: el `token` del body NO autentica, la cookie fir
 
 ## Fase 4 — Offline y sync real
 
-1. Descargar libros completos (~300 KB/libro) a storage del dispositivo.
-2. Cola de sincronización con reintento (resiliencia de red).
-3. Resolver conflicto de progreso (web ↔ app, gana el más reciente).
+1. ✅ Descargar libros completos en formato compacto `IGB1` a storage del dispositivo (`DownloadBookOffline`, `RemoveOfflineBook`, `IsBookAvailableOffline`).
+2. ✅ Cola de sincronización `sync_outbox` con reintento (`DeltaSyncCoordinator`).
+3. ✅ Resolver conflicto de progreso con LWW (`resolveProgressConflict` — `apps/app/docs/fase-4.md`).
 
 ## Fase 5 — Distribución
 

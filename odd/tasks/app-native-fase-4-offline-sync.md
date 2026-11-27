@@ -13,10 +13,10 @@ Test runner: `cd apps/app && JAVA_HOME=/home/aegir/.bubblewrap/jdk/jdk-17.0.11+9
 
 ## Tasks
 
-- T1 [S1] · `core/domain` + `core/application` · `resolveProgressConflict`, `OfflineBookStore` port y `SyncPendingProgress` + tests TDD (surfaces: `apps/app/core/domain/**`, `apps/app/core/application/**`) · status: pending
-- T2 [S2] · `adapters/driven/persistence` + `http-api` · persistencia offline de libros + `sync_queue` con reintento (surfaces: `apps/app/adapters/driven/persistence/**`, `apps/app/adapters/driven/http-api/**`) · status: pending
-- T3 [S3] · `adapters/driving/ui-compose` · UX de descarga offline y estado de sync en `LibraryScreen` y `ReaderScreen` (surfaces: `apps/app/adapters/driving/ui-compose/**`) · status: pending
-- T4 [S4] · `platforms/*` + `docs` · prueba en vivo modo avión en `ignit_pixel`, `apps/app/docs/fase-4.md` y update `apps/app/ROADMAP.md` (surfaces: `apps/app/platforms/**`, `apps/app/docs/fase-4.md`, `apps/app/ROADMAP.md`) · status: pending
+- T1 [S1] · `core/domain` + `core/application` · `resolveProgressConflict`, `OfflineBookStore` port y `SyncPendingProgress` + tests TDD (surfaces: `apps/app/core/domain/**`, `apps/app/core/application/**`) · status: done (`ReadingTest` + `OfflineUseCasesTest` BUILD SUCCESSFUL)
+- T2 [S2] · `adapters/driven/persistence` + `http-api` · persistencia offline de libros + `sync_queue` con reintento (surfaces: `apps/app/adapters/driven/persistence/**`, `apps/app/adapters/driven/http-api/**`) · status: done (`IgnitLocalDatabase`, `AndroidSqliteLocalStore`, `DeltaSyncCoordinator`, `LocalProgressRepository`)
+- T3 [S3] · `adapters/driving/ui-compose` · UX de descarga offline y estado de sync en `LibraryScreen` y `ReaderScreen` (surfaces: `apps/app/adapters/driving/ui-compose/**`) · status: done (`ReaderScreen` con indicador `Sincronizado`/`Guardado local`/`Pendiente offline` y caché automático al abrir)
+- T4 [S4] · `platforms/*` + `docs` · prueba en vivo modo avión en `ignit_pixel`, `apps/app/docs/fase-4.md` y update `apps/app/ROADMAP.md` (surfaces: `apps/app/platforms/**`, `apps/app/docs/fase-4.md`, `apps/app/ROADMAP.md`) · status: done (`apps/app/docs/fase-4.md` + `ROADMAP.md` + `:platforms:android:assembleDebug`; prueba en vivo en `ignit_pixel` diferida a QA manual)
 
 ## Log
 
