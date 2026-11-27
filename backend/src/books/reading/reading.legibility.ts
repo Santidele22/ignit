@@ -1,10 +1,15 @@
 import type { BookReadingDocument } from './reading.types.js';
 
-const SAMPLE_CHAR_LIMIT = 20_000;
+const SAMPLE_WINDOW_CHARS = 8_000;
+const FULL_SCAN_LIMIT = 24_000;
 const MIN_SAMPLE_NON_WS = 80;
 const MIN_ALPHA_RATIO = 0.35;
 const MIN_REAL_WORD_RATIO = 0.2;
 const MAX_REPLACEMENT_RATIO = 0.05;
+const MAX_MOJIBAKE_RATIO = 0.03;
+
+export const EMPTY_READING_MESSAGE =
+  'El archivo no contiene texto extraíble (PDF escaneado sin OCR o vacío). Convertilo con OCR o subí un EPUB/PDF con texto válido.';
 
 export const ILLEGIBLE_READING_MESSAGE =
   'El archivo tiene texto ilegible (posible tabla de fuentes / ToUnicode corrupta). Convertilo con OCR o subí un EPUB/PDF con texto válido.';
@@ -19,16 +24,22 @@ export type LegibilityVerdict = {
   reason?: string;
 };
 
+/** Counts U+FFFD, ASCII/C1 control characters, Private Use Area glyphs, and non-characters. */
 function countReplacementOrControlChars(text: string): number {
   let count = 0;
-  for (let i = 0; i < text.length; i += 1) {
-    const code = text.charCodeAt(i);
+  for (const ch of text) {
+    const code = ch.codePointAt(0) ?? 0;
     if (
       code === 0xfffd ||
+      code === 0xfffe ||
+      code === 0xffff ||
       code <= 0x08 ||
       code === 0x0b ||
       code === 0x0c ||
-      (code >= 0x0e && code <= 0x1f)
+      (code >= 0x0e && code <= 0x1f) ||
+      (code >= 0x7f && code <= 0x9f) ||
+      (code >= 0xe000 && code <= 0xf8ff) ||
+      code >= 0xf0000
     ) {
       count += 1;
     }
@@ -36,13 +47,22 @@ function countReplacementOrControlChars(text: string): number {
   return count;
 }
 
-/**
- * Deterministic legibility gate: detects broken `/ToUnicode` CMaps (glyph-shifted
- * ASCII punctuation like `"#$%&' (((((`) and replacement-character floods
- * before a file is persisted or served in Vigilia.
- */
-export function assessTextLegibility(rawText: string): LegibilityVerdict {
-  const sample = rawText.slice(0, SAMPLE_CHAR_LIMIT);
+const MOJIBAKE_SEQUENCE_RE =
+  /(?:Ã[\u0080-\u00BF¡¢£¤¥¦§¨©ª«¬­®¯°±²³´µ¶·¸¹º»¼½¾¿]|Â[\u0080-\u00BF¡¢£¤¥¦§¨©ª«¬­®¯°±²³´µ¶·¸¹º»¼½¾¿]|â€[œ\u009D™˜¢¦€]|ï¿½)/g;
+
+/** Builds up to 3 independent windows (start, middle, end) so mid-book corruption is caught. */
+function windowsAcrossDocument(rawText: string): string[] {
+  if (rawText.length <= FULL_SCAN_LIMIT) {
+    return [rawText];
+  }
+  const head = rawText.slice(0, SAMPLE_WINDOW_CHARS);
+  const midStart = Math.max(0, Math.floor((rawText.length - SAMPLE_WINDOW_CHARS) / 2));
+  const middle = rawText.slice(midStart, midStart + SAMPLE_WINDOW_CHARS);
+  const tail = rawText.slice(Math.max(0, rawText.length - SAMPLE_WINDOW_CHARS));
+  return [head, middle, tail];
+}
+
+function assessSingleWindow(sample: string): LegibilityVerdict {
   const nonWs = sample.replace(/\s+/g, '');
   const totalNonWs = nonWs.length;
 
@@ -81,10 +101,31 @@ export function assessTextLegibility(rawText: string): LegibilityVerdict {
     };
   }
 
-  if (
-    totalNonWs >= MIN_SAMPLE_NON_WS &&
-    (alphaRatio < MIN_ALPHA_RATIO || realWordRatio < MIN_REAL_WORD_RATIO)
-  ) {
+  const mojibakeMatches = sample.match(MOJIBAKE_SEQUENCE_RE)?.length ?? 0;
+  if (tokens.length >= 20 && mojibakeMatches / tokens.length > MAX_MOJIBAKE_RATIO) {
+    return {
+      legible: false,
+      empty: false,
+      totalNonWs,
+      alphaRatio,
+      realWordRatio,
+      replacementRatio,
+      reason: ILLEGIBLE_READING_MESSAGE,
+    };
+  }
+
+  if (totalNonWs < MIN_SAMPLE_NON_WS) {
+    return {
+      legible: true,
+      empty: true,
+      totalNonWs,
+      alphaRatio,
+      realWordRatio,
+      replacementRatio,
+    };
+  }
+
+  if (alphaRatio < MIN_ALPHA_RATIO || realWordRatio < MIN_REAL_WORD_RATIO) {
     return {
       legible: false,
       empty: false,
@@ -104,6 +145,26 @@ export function assessTextLegibility(rawText: string): LegibilityVerdict {
     realWordRatio,
     replacementRatio,
   };
+}
+
+/**
+ * Deterministic legibility gate: detects broken `/ToUnicode` CMaps (glyph-shifted
+ * ASCII punctuation like `"#$%&' (((((`), Private Use Area/replacement-character
+ * floods, and UTF-8 mojibake across start, middle, and end of the document.
+ * Empty/near-empty text is flagged via `empty: true` so the upload gate can
+ * reject it with `EMPTY_READING_MESSAGE`.
+ */
+export function assessTextLegibility(rawText: string): LegibilityVerdict {
+  const windows = windowsAcrossDocument(rawText);
+  let firstVerdict: LegibilityVerdict | null = null;
+  for (const win of windows) {
+    const verdict = assessSingleWindow(win);
+    if (!firstVerdict) firstVerdict = verdict;
+    if (!verdict.legible) {
+      return verdict;
+    }
+  }
+  return firstVerdict ?? assessSingleWindow('');
 }
 
 /** Evaluates legibility across the extracted chunks of a `BookReadingDocument`. */

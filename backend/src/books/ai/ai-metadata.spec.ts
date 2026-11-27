@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   suggestCoverSearchQueries,
   suggestMetadataFromFilename,
+  verifyLicenseFromBookContent,
 } from './ai-metadata.service.js';
 import { searchGoogleBookCovers } from './cover-search.service.js';
 
@@ -284,5 +285,66 @@ describe('searchGoogleBookCovers', () => {
         coverUrl: 'https://covers.openlibrary.org/b/id/7793883-L.jpg',
       },
     ]);
+  });
+});
+
+describe('verifyLicenseFromBookContent', () => {
+  it('verifies open vs copyrighted license from extracted book text and fails open to unknown', async () => {
+    expect(
+      await verifyLicenseFromBookContent({ textSample: 'Contenido de prueba' }, { env: {} }),
+    ).toEqual({
+      license: null,
+      licenseStatus: 'unknown',
+      licenseReason: null,
+    });
+
+    const openFetch = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        choices: [
+          {
+            message: {
+              content:
+                '{"license":"Dominio público","licenseStatus":"open","licenseReason":"Autor fallecido en 1910."}',
+            },
+          },
+        ],
+      }),
+    }));
+    const openVerdict = await verifyLicenseFromBookContent(
+      { title: 'La muerte de Iván Ilich', author: 'León Tolstói', textSample: 'En el gran edificio...' },
+      {
+        env: { LLM_BASE_URL: 'https://api.nan.builders/v1', LLM_API_KEY: 'test-key' },
+        fetchImpl: openFetch as unknown as typeof fetch,
+      },
+    );
+    expect(openVerdict).toEqual({
+      license: 'Dominio público',
+      licenseStatus: 'open',
+      licenseReason: 'Autor fallecido en 1910.',
+    });
+
+    const closedFetch = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        choices: [
+          {
+            message: {
+              content:
+                '{"license":"","licenseStatus":"copyrighted","licenseReason":"Todos los derechos reservados."}',
+            },
+          },
+        ],
+      }),
+    }));
+    const closedVerdict = await verifyLicenseFromBookContent(
+      { title: 'Obra Moderna', textSample: '© 2024 Editorial Comercial. Todos los derechos reservados.' },
+      {
+        env: { LLM_BASE_URL: 'https://api.nan.builders/v1', LLM_API_KEY: 'test-key' },
+        fetchImpl: closedFetch as unknown as typeof fetch,
+      },
+    );
+    expect(closedVerdict.licenseStatus).toBe('copyrighted');
+    expect(closedVerdict.license).toBeNull();
   });
 });

@@ -3,7 +3,7 @@ import { access, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import JSZip from 'jszip';
-import { PDFDocument } from 'pdf-lib';
+import { PDFDocument, StandardFonts } from 'pdf-lib';
 import type { Repository } from 'typeorm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Book } from '../entities/book.entity.js';
@@ -14,7 +14,7 @@ import {
 } from '../pdf-firewall/epub-firewall.fixtures.js';
 import type { PdfFirewallReport } from '../pdf-firewall/pdf-firewall.types.js';
 import type { BookReadingDocument } from '../reading/reading.types.js';
-import { ILLEGIBLE_READING_MESSAGE } from '../reading/reading.legibility.js';
+import { EMPTY_READING_MESSAGE, ILLEGIBLE_READING_MESSAGE } from '../reading/reading.legibility.js';
 import type { BookStorage } from '../storage/book-storage.js';
 import { assertStoredBookFile, requireUploadedPdf } from '../http/uploaded-pdf.js';
 import { attachBookFile, type UploadedPdf } from './book-file.js';
@@ -28,8 +28,20 @@ function xhtml(body: string): string {
 </html>`;
 }
 
-/** A real one-page PDF so the unchanged PDF path keeps passing its firewall. */
+/** A real one-page PDF with readable Spanish prose so extraction & legibility pass. */
 async function cleanPdfBuffer(): Promise<Buffer> {
+  const doc = await PDFDocument.create();
+  const page = doc.addPage();
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  page.drawText(
+    'En un lugar de la Mancha, de cuyo nombre no quiero acordarme, vivia un hidalgo de los de lanza en astillero.',
+    { x: 50, y: 700, size: 12, font },
+  );
+  return Buffer.from(await doc.save({ useObjectStreams: false }));
+}
+
+/** A blank one-page PDF with no extractable text (simulates un-OCR'd scan). */
+async function emptyPdfBuffer(): Promise<Buffer> {
   const doc = await PDFDocument.create();
   doc.addPage();
   return Buffer.from(await doc.save({ useObjectStreams: false }));
@@ -221,6 +233,40 @@ describe('attachBookFile format dispatch (S6)', () => {
     ) as PdfFirewallReport;
     expect(report.safe).toBe(true);
     expect(report.tiers.map((tier) => tier.name)).toEqual(['header', 'lexical', 'structure']);
+  });
+
+  it('rejects an empty / zero-text PDF before persisting it', async () => {
+    const bytes = await emptyPdfBuffer();
+    const file = await upload('vacio.pdf', bytes, 'application/pdf');
+    const book = emptyBook({ title: 'Libro vacío', author: 'Autor' });
+
+    const error = await attachBookFile(booksRepository, bookStorage, book, file).catch(
+      (reason: unknown) => reason,
+    );
+
+    expect((error as { status?: number }).status).toBe(400);
+    expect((error as Error).message).toBe(EMPTY_READING_MESSAGE);
+    expect(persist).not.toHaveBeenCalled();
+    expect(save).not.toHaveBeenCalled();
+    await expect(access(file.path)).rejects.toThrow();
+  });
+
+  it('keeps publishRequested fail-closed when LLM is unconfigured/skipped', async () => {
+    const bytes = await cleanPdfBuffer();
+    const file = await upload('dominio-publico.pdf', bytes, 'application/pdf');
+    const book = emptyBook({
+      title: 'Don Quijote',
+      author: 'Miguel de Cervantes',
+      license: 'Dominio público',
+      published: false,
+    });
+
+    const saved = await attachBookFile(booksRepository, bookStorage, book, file, {
+      publishRequested: true,
+    });
+
+    expect(saved.published).toBe(false);
+    expect(saved.reviewStatus).toBe('pending');
   });
 });
 

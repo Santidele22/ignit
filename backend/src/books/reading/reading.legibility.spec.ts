@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { BookReadingDocument } from './reading.types.js';
-import { assessReadingLegibility, assessTextLegibility } from './reading.legibility.js';
+import {
+  assessReadingLegibility,
+  assessTextLegibility,
+  EMPTY_READING_MESSAGE,
+  ILLEGIBLE_READING_MESSAGE,
+} from './reading.legibility.js';
 
 function makeDoc(texts: string[]): BookReadingDocument {
   return {
@@ -60,10 +65,40 @@ describe('reading.legibility', () => {
     expect(verdict.legible).toBe(false);
   });
 
-  it('does not falsely reject empty / ocrPending documents (handled separately)', () => {
+  it('flags empty / zero-text documents with empty: true for the upload gate', () => {
     const emptyDoc = makeDoc([]);
     const verdict = assessReadingLegibility(emptyDoc);
     expect(verdict.legible).toBe(true);
     expect(verdict.empty).toBe(true);
+  });
+
+  it('flags near-empty documents below minimum readable length with empty: true', () => {
+    const tinyDoc = makeDoc(['Página 1']);
+    const verdict = assessReadingLegibility(tinyDoc);
+    expect(verdict.legible).toBe(true);
+    expect(verdict.empty).toBe(true);
+  });
+
+  it('rejects Private Use Area unicode floods and mojibake', () => {
+    const pua = '\uE001\uE002\uE003 \uE004\uE005\uE006 '.repeat(20);
+    expect(assessTextLegibility(pua)).toMatchObject({
+      legible: false,
+      reason: ILLEGIBLE_READING_MESSAGE,
+    });
+
+    const mojibake = 'La maÃ±ana frÃ­a de otoÃ±o tenÃ­a una extraÃ±a melancolÃ­a â€œenormeâ€ '.repeat(5);
+    expect(assessTextLegibility(mojibake)).toMatchObject({
+      legible: false,
+      reason: ILLEGIBLE_READING_MESSAGE,
+    });
+  });
+
+  it('catches corrupted ToUnicode appearing in the middle of a long book', () => {
+    const cleanIntro = 'Capítulo uno de una historia clásica en español con prosa clara. '.repeat(220);
+    const corruptedMiddle = '"#$%&\' $(!")*! +,-./.0.,-12!.%!#.,+/343.,-&!(((((((((((( '.repeat(250);
+    const cleanOutro = 'Epílogo final del libro en español con palabras normales. '.repeat(220);
+    const verdict = assessTextLegibility(`${cleanIntro}\n${corruptedMiddle}\n${cleanOutro}`);
+    expect(verdict.legible).toBe(false);
+    expect(verdict.reason).toBe(ILLEGIBLE_READING_MESSAGE);
   });
 });

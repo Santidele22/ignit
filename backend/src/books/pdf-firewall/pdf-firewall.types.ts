@@ -47,6 +47,11 @@ export type PdfTierReport = {
   checks: PdfCheckReport[];
 };
 
+export type PdfFirewallFalsePositiveReview = {
+  ran: boolean;
+  dismissed: PdfViolation[];
+};
+
 /**
  * Structured per-tier pipeline report (S1, /admin dashboard): every tier and
  * every check with `passed` / `violation` / `skipped` states. Persistence and
@@ -58,4 +63,5 @@ export type PdfFirewallReport = {
   pageCount: number;
   violations: PdfViolation[];
   tiers: PdfTierReport[];
+  falsePositiveReview?: PdfFirewallFalsePositiveReview;
 };

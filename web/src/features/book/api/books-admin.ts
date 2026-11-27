@@ -62,8 +62,11 @@ export type CoverSearchCandidate = {
 	coverUrl: string;
 };
 
-export function suggestBookMetadata(filename: string): Promise<SuggestedBookMetadata> {
-	return postJsonReturning<SuggestedBookMetadata>('/books/suggest-metadata', { filename });
+export function suggestBookMetadata(
+	input: string | { filename?: string; title?: string; author?: string },
+): Promise<SuggestedBookMetadata> {
+	const payload = typeof input === 'string' ? { filename: input } : input;
+	return postJsonReturning<SuggestedBookMetadata>('/books/suggest-metadata', payload);
 }
 
 export function searchBookCovers(
@@ -110,15 +113,20 @@ export function deleteBook(id: number): Promise<void> {
 	return deleteJson(`/books/${id}`);
 }
 
-export async function uploadBookFile(id: number, file: File): Promise<void> {
+export async function uploadBookFile(
+	id: number,
+	file: File,
+	options: { publish?: boolean } = {},
+): Promise<AdminBookRow> {
 	const body = new FormData();
 	body.append('file', file);
+	const query = options.publish ? '?publish=true' : '';
 
 	let response: Response;
 
 	try {
 		const token = await getBearerToken();
-		response = await fetch(`${baseUrl}/books/${id}/file`, {
+		response = await fetch(`${baseUrl}/books/${id}/file${query}`, {
 			method: 'POST',
 			credentials: 'include',
 			headers: token ? { Authorization: `Bearer ${token}` } : undefined,
@@ -133,4 +141,6 @@ export async function uploadBookFile(id: number, file: File): Promise<void> {
 		const message = Array.isArray(payload?.message) ? payload.message[0] : payload?.message;
 		throw new Error(message || GENERIC_ERROR);
 	}
+
+	return (await response.json()) as AdminBookRow;
 }

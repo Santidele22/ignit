@@ -335,23 +335,34 @@ export function inspectPdfStreamResources(
   return violations;
 }
 
+export type HiddenContentInspectionResult = {
+  violations: PdfViolation[];
+  dismissedFalsePositives: PdfViolation[];
+};
+
 /**
- * Inspects every page's content stream (plus drawn `/Form` XObjects) for hidden
- * text / prompt-injection tricks.
+ * Two-phase hidden-content inspection:
+ * - Phase 1 (Vulnerability scan): flags microscopic text (<1pt), invisible text
+ *   (3 Tr without OCR scan), and white-on-white text.
+ * - Phase 2 (False-positive audit): dismisses `<1pt` findings when they occur
+ *   strictly inside an invisible OCR layer (`3 Tr` / `7 Tr`) over a substantial
+ *   scanned page image (`drewOcrScaleImage`) with no prompt-injection signals.
  */
 export function inspectPagesForHiddenContent(
   doc: PDFDocument,
   maxStreamBytes: number,
-): PdfViolation[] {
+): HiddenContentInspectionResult {
   const context = doc.context;
   let pages: ReturnType<PDFDocument['getPages']>;
   try {
     pages = doc.getPages();
   } catch {
-    return [];
+    return { violations: [], dismissedFalsePositives: [] };
   }
 
   const streamBudget = Math.min(maxStreamBytes, MAX_PAGE_CONTENT_CHARS);
+  const dismissedFalsePositives: PdfViolation[] = [];
+
   for (const page of pages) {
     const contentText = readPageContentStream(page.node, context, streamBudget);
     if (!contentText) {
@@ -361,13 +372,19 @@ export function inspectPagesForHiddenContent(
       lookupDictEntry(page.node, 'Resources', context),
       context,
     );
-    const hiddenDetail = detectHiddenTextInContent(contentText, ocrImageNames);
-    if (hiddenDetail) {
-      return [{ code: 'HIDDEN_CONTENT', detail: hiddenDetail }];
+    const finding = detectHiddenTextInContent(contentText, ocrImageNames);
+    if (!finding) {
+      continue;
     }
+    const violation: PdfViolation = { code: 'HIDDEN_CONTENT', detail: finding.detail };
+    if (finding.isOcrFalsePositive) {
+      dismissedFalsePositives.push(violation);
+      continue;
+    }
+    return { violations: [violation], dismissedFalsePositives };
   }
 
-  return [];
+  return { violations: [], dismissedFalsePositives };
 }
 
 type InflateResult =
@@ -550,10 +567,18 @@ type GraphicsState = {
 const PAINT_OPS = new Set(['f', 'F', 'f*', 'B', 'B*', 'b', 'b*', 'S', 's', 'sh']);
 const IDENTITY_2D: Matrix2D = [1, 0, 0, 1];
 
+const PROMPT_INJECTION_SIGNAL_RE =
+  /(?:ignore\s+(?:all\s+)?previous\s+instructions|system\s+prompt|jailbreak|<\s*script|javascript:|eval\s*\()/i;
+
+type HiddenTextFinding = {
+  detail: string;
+  isOcrFalsePositive: boolean;
+};
+
 function detectHiddenTextInContent(
   content: string,
   imageXObjectNames: Set<string>,
-): string | null {
+): HiddenTextFinding | null {
   const stack: GraphicsState[] = [];
   let state: GraphicsState = {
     fontSize: null,
@@ -566,6 +591,7 @@ function detectHiddenTextInContent(
   let hasBackgroundInk = false;
   let drewOcrScaleImage = false;
   let microFontChars = 0;
+  let microFontVisibleChars = 0;
   let invisibleChars = 0;
   let whiteOnWhiteChars = 0;
 
@@ -635,10 +661,14 @@ function detectHiddenTextInContent(
     } else if (op === 'Tj' || op === 'TJ' || op === "'" || op === '"') {
       const drawn = countShownChars(operands);
       if (drawn > 0) {
+        const isOcrInvisibleMode = state.renderMode === 3 || state.renderMode === 7;
         if (state.fontSize !== null && isMicroscopicGlyph(state)) {
           microFontChars += drawn;
+          if (!isOcrInvisibleMode) {
+            microFontVisibleChars += drawn;
+          }
         }
-        if (state.renderMode === 3 || state.renderMode === 7) {
+        if (isOcrInvisibleMode) {
           invisibleChars += drawn;
         }
         if (state.isWhiteFill && state.renderMode === 0 && !hasBackgroundInk) {
@@ -651,13 +681,21 @@ function detectHiddenTextInContent(
   }
 
   if (microFontChars >= MIN_HIDDEN_TEXT_CHARS) {
-    return 'tipografía microscópica (<1pt)';
+    const isOcrFalsePositive =
+      drewOcrScaleImage &&
+      microFontVisibleChars === 0 &&
+      whiteOnWhiteChars === 0 &&
+      !PROMPT_INJECTION_SIGNAL_RE.test(content);
+    return { detail: 'tipografía microscópica (<1pt)', isOcrFalsePositive };
   }
   if (!drewOcrScaleImage && invisibleChars >= MIN_HIDDEN_TEXT_CHARS) {
-    return 'texto invisible (3 Tr sin capa de imagen OCR)';
+    return {
+      detail: 'texto invisible (3 Tr sin capa de imagen OCR)',
+      isOcrFalsePositive: false,
+    };
   }
   if (whiteOnWhiteChars >= MIN_HIDDEN_TEXT_CHARS) {
-    return 'texto blanco sobre fondo blanco';
+    return { detail: 'texto blanco sobre fondo blanco', isOcrFalsePositive: false };
   }
   return null;
 }

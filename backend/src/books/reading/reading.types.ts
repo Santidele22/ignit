@@ -47,6 +47,7 @@ export interface AiClutterItem {
 export interface AiRefinementSummary {
   applied: boolean;
   model?: string;
+  passes?: number;
   reclassified: number;
   merged: number;
   dropped: number;

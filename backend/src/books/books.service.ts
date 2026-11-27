@@ -157,6 +157,7 @@ export class BooksService {
     id: number,
     file: UploadedPdf,
     user?: RouteSessionUser | null,
+    options: { publishRequested?: boolean } = {},
   ): Promise<Book> {
     const book = await this.findOne(id);
     assertCanManageBook(book, user);
@@ -166,7 +167,7 @@ export class BooksService {
       book.published = false;
       book.reviewStatus = REVIEW_STATUS_PENDING;
     }
-    return attachBookFile(this.booksRepository, this.bookStorage, book, file);
+    return attachBookFile(this.booksRepository, this.bookStorage, book, file, options);
   }
 
   async getReading(

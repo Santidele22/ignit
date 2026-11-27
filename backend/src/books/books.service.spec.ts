@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { Repository } from 'typeorm';
 import { plainToInstance } from 'class-transformer';
-import { PDFDocument } from 'pdf-lib';
+import { PDFDocument, StandardFonts } from 'pdf-lib';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PaginationQueryDto } from '../common/pagination/pagination.dto.js';
 import { ReadingStatus } from '../common/enums/reading-status.enum.js';
@@ -116,7 +116,12 @@ describe('BooksService storage interplay', () => {
     // A structurally valid PDF: the firewall parses every upload with `pdf-lib`
     // before it may reach storage, so a header-only stub is rejected.
     const doc = await PDFDocument.create();
-    doc.addPage();
+    const page = doc.addPage();
+    const font = await doc.embedFont(StandardFonts.Helvetica);
+    page.drawText(
+      'En un lugar de la Mancha, de cuyo nombre no quiero acordarme, vivia un hidalgo de los de lanza en astillero.',
+      { x: 50, y: 700, size: 12, font },
+    );
     await writeFile(path, await doc.save({ useObjectStreams: false }));
     return { path, originalname: 'clean-code.pdf', size: 9, mimetype: 'application/pdf' };
   };

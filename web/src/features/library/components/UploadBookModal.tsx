@@ -9,6 +9,7 @@ import { BOOK_KIND_OPTIONS, type BookKind } from '../../../entities/book/types';
 import CoverPickerModal from '../../book/components/CoverPickerModal';
 import {
 	createBookReturning,
+	deleteBook,
 	searchBookCovers,
 	suggestBookMetadata,
 	uploadBookFile,
@@ -61,6 +62,7 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 	const [licenseManual, setLicenseManual] = createSignal(false);
 	const [licenseStatus, setLicenseStatus] = createSignal<'idle' | 'open' | 'copyrighted' | 'unknown'>('idle');
 	const [licenseReason, setLicenseReason] = createSignal('');
+	const [showLicenseHelp, setShowLicenseHelp] = createSignal(false);
 	const [ctaLabel, setCtaLabel] = createSignal('');
 	const [ctaUrl, setCtaUrl] = createSignal('');
 	const [file, setFile] = createSignal<File | null>(null);
@@ -100,6 +102,7 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 		setLicenseManual(false);
 		setLicenseStatus('idle');
 		setLicenseReason('');
+		setShowLicenseHelp(false);
 		setCtaLabel('');
 		setCtaUrl('');
 		setFile(null);
@@ -136,6 +139,7 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 		setError(null);
 		setLicenseStatus('idle');
 		setLicenseReason('');
+		setShowLicenseHelp(false);
 		if (!licenseManual()) setLicense('');
 
 		// Prefill from the filename (e.g. `Título – Autor.pdf`) in real time
@@ -252,6 +256,38 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 			return;
 		}
 
+		if (published() && licenseStatus() !== 'open') {
+			setSubmitting(true);
+			try {
+				const checked = await suggestBookMetadata({
+					filename: selected?.name,
+					title: cleanTitle,
+					author: cleanAuthor,
+				});
+				if (checked.licenseStatus === 'copyrighted') {
+					setLicenseStatus('copyrighted');
+					const reason =
+						checked.licenseReason?.trim() ||
+						'Obra con licencia cerrada o derechos de autor vigentes: solo puede guardarse en tu biblioteca privada.';
+					setLicenseReason(reason);
+					setPublished(false);
+					setLicense('');
+					setError(reason);
+					setSubmitting(false);
+					return;
+				}
+				if (checked.licenseStatus === 'open' && checked.license && isOpenLicense(checked.license)) {
+					setLicenseStatus('open');
+					setLicenseReason(checked.licenseReason?.trim() || 'Licencia abierta detectada por IA.');
+					if (!licenseManual()) setLicense(checked.license);
+				}
+			} catch {
+				// Fail-open on network errors; backend license check still enforces open license.
+			} finally {
+				setSubmitting(false);
+			}
+		}
+
 		if (published() && !isOpenLicense(license())) {
 			setError(OPEN_LICENSE_REQUIRED_MESSAGE);
 			return;
@@ -278,6 +314,7 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 			ctaUrl: cleanCtaUrl,
 		});
 
+		const wasNewlyCreated = !createdRow();
 		let created = createdRow();
 		if (!created) {
 			try {
@@ -302,19 +339,25 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 		}
 
 		try {
-			await uploadBookFile(created.id, selected);
-			const titleCopy = created.title;
-			const wasPublic = published();
+			const uploaded = await uploadBookFile(created.id, selected, { publish: published() });
+			const titleCopy = uploaded.title || created.title;
+			const wasPublic = uploaded.published === true || published();
 			resetForm();
 			setSubmittedTitle(titleCopy);
 			setSubmittedPublic(wasPublic);
-			props.onCreated(created, 'created');
+			props.onCreated(uploaded, 'created');
 		} catch (cause) {
 			const message = cause instanceof Error ? cause.message : 'No se pudo subir el archivo.';
-			setError(
-				`«${created.title}» se creó, pero el archivo no se pudo subir: ${message} Podés reintentar el envío acá o desde Editar.`,
-			);
-			props.onCreated(created, 'file-failed');
+			if (wasNewlyCreated) {
+				await deleteBook(created.id).catch(() => undefined);
+				setCreatedRow(null);
+				setError(`No se pudo subir el libro: ${message}`);
+			} else {
+				setError(
+					`«${created.title}» se creó, pero el archivo no se pudo subir: ${message} Podés reintentar el envío acá o desde Editar.`,
+				);
+				props.onCreated(created, 'file-failed');
+			}
 		} finally {
 			setSubmitting(false);
 		}
@@ -482,6 +525,7 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 									const next = event.currentTarget.value;
 									setTitleManual(next.trim().length > 0);
 									setTitle(next);
+									if (!licenseManual()) setLicenseStatus('idle');
 								}}
 							/>
 						</div>
@@ -500,6 +544,7 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 										const next = event.currentTarget.value;
 										setAuthorManual(next.trim().length > 0);
 										setAuthor(next);
+										if (!licenseManual()) setLicenseStatus('idle');
 									}}
 								/>
 							</div>
@@ -663,20 +708,43 @@ export default function UploadBookModal(props: UploadBookModalProps) {
 							</p>
 						</Show>
 
-						<label class="field checkbox-field">
-							<input
-								id="upPublish"
-								type="checkbox"
-								checked={licenseStatus() !== 'copyrighted' && published()}
-								disabled={submitting() || licenseStatus() === 'copyrighted'}
-								onChange={(event) => setPublished(event.currentTarget.checked)}
-							/>
-							<span class="checkbox-label">
-								{licenseStatus() === 'copyrighted'
-									? 'Catálogo público deshabilitado (solo biblioteca personal)'
-									: 'Solicitar publicación en el catálogo público (solo licencias abiertas)'}
-							</span>
-						</label>
+						<div class="checkbox-help-row">
+							<label class="field checkbox-field">
+								<input
+									id="upPublish"
+									type="checkbox"
+									checked={licenseStatus() !== 'copyrighted' && published()}
+									disabled={submitting() || licenseStatus() === 'copyrighted'}
+									onChange={(event) => setPublished(event.currentTarget.checked)}
+								/>
+								<span class="checkbox-label">
+									{licenseStatus() === 'copyrighted'
+										? 'Catálogo público deshabilitado (solo biblioteca personal)'
+										: 'Solicitar publicación en el catálogo público (solo licencias abiertas)'}
+								</span>
+							</label>
+							<button
+								type="button"
+								class="help-tip"
+								aria-label="¿Por qué no se puede subir al catálogo público con licencia privada?"
+								aria-expanded={showLicenseHelp()}
+								aria-controls="upLicenseHelp"
+								title="¿Por qué no se puede subir al catálogo público con licencia privada?"
+								onClick={() => setShowLicenseHelp((prev) => !prev)}
+							>
+								?
+							</button>
+						</div>
+
+						<Show when={showLicenseHelp()}>
+							<p id="upLicenseHelp" class="pipe-notice help-tip-panel" role="note">
+								<strong>¿Por qué solo licencias abiertas?</strong> Por derechos de autor y cumplimiento legal,
+								el catálogo público de Ignit únicamente admite obras de dominio público o con licencias abiertas
+								(como Creative Commons o documentación libre). Si el libro tiene licencia cerrada o privada,
+								podés guardarlo igual en tu <b>biblioteca privada</b> para leerlo en Modo Vigilia (solo vos
+								podés verlo).
+							</p>
+						</Show>
 
 						<Show when={licenseStatus() !== 'copyrighted'}>
 							<div class="field">

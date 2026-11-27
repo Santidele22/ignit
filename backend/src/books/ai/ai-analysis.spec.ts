@@ -265,8 +265,8 @@ describe('attachBookFile AI stage wiring', () => {
 
     const saved = await attachBookFile(booksRepository, bookStorage, book, await uploadedPdf());
 
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    const body = JSON.parse(String(fetchCall(fetchMock, 1).init.body)) as {
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    const body = JSON.parse(String(fetchCall(fetchMock, 2).init.body)) as {
       messages: { role: string; content: string }[];
     };
     expect(body.messages[1]?.content).toContain('Drogo');

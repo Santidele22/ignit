@@ -2,14 +2,19 @@ import { BadRequestException, ConflictException, HttpException, HttpStatus } fro
 import { createHash } from 'node:crypto';
 import { readFile, unlink } from 'node:fs/promises';
 import type { Repository } from 'typeorm';
-import { aiColumnsFor, analyzeReadingDocument } from '../ai/ai-analysis.service.js';
+import { aiColumnsFor, analyzeReadingDocument, readingTextOf } from '../ai/ai-analysis.service.js';
+import { verifyLicenseFromBookContent } from '../ai/ai-metadata.service.js';
 import { refineReadingDocument } from '../ai/ai-refiner.service.js';
-import type { Book } from '../entities/book.entity.js';
+import { isOpenLicense } from './open-licenses.js';
+import { REVIEW_STATUS_PENDING, type Book } from '../entities/book.entity.js';
 import type { BookStorage } from '../storage/book-storage.js';
 import {
   assessReadingLegibility,
-  extractReadingFromPdf,
+  EMPTY_READING_MESSAGE,
   ILLEGIBLE_READING_MESSAGE,
+} from '../reading/reading.legibility.js';
+import {
+  extractReadingFromPdf,
   writeBookReadingJson,
 } from '../reading/book-reading.extractor.js';
 import {
@@ -52,11 +57,16 @@ const UNREADABLE_FILE_MESSAGE = 'El archivo subido no se pudo leer para validarl
  * dropped either way, and the replaced file is removed only after the new
  * reference is safely saved.
  */
+export type AttachBookFileOptions = {
+  publishRequested?: boolean;
+};
+
 export async function attachBookFile(
   booksRepository: Repository<Book>,
   bookStorage: BookStorage,
   book: Book,
   file: UploadedPdf,
+  options: AttachBookFileOptions = {},
 ): Promise<Book> {
   const isEpub = (await detectBookFormat(file.path)) === 'epub';
 
@@ -101,21 +111,81 @@ export async function attachBookFile(
     (await extractReadingFromPdf(book.id, file.path).catch(() => emptyReadingDocument(book.id)));
 
   const legibility = assessReadingLegibility(deterministicDoc);
-  if (!legibility.legible) {
+  if (!legibility.legible || legibility.empty || deterministicDoc.chunks.length === 0) {
     await unlink(file.path).catch(() => undefined);
-    throw new BadRequestException(legibility.reason ?? ILLEGIBLE_READING_MESSAGE);
+    throw new BadRequestException(
+      !legibility.legible
+        ? (legibility.reason ?? ILLEGIBLE_READING_MESSAGE)
+        : EMPTY_READING_MESSAGE,
+    );
   }
 
-  const runAiSync = process.env.NODE_ENV === 'test';
-  let readingDoc = deterministicDoc;
-  let refinedApplied = false;
-  let aiColumns = aiColumnsFor(null);
+  // Automatic two-pass design & editorial verification before persistence so
+  // empty, unicode-corrupted, or unrefined books are never saved to the shelf.
+  const refined = await refineReadingDocument(deterministicDoc);
+  const readingDoc = refined.document;
+  const refinedApplied = refined.summary.applied;
 
-  if (runAiSync) {
-    const refined = await refineReadingDocument(deterministicDoc);
-    readingDoc = refined.document;
-    refinedApplied = refined.summary.applied;
-    aiColumns = aiColumnsFor(await analyzeReadingDocument(readingDoc));
+  const postRefineLegibility = assessReadingLegibility(readingDoc);
+  if (!postRefineLegibility.legible || postRefineLegibility.empty || readingDoc.chunks.length === 0) {
+    await unlink(file.path).catch(() => undefined);
+    throw new BadRequestException(
+      !postRefineLegibility.legible
+        ? (postRefineLegibility.reason ?? ILLEGIBLE_READING_MESSAGE)
+        : EMPTY_READING_MESSAGE,
+    );
+  }
+
+  const aiColumns = aiColumnsFor(await analyzeReadingDocument(readingDoc));
+  if (aiColumns.aiSafety === 'suspect' && (aiColumns.aiQuality ?? 5) <= 1) {
+    await unlink(file.path).catch(() => undefined);
+    throw new BadRequestException(
+      'El contenido del libro no superó la verificación automática de diseño y legibilidad (texto roto, vacío o ilegible).',
+    );
+  }
+  if (aiColumns.aiSafety === 'suspect' && book.published === true) {
+    book.published = false;
+    book.reviewStatus = REVIEW_STATUS_PENDING;
+  }
+
+  const wantsPublic = options.publishRequested === true || book.published === true;
+  if (wantsPublic) {
+    const licenseCheck = await verifyLicenseFromBookContent({
+      title: book.title,
+      author: book.author,
+      claimedLicense: book.license,
+      textSample: readingTextOf(readingDoc),
+    });
+
+    if (licenseCheck.licenseStatus === 'copyrighted') {
+      book.published = false;
+      book.license = null;
+      book.reviewStatus = REVIEW_STATUS_PENDING;
+      book.reviewNote =
+        licenseCheck.licenseReason ??
+        'Obra con licencia cerrada o derechos de autor vigentes: solo biblioteca privada.';
+    } else {
+      const effectiveLicense = book.license || licenseCheck.license;
+      const canAutoPublish =
+        aiColumns.aiStatus === 'ok' &&
+        aiColumns.aiSafety === 'ok' &&
+        (aiColumns.aiQuality ?? 0) >= 3 &&
+        licenseCheck.licenseStatus === 'open' &&
+        isOpenLicense(effectiveLicense);
+
+      if (canAutoPublish) {
+        book.license = effectiveLicense;
+        book.published = true;
+        book.reviewStatus = 'approved';
+        book.reviewedBy = 'ai-auto';
+        book.reviewedAt = new Date();
+      } else {
+        // Fail-closed: if LLM verification was skipped, uncertain, or quality < 3,
+        // keep the book private/pending admin review instead of auto-publishing.
+        book.published = false;
+        book.reviewStatus = REVIEW_STATUS_PENDING;
+      }
+    }
   }
 
   // Canonical mime type per format (the client-claimed one is only trusted for
@@ -165,40 +235,7 @@ export async function attachBookFile(
     await saveBookFirewallReport(book.id, firewallReport, bookStorage).catch(() => undefined);
   }
 
-  if (!runAiSync) {
-    void runPostUploadAiPipeline(booksRepository, bookStorage, book, deterministicDoc);
-  }
-
   return book;
-}
-
-async function runPostUploadAiPipeline(
-  booksRepository: Repository<Book>,
-  bookStorage: BookStorage,
-  book: Book,
-  deterministicDoc: Awaited<ReturnType<typeof extractReadingFromPdf>>,
-): Promise<void> {
-  try {
-    const refined = await refineReadingDocument(deterministicDoc);
-    const readingDoc = refined.document;
-
-    if (refined.summary.applied || (refined.summary.clutter?.length ?? 0) > 0) {
-      await writeBookDeterministicReadingJson(book.id, deterministicDoc).catch(() => undefined);
-      await writeBookReadingJson(book.id, readingDoc).catch(() => undefined);
-      if (bookStorage.putJson) {
-        await bookStorage
-          .putJson(readingDeterministicJsonKey(book.id), deterministicDoc)
-          .catch(() => undefined);
-        await bookStorage.putJson(readingJsonKey(book.id), readingDoc).catch(() => undefined);
-      }
-    }
-
-    const aiColumns = aiColumnsFor(await analyzeReadingDocument(readingDoc));
-    Object.assign(book, aiColumns);
-    await booksRepository.save(book);
-  } catch {
-    // Fail-open: background AI pipeline never crashes the server.
-  }
 }
 
 /**

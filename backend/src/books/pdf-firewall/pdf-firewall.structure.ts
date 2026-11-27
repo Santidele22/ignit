@@ -63,6 +63,7 @@ export type PdfStructureScan = {
    * bucket means its check never ran (early exit), it did not pass.
    */
   ranStages: PdfStructureStage[];
+  dismissedFalsePositives?: PdfViolation[];
 };
 
 /** The check buckets the structural tier can execute or produce findings in. */
@@ -82,8 +83,14 @@ function scanResult(
   ranStages: PdfStructureStage[],
   pageCount: number,
   violations: PdfViolation[],
+  dismissedFalsePositives: PdfViolation[] = [],
 ): PdfStructureScan {
-  return { pageCount, violations, ranStages };
+  return {
+    pageCount,
+    violations,
+    ranStages,
+    ...(dismissedFalsePositives.length > 0 ? { dismissedFalsePositives } : {}),
+  };
 }
 
 /**
@@ -171,12 +178,20 @@ export async function inspectPdfStructure(
       });
     }
 
+    let dismissedFalsePositives: PdfViolation[] = [];
     if (violations.length === 0) {
       ranStages.push('hidden-content');
-      violations.push(...inspectPagesForHiddenContent(doc, limits.maxStreamBytes));
+      const hidden = inspectPagesForHiddenContent(doc, limits.maxStreamBytes);
+      violations.push(...hidden.violations);
+      dismissedFalsePositives = hidden.dismissedFalsePositives;
     }
 
-    return scanResult(ranStages, pageCount, deduplicateViolations(violations));
+    return scanResult(
+      ranStages,
+      pageCount,
+      deduplicateViolations(violations),
+      deduplicateViolations(dismissedFalsePositives),
+    );
   } catch (error) {
     return scanResult(ranStages, 0, [{ code: 'PARSE_ERROR', detail: describeError(error) }]);
   }

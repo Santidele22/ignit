@@ -45,7 +45,7 @@ import { CreateBookDto } from './dto/create-book.dto.js';
 import { RecordBookMetricDto } from './dto/record-book-metric.dto.js';
 import { UpdateBookDto } from './dto/update-book.dto.js';
 import { UpdateReadingStateDto } from './dto/update-reading-state.dto.js';
-import { suggestMetadataFromFilename } from './ai/ai-metadata.service.js';
+import { suggestMetadataFromInput } from './ai/ai-metadata.service.js';
 import { searchGoogleBookCovers } from './ai/cover-search.service.js';
 import { respondWithDownload } from './download/download-response.js';
 import type { Book } from './entities/book.entity.js';
@@ -123,9 +123,13 @@ export class BooksController {
 
   @Post('suggest-metadata')
   @ApiSessionAuth()
-  @ApiOperation({ summary: 'Fast LLM metadata prefill from a PDF filename' })
-  suggestMetadata(@Body() body: { filename?: string }) {
-    return suggestMetadataFromFilename(typeof body?.filename === 'string' ? body.filename : '');
+  @ApiOperation({ summary: 'Fast LLM metadata prefill and license check from filename, title, and author' })
+  suggestMetadata(@Body() body: { filename?: string; title?: string; author?: string }) {
+    return suggestMetadataFromInput({
+      filename: typeof body?.filename === 'string' ? body.filename : undefined,
+      title: typeof body?.title === 'string' ? body.title : undefined,
+      author: typeof body?.author === 'string' ? body.author : undefined,
+    });
   }
 
   @Get('cover-search')
@@ -222,10 +226,13 @@ export class BooksController {
     @Param('id', ParseIntPipe) id: number,
     @UploadedFile() file: UploadedPdf | undefined,
     @Req() req: { user?: RouteSessionUser | null },
+    @Query('publish') publish?: string,
   ) {
     const uploaded = requireUploadedPdf(file);
     await assertStoredPdf(uploaded);
-    const book = await this.booksService.attachFileForUser(id, uploaded, req.user);
+    const book = await this.booksService.attachFileForUser(id, uploaded, req.user, {
+      publishRequested: publish === 'true',
+    });
     return presentBook(book, req.user);
   }
 

@@ -13,7 +13,7 @@ export const DASH_LIST_RE = /^[-*–]\s+(.+)$/;
 export const ORDERED_LIST_RE = /^(?:(\d+)[.)]|\((\d+)\)|([a-zA-Z])[.)])\s+(.+)$/;
 
 const KNOWN_EBOOK_SITES_RE =
-  /\b(?:lelibros|lectulandia|ebookelo|epublibre|bajalibros|elejandria|espaebook|quedelibros|epubgratis|librodot|freeditorial|pdfdrive|z-lib|libgen)\b/i;
+  /\b(?:le\s*libros|lectulandia|ebookelo|epublibre|bajalibros|elejandria|espaebook|quedelibros|epubgratis|librodot|freeditorial|pdfdrive|z-lib|libgen)\b/i;
 const EBOOK_PROMO_PHRASES_RE =
   /(?:libro\s+proporcionado\s+por|proporcionado\s+por\s+el\s+equipo|visite\s+nuestro\s+sitio|visita\s+nuestr[oa]\s+(?:sitio|web)|descarga\s+est[eo]\s+y\s+otros\s+(?:miles\s+de\s+)?libros)/i;
 const DOMAIN_PAGE_WATERMARK_EXACT_RE =

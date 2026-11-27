@@ -1712,6 +1712,45 @@ body.biblioteca-body .checkbox-label {
 	color: var(--b-faint);
 }
 
+body.biblioteca-body .checkbox-help-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+}
+
+body.biblioteca-body .checkbox-help-row .field.checkbox-field {
+	flex: 1 1 auto;
+	margin: 0;
+}
+
+body.biblioteca-body .help-tip {
+	flex: 0 0 auto;
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+	border: 1px solid var(--b-border, rgba(255, 255, 255, 0.2));
+	background: transparent;
+	color: var(--b-faint);
+	font-family: var(--b-mono);
+	font-size: 11px;
+	font-weight: 600;
+	line-height: 1;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+body.biblioteca-body .help-tip:hover,
+body.biblioteca-body .help-tip:focus-visible,
+body.biblioteca-body .help-tip[aria-expanded="true"] {
+	border-color: var(--b-accent-bright);
+	color: var(--b-accent-bright);
+	outline: none;
+}
+
 body.biblioteca-body .field textarea {
 	resize: vertical;
 	min-height: 60px;

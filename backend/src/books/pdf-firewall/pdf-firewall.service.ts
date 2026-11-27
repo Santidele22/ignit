@@ -116,6 +116,8 @@ async function runPipeline(buffer: Buffer): Promise<PdfFirewallReport> {
   let safe = tier0Violations.length === 0;
   let pageCount = 0;
   let violations = tier0Violations;
+  let dismissedFalsePositives: PdfViolation[] = [];
+  let falsePositiveReviewRan = false;
 
   if (safe) {
     // Tier 1 — lexical scan of raw PDF syntax outside strings and streams.
@@ -132,7 +134,7 @@ async function runPipeline(buffer: Buffer): Promise<PdfFirewallReport> {
     safe = tier1Violations.length === 0;
 
     if (safe) {
-      // Tier 2 — structural walk.
+      // Tier 2 — structural walk (Phase 1 vulnerability scan + Phase 2 false-positive audit).
       let scan: PdfStructureScan;
       try {
         scan = await inspectPdfStructure(buffer, firewallLimits());
@@ -147,6 +149,8 @@ async function runPipeline(buffer: Buffer): Promise<PdfFirewallReport> {
       violations = scan.violations;
       pageCount = scan.pageCount;
       safe = violations.length === 0;
+      falsePositiveReviewRan = scan.ranStages.includes('hidden-content');
+      dismissedFalsePositives = scan.dismissedFalsePositives ?? [];
     } else {
       tiers.push(skippedTier(2));
     }
@@ -154,7 +158,17 @@ async function runPipeline(buffer: Buffer): Promise<PdfFirewallReport> {
     tiers.push(skippedTier(1), skippedTier(2));
   }
 
-  return { schemaVersion: 1, safe, pageCount, violations, tiers };
+  return {
+    schemaVersion: 1,
+    safe,
+    pageCount,
+    violations,
+    tiers,
+    falsePositiveReview: {
+      ran: falsePositiveReviewRan,
+      dismissed: dismissedFalsePositives,
+    },
+  };
 }
 
 function buildTier(

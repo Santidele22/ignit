@@ -228,13 +228,45 @@ describe('selectRefinerCandidates & refineReadingDocument', () => {
       chatResponse('{"patches":[{"op":"reclassify","id":"c1","type":"heading","level":1}]}'),
     );
     const ok = await refineReadingDocument(doc, { env: ENV, fetchImpl: fetchMock as unknown as typeof fetch });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(ok.summary).toEqual({
       applied: true,
       model: 'deepseek-v4-flash',
+      passes: 2,
       reclassified: 1,
       merged: 0,
       dropped: 0,
     });
     expect(ok.document.chunks[0]).toMatchObject({ type: 'heading', level: 1 });
+  });
+
+  it('runs a second design pass to catch residual unicode/clutter exposed after pass 1', async () => {
+    const doc = makeDoc([
+      makeChunk({ id: 'c1', type: 'para', text: 'Capítulo 1: Inicio' }),
+      makeChunk({ id: 'c2', type: 'para', text: 'Contenido real del libro en español.' }),
+      makeChunk({ id: 'c3', type: 'para', text: 'Ã±Ã¡Ã©Ã­Ã³' }),
+    ]);
+
+    let call = 0;
+    const fetchMock = vi.fn(async () => {
+      call += 1;
+      if (call === 1) {
+        return chatResponse('{"patches":[{"op":"reclassify","id":"c1","type":"heading","level":1}]}');
+      }
+      return chatResponse('{"patches":[{"op":"drop","id":"c3","reason":"Artefacto Unicode corrupto"}]}');
+    });
+
+    const refined = await refineReadingDocument(doc, {
+      env: ENV,
+      fetchImpl: fetchMock as unknown as typeof fetch,
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(refined.summary).toMatchObject({
+      applied: true,
+      reclassified: 1,
+      dropped: 1,
+    });
+    expect(refined.document.chunks.map((c) => c.id)).toEqual(['c1', 'c2']);
   });
 });
