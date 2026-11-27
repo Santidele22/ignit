@@ -46,8 +46,8 @@ Test runners:
 ## Tasks
 
 - T1 [S1, S2] · `apps/desktop` · Esquema SQLite nativo en Tauri (`local_books`, `local_reading_states`, `local_licenses`, `sync_outbox`, `sync_meta`) + almacenamiento de blobs `.igb` + comandos Tauri y tests Rust (surfaces: `apps/desktop/src-tauri/**`) · status: done (`cargo test --offline` 9/9)
-- T2 [S1, S3] · `apps/app` · Esquema SQLite local en KMP/Android alineado a S1 + lectura offline `.igb` + `sync_outbox` integrado con Fase 4 móvil (surfaces: `apps/app/core/**`, `apps/app/adapters/driven/persistence/**`) · status: in_progress
-- T3 [S4] · `web` · Evolución de `offlineStore.ts` a IndexedDB v2 con blobs `.igb`, `sync_outbox` y bloqueo de caché offline para Tier 3 (surfaces: `web/src/features/library/lib/**`) · status: pending
+- T2 [S1, S3] · `apps/app` · Esquema SQLite local en KMP/Android alineado a S1 + lectura offline `.igb` + `sync_outbox` integrado con Fase 4 móvil (surfaces: `apps/app/core/**`, `apps/app/adapters/driven/persistence/**`) · status: done (`jvmTest` + `compileDebugKotlinAndroid` BUILD SUCCESSFUL)
+- T3 [S4] · `web` · Evolución de `offlineStore.ts` a IndexedDB v2 con blobs `.igb`, `sync_outbox` y bloqueo de caché offline para Tier 3 (surfaces: `web/src/features/library/lib/**`) · status: in_progress
 - T4 [S5] · `backend` · Módulo `sync` (`POST /sync/push`, `POST /sync/pull`, LWW, tombstones `deletedAt`, presigned upload/download para libros privados Tier 2) + tests de integración multi-dispositivo (surfaces: `backend/src/sync/**`, `backend/src/books/**`) · status: pending
 - T5 [S2, S3, S4, S5] · `apps/desktop` + `apps/app` + `web` · Conexión de los 3 clientes al delta sync con worker/cola de reintentos y prueba E2E de convergencia offline (Desktop ↔ Mobile ↔ Web) (surfaces: `apps/desktop/**`, `apps/app/adapters/driven/http-api/**`, `web/src/features/library/**`, `web/src/features/book/**`) · status: pending
 
