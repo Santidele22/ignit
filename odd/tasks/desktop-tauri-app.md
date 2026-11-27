@@ -15,12 +15,12 @@ Test runner: `cd apps/desktop/src-tauri && cargo test && cargo check` (y `pnpm -
 
 ## Tasks
 
-- T1 [S1] · `apps/desktop` · scaffold Tauri v2 apuntando a `web/` SSR (`/biblioteca`), íconos y README (surfaces: `apps/desktop/**`) · status: pending
-- T2 [S2] · `apps/desktop/src-tauri` · plugins nativos (`window-state`, `single-instance`, `opener`) y atajos de ventana (surfaces: `apps/desktop/src-tauri/**`) · status: pending
-- T3 [S3] · `web` · detección de Tauri para ocultar UX de PWA y verificación CSP/WebView + tests (surfaces: `web/src/**`, `web/astro.config.mjs`) · status: pending
-- T4 [S4] · `apps/desktop/src-tauri` · comandos Rust para cache offline de libros (`app_data_dir/books`) + fallback sin red + `cargo test` (surfaces: `apps/desktop/**`) · status: pending
-- T5 [S5] · `apps/desktop` · build de instaladores (`.deb`/`.AppImage`) y verificación manual completa en Linux (surfaces: `apps/desktop/**`) · status: pending
-- T6 [S6] · `apps/app` · retirar `:platforms:desktop` de KMP (manteniendo `jvm()` en `core/` para tests) y actualizar docs/roadmap (surfaces: `apps/app/settings.gradle.kts`, `apps/app/platforms/desktop/**`, `apps/app/README.md`, `apps/app/ROADMAP.md`) · status: pending
+- T1 [S1] · `apps/desktop` · scaffold Tauri v2 apuntando a `web/` SSR (`/biblioteca`), íconos y README (surfaces: `apps/desktop/**`) · status: done (`cargo test` 1 passed, `cargo check` green)
+- T2 [S2] · `apps/desktop/src-tauri` · plugins nativos (`window-state`, `single-instance`, `opener`) y atajos de ventana (surfaces: `apps/desktop/src-tauri/**`) · status: done (`cargo test` + `cargo check` green)
+- T3 [S3] · `web` · detección de Tauri para ocultar UX de PWA y verificación CSP/WebView + tests (surfaces: `web/src/**`, `web/astro.config.mjs`) · status: done (`pnpm --dir web test` 50 files / 335 tests passed, `pnpm --dir web build` green)
+- T4 [S4] · `apps/desktop/src-tauri` · comandos Rust para cache offline de libros (`app_data_dir/books`) + fallback sin red + `cargo test` (surfaces: `apps/desktop/**`) · status: done (`cargo test` 5 passed, `cargo check` green)
+- T5 [S5] · `apps/desktop` · build de instaladores (`.deb`/`.AppImage`) y verificación manual completa en Linux (surfaces: `apps/desktop/**`) · status: done (artefactos `.deb` y `.AppImage` generados y verificados en vivo por el usuario)
+- T6 [S6] · `apps/app` · retirar `:platforms:desktop` de KMP (manteniendo `jvm()` en `core/` para tests) y actualizar docs/roadmap (surfaces: `apps/app/settings.gradle.kts`, `apps/app/platforms/desktop/**`, `apps/app/README.md`, `apps/app/ROADMAP.md`) · status: done (`./gradlew :core:domain:jvmTest :core:application:jvmTest :platforms:android:assembleDebug --no-daemon` BUILD SUCCESSFUL)
 
 ## Log
 

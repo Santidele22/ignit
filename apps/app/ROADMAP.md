@@ -53,11 +53,11 @@ Una advertencia para quien siga: el `token` del body NO autentica, la cookie fir
 
 1. APK firmada con el mismo keystore del TWA (`apps/twa/android.keystore`) reutilizado para la firma de release.
 2. `.aab` para Play Store y ficha (screenshots desde un emulador).
-3. Desktop: instaladores (`Msi`/`Dmg`/`Deb`) con Compose Desktop — pruébalos en tu máquina.
+3. Desktop: migrado a `apps/desktop/` (Tauri v2 reutilizando `web/`); módulo `:platforms:desktop` retirado.
 
-## Fase 6 — Desktop + iOS (fase posterior)
+## Fase 6 — iOS (fase posterior)
 
-1. Core (`domain` + `application`) ya es KMP: reutilizarlo directo.
+1. Core (`domain` + `application`) ya es KMP: reutilizarlo directo (conservando `jvm()` para tests rápidos sin Android SDK).
 2. Evaluar Compose Multiplatform iOS (Kotlin) vs nativa Swift — decisión con la issue #2 abierta.
 
 ## Reglas durante todo el camino

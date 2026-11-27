@@ -1,6 +1,6 @@
 # Ignit app nativa — Kotlin/Compose Multiplatform
 
-App nativa (mobile + desktop) con arquitectura **hexagonal (puertos y adaptadores)**.
+App nativa móvil (Android) con arquitectura **hexagonal (puertos y adaptadores)**. La aplicación de escritorio oficial pasó a `apps/desktop/` (Tauri v2 reutilizando `web/`).
 Issue de origen: [Santidele22/ignit#2](https://github.com/Santidele22/ignit/issues/2).
 
 ## Dependencia del hexágono (regla de las flechas)
@@ -16,7 +16,7 @@ platforms/ ──▶ adapters/ ──▶ core/ ──▶ (nada: Kotlin puro)
 - `core/application`: casos de uso y **puertos** (interfaces para la I/O que necesita).
 - `adapters/driven`: implementan los puertos de salida (`http-api`, `persistence`, `auth-session`).
 - `adapters/driving/ui-compose`: Compose UI + view models que **llaman casos de uso** (nunca HTTP directo).
-- `platforms/android` / `platforms/desktop`: entry points; solo wiring, splash, navegación raíz.
+- `platforms/android`: entry point Android; solo wiring, splash, navegación raíz. (`core/` conserva el target `jvm()` para correr tests rápidos sin Android SDK.)
 
 Regla dura: una dependencia que apunte hacia adentro está bien; cualquier `import` de infraestructura dentro de `core/` es un defecto de arquitectura (se valida en code review del módulo).
 
@@ -31,7 +31,6 @@ Regla dura: una dependencia que apunte hacia adentro está bien; cualquier `impo
 | `adapters/driven/auth-session` | KMP | Sesión/secure storage |
 | `adapters/driving/ui-compose` | KMP | Pantallas Compose compartidas + estados |
 | `platforms/android` | app | Compose Android (APK/AAB firmada) |
-| `platforms/desktop` | app | Compose Desktop JVM (instaladores) |
 
 ## Estado
 
