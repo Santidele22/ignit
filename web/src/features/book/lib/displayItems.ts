@@ -19,6 +19,7 @@ import {
 	inferHeadingLevel,
 	isLikelyFalseHeading,
 	parseBookOpenerHeading,
+	stripFrontmatterIconPrefix,
 } from './headings';
 import { collectRepeatedEdgeNoise, isNoiseChunk, type ReaderDisplayContext } from './noise';
 import { parseTocChunk } from './toc';
@@ -46,7 +47,10 @@ export function prepareBookDisplayItems(
 
 	const activeChunks: ReadingChunk[] = [];
 	for (const chunk of chunks) {
-		const cleanedText = prepareChunkText(chunk);
+		let cleanedText = prepareChunkText(chunk);
+		if (chunk.type === 'heading' || chunk.type === 'para') {
+			cleanedText = stripFrontmatterIconPrefix(cleanedText, chunk.page);
+		}
 		if (!cleanedText || cleanedText.length < 2) continue;
 		const effective =
 			cleanedText === chunk.text ? chunk : { ...chunk, text: cleanedText, runs: undefined };
@@ -120,6 +124,10 @@ export function prepareBookDisplayItems(
 			}
 		}
 
+		if (inTocContext && /^(?:p[aá]ginas?|p[aá]g\.?)$/i.test(chunk.text.trim())) {
+			continue;
+		}
+
 		if (chunk.type === 'toc' || chunk.type === 'para') {
 			const parsedToc = parseTocChunk(chunk.text, {
 				chunkType: chunk.type,
@@ -128,6 +136,12 @@ export function prepareBookDisplayItems(
 			if (parsedToc) {
 				pushTocItem(items, chunk, parsedToc, tocState);
 				inTocContext = true;
+				continue;
+			}
+			if (chunk.type === 'toc') {
+				flushPendingTocHeading(items, tocState);
+				inTocContext = false;
+				pushMetaItem(items, chunk);
 				continue;
 			}
 		}
@@ -182,12 +196,21 @@ export function prepareBookDisplayItems(
 				totalParas += 1;
 				continue;
 			}
+			const level = inferHeadingLevel(chunk);
+			if (
+				level === 1 &&
+				/^(?:[IVXLCDM]{1,6}|(?:cap[ií]tulo|canto|parte|libro)\s+(?:[IVXLCDM]{1,6}|\d+|primero|segundo|tercero|cuarto|quinto|sexto|s[eé]ptimo|octavo|noveno|d[eé]cimo))$/i.test(
+					chunk.text.trim(),
+				)
+			) {
+				firstParaAssigned = false;
+			}
 			items.push({
 				kind: 'heading',
 				chunkId: chunk.id,
 				page: chunk.page,
 				text: chunk.text,
-				level: inferHeadingLevel(chunk),
+				level,
 				...(chunk.align ? { align: chunk.align } : {}),
 			});
 			continue;
@@ -321,7 +344,21 @@ export function prepareBookDisplayItems(
 		}
 		const chapter = !isVerse ? extractLeadingChapterMarker(chunk.text) : null;
 		const paraText = chapter ? chapter.rest : chunk.text;
-		const canDropcap = /^[A-ZÁÉÍÓÚÜÑ«"“¡¿—-]/.test(paraText.trim());
+		const trimmedPara = paraText.trim();
+		const letterCount = (trimmedPara.match(/[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/g) ?? []).length;
+		const isFrontmatterCredit =
+			chunk.page <= 6 &&
+			/^(?:pr[oó]logo\s+y\s+edici[oó]n|traducci[oó]n|posfacio|primera\s+edici[oó]n|dise[ñn]o\s+de)\b/i.test(
+				trimmedPara,
+			);
+		const isProseSentenceOrLong = trimmedPara.length >= 90 || /[.!?…»"]$/.test(trimmedPara);
+		const canDropcap =
+			chunk.zone !== 'frontmatter' &&
+			chunk.zone !== 'toc' &&
+			/^[A-ZÁÉÍÓÚÜÑ«"“¡¿—-]/.test(trimmedPara) &&
+			letterCount >= 3 &&
+			!isFrontmatterCredit &&
+			isProseSentenceOrLong;
 		const isFirstPara = !firstParaAssigned && !isVerse && canDropcap;
 		if (!isVerse && canDropcap) {
 			firstParaAssigned = true;

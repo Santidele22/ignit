@@ -10,6 +10,7 @@ import {
 	cleanTocLabel,
 	coalesceWrappedTocLines,
 	extractStandaloneTocHeading,
+	isKeyValueMetaLabel,
 	isLikelyYearOnlySet,
 	isStandaloneTocHeading,
 	lineMatchesExplicitLeaderOrGap,
@@ -103,7 +104,8 @@ export function parseTocChunk(text: string, options: ParseTocOptions = {}): Pars
 		if (allowHeadingStrip && rawEntries.length === 0 && !heading) {
 			label = cleanTocLabel(consumeHeadingPrefix(label, true));
 		}
-		if (!label) return false;
+		if (!label || isKeyValueMetaLabel(label)) return false;
+		if (pageInfo.pageLabel && label.length <= 3) return false;
 		const entry: TocEntry = pageInfo.pageLabel
 			? { label, page: pageInfo.page, pageLabel: pageInfo.pageLabel }
 			: { label, page: pageInfo.page };
@@ -135,6 +137,15 @@ export function parseTocChunk(text: string, options: ParseTocOptions = {}): Pars
 		}
 
 		if (allowPageFirst) {
+			const multiPageFirstRe = /(?:^|\s)(\d{1,4})\s+([A-ZÁÉÍÓÚÜÑ¿¡«"][^\d]{1,80}?)(?=\s+\d{1,4}\s+[A-ZÁÉÍÓÚÜÑ¿¡«"]|\s*$)/g;
+			const multiMatches = [...segment.matchAll(multiPageFirstRe)];
+			if (multiMatches.length >= 2) {
+				let added = 0;
+				for (const m of multiMatches) {
+					if (pushEntry(m[2], m[1], true, false)) added += 1;
+				}
+				if (added >= 2) return;
+			}
 			const pfMatch = segment.match(TOC_PAGE_FIRST_RE);
 			if (pfMatch) {
 				const ok = pushEntry(pfMatch[2], pfMatch[1], true, false);

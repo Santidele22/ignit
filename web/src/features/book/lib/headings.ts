@@ -120,6 +120,15 @@ export function inferHeadingLevel(chunk: ReadingChunk): 1 | 2 | 3 {
 }
 
 /**
+ * Strips leading single-letter CC/dingbat icon glyphs (e.g. `c b Universidad...`)
+ * that PDF font extraction emits on frontmatter pages.
+ */
+export function stripFrontmatterIconPrefix(text: string, page: number): string {
+	if (page > 6) return text;
+	return text.replace(/^(?:[a-z]\s+){1,4}(?=[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+\s)/, '').trim();
+}
+
+/**
  * Classifies legacy-cache frontmatter that was extracted as a heading: print
  * runs, edition lines, credits, colophon notices and author affiliations on the
  * opening pages become `meta`, while opening dedications become `dedication`.
@@ -128,7 +137,7 @@ export function classifyFrontmatterHeading(
 	text: string,
 	page: number,
 ): 'meta' | 'dedication' | null {
-	const trimmed = text.trim();
+	const trimmed = stripFrontmatterIconPrefix(text.trim(), page);
 	if (!trimmed || page > 10) return null;
 	if (INFO_LINE_RE.test(trimmed)) return 'meta';
 	if (trimmed.length >= 10 && DEDICATION_LINE_RE.test(trimmed)) return 'dedication';
@@ -137,9 +146,10 @@ export function classifyFrontmatterHeading(
 	if (trimmed.length <= 80 && CREDITS_LINE_RE.test(trimmed)) return 'meta';
 	if (
 		page <= 6 &&
-		trimmed.length >= 16 &&
-		AFFILIATION_LINE_RE.test(trimmed) &&
-		AFFILIATION_MARKER_RE.test(trimmed)
+		(/^universi(?:dad|ty|teit|t[àa]t|d[áa]d)\s+[A-ZÁÉÍÓÚÜÑ]/i.test(trimmed) ||
+			(trimmed.length >= 16 &&
+				AFFILIATION_LINE_RE.test(trimmed) &&
+				AFFILIATION_MARKER_RE.test(trimmed)))
 	) {
 		return 'meta';
 	}

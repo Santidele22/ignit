@@ -171,4 +171,30 @@ describe('toc helpers', () => {
 		]);
 		expect(parsed?.entries.map((entry) => entry.level ?? 1)).toEqual([1, 2, 3]);
 	});
+
+	it('splits leaderless multi-chapter inline TOC paragraphs like El Príncipe', () => {
+		const raw =
+			'CAPÍTULO XV.—En qué cosas los hombres, y sobre todo los príncipes, merecen alabanzas o vituperios. 76 CAPÍTULO XVI.—De la liberalidad y de la miseria. 78 CAPÍTULO XVII.—De la crueldad y de la clemencia. 81';
+
+		const parsed = parseTocChunk(raw, { chunkType: 'para', inTocContext: true });
+		expect(parsed?.entries).toEqual([
+			{ label: 'CAPÍTULO XV.—En qué cosas los hombres, y sobre todo los príncipes, merecen alabanzas o vituperios', page: 76 },
+			{ label: 'CAPÍTULO XVI.—De la liberalidad y de la miseria', page: 78 },
+			{ label: 'CAPÍTULO XVII.—De la crueldad y de la clemencia', page: 81 },
+		]);
+	});
+
+	it('rejects frontmatter key-value metadata misclassified as TOC and parses multi-entry page-first TOC lines', () => {
+		const fakeToc = 'D R\tD\nP :\t1637\nF :\tD\nE : E C , M ,\t1937\nT : M G\tM';
+		expect(parseTocChunk(fakeToc, { chunkType: 'toc' })).toBeNull();
+
+		const pageFirstMulti = '8 Presentación 10 Prólogo';
+		expect(parseTocChunk(pageFirstMulti, { chunkType: 'para', inTocContext: true })).toEqual({
+			heading: undefined,
+			entries: [
+				{ label: 'Presentación', page: 8 },
+				{ label: 'Prólogo', page: 10 },
+			],
+		});
+	});
 });

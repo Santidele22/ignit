@@ -26,6 +26,8 @@ function parseTocPageToken(raw: string): string | null {
     return n >= 1 && n <= 4000 ? token : null;
   }
   if (/^[ivxlcdm]{1,6}$/i.test(token)) {
+    // Single uppercase C/D/L/M is far more likely an initial/abbreviation than a page number.
+    if (/^[CDLM]$/.test(token)) return null;
     if (/^M{0,3}(?:CM|CD|D?C{0,3})(?:XC|XL|L?X{0,3})(?:IX|IV|V?I{0,3})$/i.test(token)) {
       return token;
     }
@@ -37,6 +39,9 @@ const TOC_INLINE_LEADER_RE =
   /^(.+?)\s*(?:\.(?:\s*\.){1,}|[-–—_·•]{2,})\s*(\d{1,4}|[ivxlcdm]{1,6})\s*$/i;
 const TOC_SINGLE_LINE_PAGE_RE =
   /^(\d+(?:\.\d+)*\s+.+?|[A-ZÁÉÍÓÚÜÑ][^.!?]{2,110}?)\s+(\d{1,4}|[ivxlcdm]{1,6})\s*$/i;
+const TOC_PAGE_FIRST_LINE_RE =
+  /^(\d{1,4})\s+([A-ZÁÉÍÓÚÜÑ¿¡«"][^.!?]{1,110}?)\s*$/;
+const KEY_VALUE_META_LABEL_RE = /(?:^[A-ZÁÉÍÓÚÜÑ]{1,2}\s*:|:$)/;
 
 export function parseXmlTocLine(
   line: PdfLine,
@@ -46,7 +51,21 @@ export function parseXmlTocLine(
   if (leaderMatch) {
     const label = leaderMatch[1].trim();
     const pageToken = parseTocPageToken(leaderMatch[2]);
-    if (label && pageToken) return { label, pageToken };
+    if (label && pageToken && !KEY_VALUE_META_LABEL_RE.test(label)) {
+      return { label, pageToken };
+    }
+  }
+
+  if (inTocPage) {
+    const pageFirstMatch = line.text.match(TOC_PAGE_FIRST_LINE_RE);
+    if (pageFirstMatch) {
+      const pageToken = parseTocPageToken(pageFirstMatch[1]);
+      const label = pageFirstMatch[2].trim();
+      const endsWithPageNumber = /\s\d{1,4}$/.test(label);
+      if (pageToken && label && !label.endsWith('.') && !endsWithPageNumber) {
+        return { label, pageToken };
+      }
+    }
   }
 
   if (line.segments.length >= 2) {
@@ -59,7 +78,8 @@ export function parseXmlTocLine(
         .join(' ')
         .replace(/\s+/g, ' ')
         .trim();
-      if (label && !label.endsWith('.')) {
+      const isShortAbbrevRoman = label.length <= 3 && !/^\d+$/.test(pageToken);
+      if (label && !label.endsWith('.') && !KEY_VALUE_META_LABEL_RE.test(label) && !isShortAbbrevRoman) {
         return { label, pageToken };
       }
     }
@@ -70,7 +90,7 @@ export function parseXmlTocLine(
     if (singleMatch) {
       const label = singleMatch[1].trim();
       const pageToken = parseTocPageToken(singleMatch[2]);
-      if (label && pageToken && !label.endsWith('.')) {
+      if (label && pageToken && !label.endsWith('.') && !KEY_VALUE_META_LABEL_RE.test(label)) {
         return { label, pageToken };
       }
     }
@@ -201,6 +221,7 @@ export function mergeCrossPageParagraphs(
       !prev.endsWithSentencePunct &&
       !block.firstLineIndented &&
       !/^\s*(?:—|–)/.test(block.text) &&
+      !(block.text.length <= 220 && /^\d{1,2}\s+[A-ZÁÉÍÓÚÜÑ]/.test(block.text)) &&
       (block.startsLowercase || /[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ]{2}-$/.test(prev.text))
     ) {
       const nextText = dehyphenateLinePair(prev.text, block.text);

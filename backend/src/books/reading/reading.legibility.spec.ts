@@ -4,6 +4,7 @@ import {
   assessReadingLegibility,
   assessTextLegibility,
   EMPTY_READING_MESSAGE,
+  hasPartialFontCorruption,
   ILLEGIBLE_READING_MESSAGE,
 } from './reading.legibility.js';
 
@@ -100,5 +101,36 @@ describe('reading.legibility', () => {
     const verdict = assessTextLegibility(`${cleanIntro}\n${corruptedMiddle}\n${cleanOutro}`);
     expect(verdict.legible).toBe(false);
     expect(verdict.reason).toBe(ILLEGIBLE_READING_MESSAGE);
+  });
+
+  it('detects localized partial font/small-caps corruption in headings', () => {
+    const doc = {
+      bookId: '58',
+      pdfPages: 20,
+      ocrPending: false,
+      chunks: [
+        { id: 'p0001.0000', type: 'heading' as const, page: 1, offset: 0, text: 'L . . ,', mood: 'espera' as const, cues: [] },
+        { id: 'p0002.0000', type: 'heading' as const, page: 2, offset: 0, text: 'D', mood: 'espera' as const, cues: [] },
+        { id: 'p0003.0000', type: 'heading' as const, page: 3, offset: 0, text: 'P', mood: 'espera' as const, cues: [] },
+        { id: 'p0004.0000', type: 'heading' as const, page: 4, offset: 0, text: 'S', mood: 'espera' as const, cues: [] },
+        { id: 'p0004.0010', type: 'para' as const, page: 4, offset: 10, text: 'El buen sentido es lo que mejor repartido está entre todo el mundo.', mood: 'espera' as const, cues: [] },
+      ],
+    };
+    expect(hasPartialFontCorruption(doc)).toBe(true);
+  });
+
+  it('does not treat valid Roman numeral chapter headings as font corruption', () => {
+    const doc = {
+      bookId: '57',
+      pdfPages: 20,
+      ocrPending: false,
+      chunks: [
+        { id: 'p0001.0000', type: 'heading' as const, page: 1, offset: 0, text: 'I', mood: 'espera' as const, cues: [] },
+        { id: 'p0002.0000', type: 'heading' as const, page: 2, offset: 0, text: 'II', mood: 'espera' as const, cues: [] },
+        { id: 'p0003.0000', type: 'heading' as const, page: 3, offset: 0, text: 'V', mood: 'espera' as const, cues: [] },
+        { id: 'p0004.0000', type: 'heading' as const, page: 4, offset: 0, text: 'X', mood: 'espera' as const, cues: [] },
+      ],
+    };
+    expect(hasPartialFontCorruption(doc)).toBe(false);
   });
 });

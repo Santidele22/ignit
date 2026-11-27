@@ -362,4 +362,23 @@ describe('reading.epub legibility gate', () => {
     expect(document.pdfPages).toBe(1);
     expect(document.bookId).toBe('7');
   });
+
+  it('maps editorial EPUB CSS classes (credit, epigraph, dedication, verse) to semantic chunk types', async () => {
+    const buffer = await buildEpubBuffer({
+      xhtml: xhtml(`
+        <p class="credito">Traducción de Carlos Santos Sáez</p>
+        <p class="dedicatoria">Para mi familia</p>
+        <p class="epigrafe">La noche es oscura y alberga horrores.</p>
+        <p class="poema">En el principio era el verso</p>
+      `),
+    });
+
+    const { document } = await extractReadingFromEpub(8, buffer);
+    expect(document.chunks.filter((c) => c.type !== 'toc').map((c) => [c.type, c.text])).toEqual([
+      ['meta', 'Traducción de Carlos Santos Sáez'],
+      ['dedication', 'Para mi familia'],
+      ['quote', 'La noche es oscura y alberga horrores.'],
+      ['verse', 'En el principio era el verso'],
+    ]);
+  });
 });

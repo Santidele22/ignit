@@ -110,7 +110,7 @@ export function formatChunkLine(chunk: ReadingChunk): string {
   const clean = chunk.text.replace(/\s+/g, ' ').trim();
   const preview =
     clean.length > CHUNK_PREVIEW_LIMIT
-      ? `${clean.slice(0, CHUNK_PREVIEW_LIMIT)}…`
+      ? `${clean.slice(0, 160)} … ${clean.slice(-80)}`
       : clean;
   const levelTag = chunk.level ? `:L${chunk.level}` : '';
   return `[${chunk.id}|${chunk.type}${levelTag}|p${chunk.page}] ${preview}`;

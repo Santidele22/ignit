@@ -1,4 +1,6 @@
-export const READING_EXTRACTOR_VERSION = 3;
+export const READING_EXTRACTOR_VERSION = 4;
+
+export type ReadingZone = 'frontmatter' | 'toc' | 'body' | 'backmatter';
 
 export type ReadingChunkType =
   | 'para'
@@ -35,6 +37,7 @@ export interface ReadingChunk {
   ordered?: boolean;
   items?: string[];
   align?: 'left' | 'center' | 'right';
+  zone?: ReadingZone;
 }
 
 export interface AiClutterItem {
@@ -53,6 +56,13 @@ export interface AiRefinementSummary {
   merged: number;
   dropped: number;
   clutter?: AiClutterItem[];
+  corruptFlags?: { id: string; page: number; reason: string }[];
+  telemetry?: {
+    batchesTotal: number;
+    batchesSucceeded: number;
+    batchesFailed: number;
+    rejectedBySafety: number;
+  };
 }
 
 export interface BookReadingDocument {

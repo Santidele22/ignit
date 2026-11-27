@@ -77,6 +77,9 @@ function splitNumberedLabel(
 	return null;
 }
 
+const STANDALONE_CHAPTER_HEADING_RE =
+	/^(?:[IVXLCDM]{1,6}|(?:cap[ií]tulo|canto|parte|libro)\s+(?:[IVXLCDM]{1,6}|\d+|primero|segundo|tercero|cuarto|quinto|sexto|s[eé]ptimo|octavo|noveno|d[eé]cimo))$/i;
+
 function buildChapterBreak(marker: string, page: number): HTMLElement {
 	const chBreak = document.createElement('div');
 	chBreak.className = 'chapter-break';
@@ -194,6 +197,15 @@ function buildDisplayItemFragment(item: BookDisplayItem, itemIndex: number): Doc
 		}
 
 		case 'heading': {
+			if (item.level === 1 && STANDALONE_CHAPTER_HEADING_RE.test(item.text.trim())) {
+				const chBreak = buildChapterBreak(item.text.trim(), item.page);
+				chBreak.dataset.chunkId = item.chunkId;
+				chBreak.dataset.itemIndex = String(itemIndex);
+				applySavedAnnotationsToHost(chBreak, [item.chunkId]);
+				io.observe(chBreak);
+				frag.appendChild(chBreak);
+				return frag;
+			}
 			const tag = item.level === 1 ? 'h2' : item.level === 2 ? 'h3' : 'h4';
 			const heading = document.createElement(tag);
 			heading.dataset.chunkId = item.chunkId;

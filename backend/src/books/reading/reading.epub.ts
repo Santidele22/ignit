@@ -1,6 +1,7 @@
 import JSZip from 'jszip';
 import { isDialogueText, looksLikeSpokenProse } from './reading.block-rules.js';
 import { ILLEGIBLE_READING_MESSAGE, assessReadingLegibility } from './reading.legibility.js';
+import { normalizeReadingDocument } from './reading.normalizer.js';
 import { classifyMoodAndCues } from './reading.mood.js';
 import { dedentRawCodeLines } from './reading.noise.js';
 import type {
@@ -466,13 +467,28 @@ function pushHeading(element: MiniElement, level: 1 | 2 | 3, out: EpubBlock[]): 
   out.push(block);
 }
 
+function classifyEditorialClass(element: MiniElement): ReadingChunkType | null {
+  const raw = `${element.attrs.class ?? ''} ${element.attrs['epub:type'] ?? ''} ${element.attrs.role ?? ''}`.toLowerCase();
+  if (!raw.trim()) return null;
+  if (/\b(?:credit|credito|colophon|colofon|copyright|legal|imprint)\b/.test(raw)) return 'meta';
+  if (/\b(?:dedication|dedicatoria)\b/.test(raw)) return 'dedication';
+  if (/\b(?:epigraph|epigrafe|cita|blockquote)\b/.test(raw)) return 'quote';
+  if (/\b(?:verse|poema|stanza|estrofa)\b/.test(raw)) return 'verse';
+  if (/\b(?:caption|figcaption)\b/.test(raw)) return 'caption';
+  return null;
+}
+
 function pushParagraph(element: MiniElement, out: EpubBlock[]): void {
   const runs = inlineRuns(element.children);
   const text = runsText(runs);
   if (!text.trim()) return;
-  const block: EpubBlock = { type: isDialogueText(text) ? 'dialogue' : 'para', text };
+  const semanticType = classifyEditorialClass(element);
+  const type: ReadingChunkType = semanticType ?? (isDialogueText(text) ? 'dialogue' : 'para');
+  const block: EpubBlock = { type, text };
   const marked = markedRuns(runs);
-  if (marked) block.runs = marked;
+  if (marked && (type === 'para' || type === 'dialogue' || type === 'quote' || type === 'verse')) {
+    block.runs = marked;
+  }
   out.push(block);
 }
 
@@ -916,13 +932,13 @@ export async function extractReadingFromEpub(
 
   const chunks = buildChunks(blocks);
   const totalChars = blocks.reduce((sum, block) => sum + block.text.length, 0);
-  const document: BookReadingDocument = {
+  const document = normalizeReadingDocument({
     bookId: String(bookId),
     pdfPages: Math.max(1, Math.ceil(totalChars / EPUB_CHARS_PER_PAGE)),
     ocrPending: chunks.length === 0,
     extractorVersion: READING_EXTRACTOR_VERSION,
     chunks,
-  };
+  });
 
   if (!assessReadingLegibility(document).legible) {
     throw new Error(ILLEGIBLE_READING_MESSAGE);

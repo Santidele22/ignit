@@ -8,16 +8,23 @@ import { extractPagesFromPdfBuffer, runPdftohtmlXml, runPdftotext } from './read
 import { extractPagesWithPdfJs } from './reading.pdfjs.js';
 import { inferHeadingLevelFromText } from './reading.block-rules.js';
 import { extractReadingFromPdftohtmlXml } from './reading.xml-blocks.js';
+import { countCorruptShortHeadings, hasPartialFontCorruption } from './reading.legibility.js';
+import { normalizeReadingDocument } from './reading.normalizer.js';
 
 export async function extractReadingFromPdf(
   bookId: number,
   pdfPath: string,
 ): Promise<BookReadingDocument> {
+  let xmlFallbackDoc: BookReadingDocument | null = null;
   const xml = await runPdftohtmlXml(pdfPath);
   if (xml) {
     const xmlDoc = extractReadingFromPdftohtmlXml(bookId, xml);
     if (!xmlDoc.ocrPending && xmlDoc.chunks.length > 0) {
-      return xmlDoc;
+      const normalized = normalizeReadingDocument(xmlDoc);
+      if (!hasPartialFontCorruption(normalized)) {
+        return normalized;
+      }
+      xmlFallbackDoc = normalized;
     }
   }
 
@@ -86,12 +93,20 @@ export async function extractReadingFromPdf(
   }
 
   const pdfPages = Math.max(1, totalPages, chunks.at(-1)?.page ?? 1);
-  return {
+  const textDoc = normalizeReadingDocument({
     bookId: String(bookId),
     pdfPages,
     ocrPending: chunks.length === 0,
     extractorVersion: READING_EXTRACTOR_VERSION,
     chunks,
-  };
+  });
+  if (
+    xmlFallbackDoc &&
+    (textDoc.chunks.length === 0 ||
+      countCorruptShortHeadings(textDoc) >= countCorruptShortHeadings(xmlFallbackDoc))
+  ) {
+    return xmlFallbackDoc;
+  }
+  return textDoc;
 }
 

@@ -13,6 +13,7 @@ function makeChunk(
 		ordered?: boolean;
 		items?: string[];
 		align?: 'left' | 'center' | 'right';
+		zone?: ReadingChunk['zone'];
 	},
 ): ReadingChunk {
 	return { offset: 0, mood: 'espera', cues: [], ...partial };
@@ -242,6 +243,72 @@ describe('display item helpers', () => {
 			[
 				makeChunk({ id: 'p0001.0000', type: 'para', page: 1, text: 'necabo rporibus ipietur sum.' }),
 				makeChunk({ id: 'p0002.0000', type: 'para', page: 2, text: 'El arte de la guerra es vital.' }),
+			],
+			100,
+		);
+
+		expect(prepared.items[0]).toMatchObject({ kind: 'para', isFirstPara: false });
+		expect(prepared.items[1]).toMatchObject({ kind: 'para', isFirstPara: true });
+	});
+
+	it('skips dropcap on frontmatter credits, short fragments, and non-sentence subtitles', () => {
+		const prepared = prepareBookDisplayItems(
+			[
+				makeChunk({ id: 'p0001.0000', type: 'para', page: 1, text: '¡E !' }),
+				makeChunk({ id: 'p0002.0000', type: 'para', page: 2, text: 'Prólogo y edición de David Roas' }),
+				makeChunk({ id: 'p0003.0000', type: 'para', page: 3, text: 'Sobre el enfrentamiento directo e indirecto' }),
+				makeChunk({
+					id: 'p0004.0000',
+					type: 'para',
+					page: 4,
+					text: 'El buen sentido es lo que mejor repartido está entre todo el mundo, pues cada cual piensa que posee tan buena provisión.',
+				}),
+			],
+			100,
+		);
+
+		expect(prepared.items[0]).toMatchObject({ kind: 'para', isFirstPara: false });
+		expect(prepared.items[1]).toMatchObject({ kind: 'para', isFirstPara: false });
+		expect(prepared.items[2]).toMatchObject({ kind: 'para', isFirstPara: false });
+		expect(prepared.items[3]).toMatchObject({ kind: 'para', isFirstPara: true });
+	});
+
+	it('strips CC icon letter prefixes and classifies frontmatter institution headings as meta', () => {
+		const prepared = prepareBookDisplayItems(
+			[
+				makeChunk({
+					id: 'p0002.0000',
+					type: 'heading',
+					page: 2,
+					text: 'c b Universidad Militar Bolivariana de Venezuela',
+				}),
+			],
+			100,
+		);
+
+		expect(prepared.items[0]).toMatchObject({
+			kind: 'meta',
+			text: 'Universidad Militar Bolivariana de Venezuela',
+		});
+	});
+
+	it('never assigns dropcap in canonical frontmatter zone even on long paragraphs', () => {
+		const prepared = prepareBookDisplayItems(
+			[
+				makeChunk({
+					id: 'p0001.0000',
+					type: 'para',
+					page: 1,
+					zone: 'frontmatter',
+					text: 'Esta edición digital ha sido preparada para uso académico y divulgación cultural sin fines comerciales.',
+				}),
+				makeChunk({
+					id: 'p0002.0000',
+					type: 'para',
+					page: 2,
+					zone: 'body',
+					text: 'El buen sentido es lo que mejor repartido está entre todo el mundo, pues cada cual piensa que posee tan buena provisión.',
+				}),
 			],
 			100,
 		);

@@ -219,6 +219,8 @@ const CODE_DECL_KW_RE =
 const CODE_TYPE_DECL_RE =
   /^\s*(?:void|int|char|float|double|long|short|unsigned|signed|bool|boolean|size_t|const|let|var)\s+[a-zA-Z_*][a-zA-Z0-9_*,\s[\]]*(?:=|;|\(|$)/;
 const CODE_CONTROL_RE = /^\s*(?:while|for|if|else\s+if|switch|catch)\s*\([^)]*\)\s*(?:\{|$)/;
+const CODE_PYTHON_RE =
+  /^\s*(?:from\s+[a-zA-Z_][a-zA-Z0-9_.]*\s+import\s+\S|import\s+[a-zA-Z_][a-zA-Z0-9_.]*(?:\s+as\s+[a-zA-Z_][a-zA-Z0-9_]*)?$|def\s+[a-zA-Z_][a-zA-Z0-9_]*\s*\([^)]*\)\s*:|elif\s+.+:|(?:for\s+[a-zA-Z_][a-zA-Z0-9_,\s]*\s+in\s+.+|while\s+.+|if\s+.+|else|try|except(?:\s+[^:]+)?|finally|with\s+.+\s+as\s+\S+)\s*:)/;
 const CODE_BRACE_ONLY_RE =
   /^\s*(?:\}\s*else(?:\s+if\b.*)?\s*\{?|\{\s*(?:int|char|void|return|if|while|for|const|let|var)?|\}\s*\}|\}\s*;?|[{}])\s*(?:\/\/.*|\/\*.*)?$/;
 const CODE_CALL_OR_SIG_RE =
@@ -286,6 +288,7 @@ export function scoreCodeLine(rawLine: string): number {
   if (CODE_DECL_KW_RE.test(line) && /[(){}=;:<>-]|:$/.test(line)) score += 2;
   if (CODE_TYPE_DECL_RE.test(line)) score += 2;
   if (CODE_CONTROL_RE.test(line)) score += 2;
+  if (CODE_PYTHON_RE.test(line)) score += 2;
   if (CODE_BRACE_ONLY_RE.test(line)) score += 2;
   if (CODE_CALL_OR_SIG_RE.test(line)) score += 2;
   if (

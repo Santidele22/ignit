@@ -68,6 +68,25 @@ export function validateRefinerPatches(rawPatches: unknown): RefinerPatch[] {
         id,
         reason: reason ?? 'Posible artefacto editorial o metadato suelto',
       });
+    } else if (op === 'split') {
+      const idx = rec.splitAfterIndex;
+      if (typeof idx !== 'number' || !Number.isInteger(idx) || idx < 1) continue;
+      const nextType =
+        typeof rec.nextType === 'string' && VALID_CHUNK_TYPES.has(rec.nextType as ReadingChunkType)
+          ? (rec.nextType as ReadingChunkType)
+          : undefined;
+      patches.push({
+        op: 'split',
+        id,
+        splitAfterIndex: idx,
+        ...(nextType ? { nextType } : {}),
+      });
+    } else if (op === 'flag_corrupt') {
+      patches.push({
+        op: 'flag_corrupt',
+        id,
+        reason: reason ?? 'Posible corrupción de glifos o ToUnicode',
+      });
     } else if (op === 'reclassify') {
       const type = rec.type;
       if (typeof type !== 'string' || !VALID_CHUNK_TYPES.has(type as ReadingChunkType)) {
@@ -114,6 +133,8 @@ export function applyRefinementPatches(
   const mergeIds = new Set<string>();
   const dropById = new Map<string, string>();
   const recommendById = new Map<string, string>();
+  const splitById = new Map<string, Extract<RefinerPatch, { op: 'split' }>>();
+  const flagCorruptById = new Map<string, string>();
 
   for (const patch of patches) {
     if (patch.op === 'reclassify') reclassifyById.set(patch.id, patch);
@@ -122,6 +143,10 @@ export function applyRefinementPatches(
       dropById.set(patch.id, patch.reason ?? 'Ruido de maquetación o conversión');
     } else if (patch.op === 'recommend_drop') {
       recommendById.set(patch.id, patch.reason);
+    } else if (patch.op === 'split') {
+      splitById.set(patch.id, patch);
+    } else if (patch.op === 'flag_corrupt') {
+      flagCorruptById.set(patch.id, patch.reason);
     }
   }
 
@@ -129,6 +154,7 @@ export function applyRefinementPatches(
   let merged = 0;
   let dropped = 0;
   const clutter: AiClutterItem[] = [];
+  const corruptFlags: { id: string; page: number; reason: string }[] = [];
   const maxDrops = Math.max(1, Math.floor(document.chunks.length * MAX_DROP_RATIO));
 
   const nextChunks: ReadingChunk[] = [];
@@ -186,12 +212,35 @@ export function applyRefinementPatches(
       }
     }
 
+    const flagReason = flagCorruptById.get(current.id);
+    if (flagReason !== undefined) {
+      corruptFlags.push({ id: current.id, page: current.page, reason: flagReason });
+    }
+
     if (mergeIds.has(working.id) && i + 1 < src.length) {
       const follower = src[i + 1];
       if (!dropById.has(follower.id)) {
         working = mergeTwoChunks(working, follower);
         merged += 1;
         i += 1;
+      }
+    }
+
+    const splitPatch = splitById.get(working.id);
+    if (splitPatch && splitPatch.splitAfterIndex < working.text.length - 1) {
+      const headText = working.text.slice(0, splitPatch.splitAfterIndex).trimEnd();
+      const tailText = working.text.slice(splitPatch.splitAfterIndex).trimStart();
+      if (headText && tailText) {
+        nextChunks.push({ ...working, text: headText, runs: undefined });
+        nextChunks.push({
+          ...working,
+          id: `${working.id}.s1`,
+          type: splitPatch.nextType ?? working.type,
+          text: tailText,
+          runs: undefined,
+        });
+        reclassified += 1;
+        continue;
       }
     }
 
@@ -206,8 +255,9 @@ export function applyRefinementPatches(
     merged,
     dropped,
     ...(clutter.length > 0 ? { clutter } : {}),
+    ...(corruptFlags.length > 0 ? { corruptFlags } : {}),
   };
-  if (!applied && clutter.length === 0) {
+  if (!applied && clutter.length === 0 && corruptFlags.length === 0) {
     return { document, summary };
   }
 

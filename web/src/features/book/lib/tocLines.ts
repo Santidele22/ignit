@@ -47,11 +47,17 @@ export function parseTocPageToken(raw: string): { page: number; pageLabel?: stri
 		if (!Number.isFinite(page) || page < 1 || page > 5000) return null;
 		return { page };
 	}
+	if (/^[CDLM]$/.test(token)) return null;
 	const roman = parseRomanNumeral(token);
 	if (roman !== null) {
 		return { page: roman, pageLabel: token };
 	}
 	return null;
+}
+
+export function isKeyValueMetaLabel(label: string): boolean {
+	const trimmed = label.trim();
+	return /(?:^[A-ZÁÉÍÓÚÜÑ]{1,2}\s*:|:$)/.test(trimmed);
 }
 
 export function cleanTocLabel(raw: string): string {

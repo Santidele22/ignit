@@ -167,6 +167,31 @@ export function assessTextLegibility(rawText: string): LegibilityVerdict {
   return firstVerdict ?? assessSingleWindow('');
 }
 
+/**
+ * Detects localized `/ToUnicode` or small-caps font corruption where headings
+ * collapse to 1-2 surviving letters (e.g. `L . . ,`, `D`, `P`).
+ */
+const VALID_ROMAN_HEADING_RE =
+  /^M{0,3}(?:CM|CD|D?C{0,3})(?:XC|XL|L?X{0,3})(?:IX|IV|V?I{0,3})$/;
+
+export function countCorruptShortHeadings(document: BookReadingDocument): number {
+  let count = 0;
+  for (const chunk of document.chunks) {
+    if (chunk.type !== 'heading') continue;
+    const trimmed = chunk.text.trim();
+    if (VALID_ROMAN_HEADING_RE.test(trimmed)) continue;
+    const letters = trimmed.match(/\p{L}/gu)?.length ?? 0;
+    if (letters > 0 && letters <= 2) {
+      count += 1;
+    }
+  }
+  return count;
+}
+
+export function hasPartialFontCorruption(document: BookReadingDocument): boolean {
+  return countCorruptShortHeadings(document) >= 3;
+}
+
 /** Evaluates legibility across the extracted chunks of a `BookReadingDocument`. */
 export function assessReadingLegibility(document: BookReadingDocument): LegibilityVerdict {
   if (document.chunks.length === 0) {

@@ -405,5 +405,77 @@ describe('book-reading.extractor', () => {
       'El arte de la guerra es de vital importancia para el Estado.',
     ]);
   });
+
+  it('preserves narrow single-letter spans like I while still dropping tall vertical spine text', () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<pdf2xml producer="poppler" version="26.08.0">
+<page number="1" position="absolute" top="0" left="0" height="900" width="828">
+  <fontspec id="0" size="12" family="Helvetica" color="#000000"/>
+  <text top="100" left="100" width="1" height="12" font="0">I</text>
+  <text top="100" left="102" width="140" height="12" font="0">ntroducción a la programación</text>
+  <text top="200" left="10" width="1" height="180" font="0">LOMO VERTICAL</text>
+</page>
+</pdf2xml>`;
+
+    const doc = extractReadingFromPdftohtmlXml(90, xml);
+    const texts = doc.chunks.map((c) => c.text);
+    expect(texts.some((t) => t.includes('Introducción a la programación'))).toBe(true);
+    expect(texts.some((t) => t.includes('LOMO VERTICAL'))).toBe(false);
+  });
+
+  it('does not misclassify frontmatter key-value metadata as TOC and parses page-first Roman chapter TOC entries', () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<pdf2xml producer="poppler" version="26.08.0">
+<page number="2" position="absolute" top="0" left="0" height="900" width="828">
+  <fontspec id="0" size="12" family="Times-Roman" color="#000000"/>
+  <text top="150" left="100" width="40" height="12" font="0">P :</text>
+  <text top="150" left="400" width="35" height="12" font="0">1637</text>
+  <text top="170" left="100" width="40" height="12" font="0">D R</text>
+  <text top="170" left="400" width="15" height="12" font="0">D</text>
+  <text top="190" left="100" width="80" height="12" font="0">T : M G</text>
+  <text top="190" left="400" width="15" height="12" font="0">M</text>
+</page>
+<page number="3" position="absolute" top="0" left="0" height="900" width="828">
+  <fontspec id="0" size="12" family="Times-Roman" color="#000000"/>
+  <fontspec id="1" size="18" family="Times-Bold" color="#000000"/>
+  <text top="80" left="350" width="100" height="18" font="1">Índice</text>
+  <text top="140" left="100" width="20" height="12" font="0">16</text>
+  <text top="140" left="140" width="90" height="12" font="0">Capítulo I</text>
+  <text top="165" left="140" width="160" height="12" font="0">Sobre la evaluación</text>
+  <text top="190" left="100" width="20" height="12" font="0">19</text>
+  <text top="190" left="140" width="90" height="12" font="0">Capítulo II</text>
+</page>
+</pdf2xml>`;
+
+    const doc = extractReadingFromPdftohtmlXml(91, xml);
+    const page2Tocs = doc.chunks.filter((c) => c.page === 2 && c.type === 'toc');
+    expect(page2Tocs).toHaveLength(0);
+
+    const page3Toc = doc.chunks.find((c) => c.page === 3 && c.type === 'toc');
+    expect(page3Toc).toBeDefined();
+    expect(page3Toc?.text).toContain('Capítulo I\t16');
+    expect(page3Toc?.text).toContain('Capítulo II\t19');
+  });
+
+  it('detects Python code listings in pdftotext fallback and avoids merging footnotes across pages', () => {
+    const pythonPage = [
+      'Ejemplo en Python para calcular la suma:',
+      '',
+      'from math import sqrt',
+      'def calcular_suma(a, b):',
+      '    s = 0.0',
+      '    for i in range(a, b + 1):',
+      '        s += sqrt(i)',
+      '    return s',
+      '',
+      'Luego continuamos con la explicación del algoritmo en C.',
+    ].join('\n');
+
+    const blocks = splitPageIntoParagraphs(pythonPage);
+    expect(blocks.length).toBe(3);
+    expect(classifyChunkType(blocks[0].text, 0)).toBe('para');
+    expect(classifyChunkType(blocks[1].text, 1)).toBe('code');
+    expect(classifyChunkType(blocks[2].text, 2)).toBe('para');
+  });
 });
 

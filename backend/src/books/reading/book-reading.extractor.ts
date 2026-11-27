@@ -23,6 +23,7 @@ export { cleanPageTextsForExtraction } from './reading.noise.js';
 export { classifyChunkType, splitPageIntoParagraphs } from './reading.chunks.js';
 export { extractReadingFromPdftohtmlXml } from './reading.xml-blocks.js';
 export { extractReadingFromPdf } from './reading.extract.js';
+export { normalizeReadingDocument } from './reading.normalizer.js';
 export {
   assessReadingLegibility,
   assessTextLegibility,

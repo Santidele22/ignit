@@ -91,6 +91,8 @@ export type ReadingInlineRun = {
 	marks?: ReadingInlineMark[];
 };
 
+export type ReadingZone = 'frontmatter' | 'toc' | 'body' | 'backmatter';
+
 export type ReadingChunk = {
 	id: string;
 	type: ReadingChunkType;
@@ -104,6 +106,7 @@ export type ReadingChunk = {
 	ordered?: boolean;
 	items?: string[];
 	align?: 'left' | 'center' | 'right';
+	zone?: ReadingZone;
 };
 
 export type BookReadingDocument = {

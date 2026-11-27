@@ -223,7 +223,7 @@ export function parsePdftohtmlPages(xml: string): PdfXmlPage[] {
       const spec = fontSpecs.get(fontId);
 
       // Spine / vertical rotated text appears in pdftohtml XML with width="0" and huge height
-      if (spanWidth <= 1 && spanHeight >= 10) continue;
+      if ((spanWidth <= 0 && spanHeight >= 10) || (spanWidth <= 1 && spanHeight >= 40)) continue;
       if (spanHeight <= 0) continue;
 
       const runs = parseInlineXmlRuns(textMatch[2], spec);

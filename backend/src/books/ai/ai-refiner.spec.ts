@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { BookReadingDocument, ReadingChunk } from '../reading/reading.types.js';
 import { applyRefinementPatches, parseRefinerPatches } from './ai-refiner.parser.js';
-import { selectRefinerCandidateBatches } from './ai-refiner.prompt.js';
+import { formatChunkLine, selectRefinerCandidateBatches } from './ai-refiner.prompt.js';
 import { refineReadingDocument } from './ai-refiner.service.js';
 
 function makeChunk(overrides: Partial<ReadingChunk> & { id: string }): ReadingChunk {
@@ -268,5 +268,61 @@ describe('selectRefinerCandidates & refineReadingDocument', () => {
       dropped: 1,
     });
     expect(refined.document.chunks.map((c) => c.id)).toEqual(['c1', 'c2']);
+  });
+
+  it('supports split and flag_corrupt patches without rewriting prose, and formats long chunks with head+tail', () => {
+    const longText = `${'Inicio del bloque largo. '.repeat(8)}FINAL_ORACION_SIN_PUNTO`;
+    const doc = makeDoc([
+      makeChunk({ id: 'c1', type: 'para', page: 2, text: 'Primera parte. Segunda parte.' }),
+      makeChunk({ id: 'c2', type: 'heading', page: 3, text: 'L . . ,' }),
+      makeChunk({ id: 'c3', type: 'para', page: 4, text: longText }),
+    ]);
+
+    const line = formatChunkLine(doc.chunks[2]);
+    expect(line).toContain('Inicio del bloque largo.');
+    expect(line).toContain('FINAL_ORACION_SIN_PUNTO');
+
+    const patches = parseRefinerPatches({
+      choices: [
+        {
+          message: {
+            content: JSON.stringify({
+              patches: [
+                { op: 'split', id: 'c1', splitAfterIndex: 14, nextType: 'heading' },
+                { op: 'flag_corrupt', id: 'c2', reason: 'Versalitas truncadas por ToUnicode' },
+              ],
+            }),
+          },
+        },
+      ],
+    });
+
+    const result = applyRefinementPatches(doc, patches, 'deepseek-v4-flash');
+    expect(result.document.chunks.map((c) => [c.id, c.type, c.text])).toEqual([
+      ['c1', 'para', 'Primera parte.'],
+      ['c1.s1', 'heading', 'Segunda parte.'],
+      ['c2', 'heading', 'L . . ,'],
+      ['c3', 'para', longText],
+    ]);
+    expect(result.summary.corruptFlags).toEqual([
+      { id: 'c2', page: 3, reason: 'Versalitas truncadas por ToUnicode' },
+    ]);
+  });
+
+  it('short-circuits pass 2 when pass 1 returns no patches and includes response_format json_object', async () => {
+    const doc = makeDoc([
+      makeChunk({ id: 'c1', type: 'para', text: 'Capítulo 1: Inicio' }),
+    ]);
+    const fetchMock = vi.fn(async () => chatResponse('{"patches":[]}'));
+
+    const res = await refineReadingDocument(doc, {
+      env: ENV,
+      fetchImpl: fetchMock as unknown as typeof fetch,
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const body = JSON.parse((fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1].body as string);
+    expect(body.response_format).toEqual({ type: 'json_object' });
+    expect(res.summary.applied).toBe(false);
   });
 });

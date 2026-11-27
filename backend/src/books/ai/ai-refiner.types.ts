@@ -29,11 +29,26 @@ export type RefinerRecommendDropPatch = {
   reason: string;
 };
 
+export type RefinerSplitPatch = {
+  op: 'split';
+  id: string;
+  splitAfterIndex: number;
+  nextType?: ReadingChunkType;
+};
+
+export type RefinerFlagCorruptPatch = {
+  op: 'flag_corrupt';
+  id: string;
+  reason: string;
+};
+
 export type RefinerPatch =
   | RefinerReclassifyPatch
   | RefinerMergePatch
   | RefinerDropPatch
-  | RefinerRecommendDropPatch;
+  | RefinerRecommendDropPatch
+  | RefinerSplitPatch
+  | RefinerFlagCorruptPatch;
 
 export type RefinementResult = {
   document: BookReadingDocument;
