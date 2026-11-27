@@ -53,10 +53,10 @@
   --destructive: #a6362f;
   --border: #ddd2bc;
   --input: #ddd2bc;
-  --ring: #c73e3a;
-  --aka: #c73e3a;
-  --aka-deep: #a02f2b;
-  --aka-foreground: #fdf8ee;
+  --ring: #2f5aa8;
+  --aka: #2f5aa8;
+  --aka-deep: #224485;
+  --aka-foreground: #f8fafc;
   --ink-soft: #57503f;
 }
 
@@ -78,10 +78,10 @@
   --destructive: #d95448;
   --border: #322b20;
   --input: #322b20;
-  --ring: #d95448;
-  --aka: #d95448;
-  --aka-deep: #c73e3a;
-  --aka-foreground: #fdf8ee;
+  --ring: #9fc0ee;
+  --aka: #5f86c9;
+  --aka-deep: #43649e;
+  --aka-foreground: #04050a;
   --ink-soft: #b3a78e;
 }
 

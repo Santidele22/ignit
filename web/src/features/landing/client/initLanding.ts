@@ -27,7 +27,7 @@ const MOTE_COUNT = 120;
 /** Artboard mote tints per palette. `noche-azul` is cold light, `original` is warm ink. */
 const MOTE_RGB: Record<string, string> = {
 	'noche-azul': '159,192,238',
-	original: '199,62,58',
+	original: '47,90,168',
 };
 
 let activeCleanup: (() => void) | null = null;

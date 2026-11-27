@@ -29,7 +29,7 @@ export default defineConfig({
 			scriptDirective: {
 				resources: ["'self'"],
 				hashes: [
-					'sha256-HprAVSK2xzua4kOPq9AlsReNvNxoUwntsbVzUHVkg1k=',
+					'sha256-fEIgCvMY5dzrKjoXA6enTXy2/+cqzO61By/QUkuaVew=',
 					'sha256-VmEf2BGdqVUwcvyhTyarJo/bY7DNqS2+T2sz4IO/kbw=',
 				],
 			},

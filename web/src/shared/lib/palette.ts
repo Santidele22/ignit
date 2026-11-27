@@ -22,8 +22,8 @@ export function parsePalette(raw: string | null | undefined): AppPalette {
 
 export function resolveDocumentThemeState(
 	palette: AppPalette,
-	savedDarkMode: string | null,
-	prefersDark: boolean,
+	_savedDarkMode?: string | null,
+	_prefersDark?: boolean,
 ): DocumentThemeState {
 	if (palette === 'noche-azul') {
 		return {
@@ -33,11 +33,10 @@ export function resolveDocumentThemeState(
 		};
 	}
 
-	const dark = savedDarkMode ? savedDarkMode === 'dark' : prefersDark;
 	return {
 		palette: 'original',
-		dark,
-		colorScheme: dark ? 'dark' : 'light',
+		dark: false,
+		colorScheme: 'light',
 	};
 }
 

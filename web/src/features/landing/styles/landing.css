@@ -37,8 +37,8 @@ body.landing-body {
 	   tone because the surface is now the dark one. */
 	--l-accent-bright: var(--aka-deep);
 	--l-accent-fg: var(--aka-foreground);
-	--l-accent-rgb: 199 62 58; /* --aka */
-	--l-accent-bright-rgb: 160 47 43; /* --aka-deep */
+	--l-accent-rgb: 47 90 168; /* --aka */
+	--l-accent-bright-rgb: 34 68 133; /* --aka-deep */
 	--l-bg-rgb: 244 239 228; /* --background */
 	--l-surface-deep: var(--card);
 	--l-surface-shelf: var(--secondary);
@@ -2620,6 +2620,62 @@ html.dark:not([data-palette="noche-azul"]) body.landing-body .landing-page .tomo
 	background: color-mix(in srgb, var(--l-bg) 80%, transparent);
 	border: 1px solid var(--l-border);
 	color: var(--l-text);
+}
+
+.landing-page .how-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+	gap: 16px;
+	margin-top: 26px;
+}
+
+.landing-page .how-card {
+	border: 1px solid var(--l-border);
+	border-radius: 10px;
+	padding: 20px 22px;
+	background: color-mix(in srgb, var(--l-panel) 78%, transparent);
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.landing-page .how-card.is-accent {
+	border-color: color-mix(in srgb, var(--l-accent-bright) 48%, var(--l-border));
+}
+
+.landing-page .how-badge {
+	font-family: var(--font-mono);
+	font-size: 10.5px;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--l-accent-bright);
+}
+
+.landing-page .how-card h3 {
+	margin: 0;
+	font-size: 1.12rem;
+	color: var(--l-text);
+}
+
+.landing-page .how-card p {
+	margin: 0;
+	font-size: 0.92rem;
+	line-height: 1.6;
+	color: var(--l-muted);
+}
+
+.landing-page .how-card code {
+	font-family: var(--font-mono);
+	font-size: 0.82rem;
+	padding: 1px 5px;
+	border-radius: 4px;
+	background: color-mix(in srgb, var(--l-bg) 80%, transparent);
+	border: 1px solid var(--l-border);
+	color: var(--l-text);
+}
+
+.landing-page .how-specs {
+	margin-top: 18px;
 }
 
 body.landing-body .landing-footer {

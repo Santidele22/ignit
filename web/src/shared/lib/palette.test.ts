@@ -41,7 +41,7 @@ describe('app palette helpers', () => {
 		});
 	});
 
-	it('preserves existing santi-theme and prefers-color-scheme behavior for original', () => {
+	it('forces accessible light paper mode for original regardless of OS or santi-theme', () => {
 		expect(resolveDocumentThemeState('original', null, false)).toEqual({
 			palette: 'original',
 			dark: false,
@@ -49,13 +49,13 @@ describe('app palette helpers', () => {
 		});
 		expect(resolveDocumentThemeState('original', null, true)).toEqual({
 			palette: 'original',
-			dark: true,
-			colorScheme: 'dark',
+			dark: false,
+			colorScheme: 'light',
 		});
 		expect(resolveDocumentThemeState('original', 'dark', false)).toEqual({
 			palette: 'original',
-			dark: true,
-			colorScheme: 'dark',
+			dark: false,
+			colorScheme: 'light',
 		});
 		expect(resolveDocumentThemeState('original', 'light', true)).toEqual({
 			palette: 'original',
