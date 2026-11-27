@@ -333,3 +333,19 @@ describe('landing pipeline steps', () => {
 		expect(pipelineCaptionForStep('99')).toBe(pipelineCaptionForStep('1'));
 	});
 });
+
+describe('landing desktop installer section', () => {
+	it('exposes the Linux .deb download, OS compatibility, and install instructions', async () => {
+		const { readFileSync } = await import('node:fs');
+		const closing = readFileSync(
+			new URL('../components/ClosingSection.astro', import.meta.url),
+			'utf8',
+		);
+		expect(closing).toContain('/downloads/Ignit_0.1.0_amd64.deb');
+		expect(closing).toContain('Linux (x86_64)');
+		expect(closing).toContain('Windows (x64)');
+		expect(closing).toContain('macOS (Universal)');
+		expect(closing).toContain('sudo apt install ./Ignit_0.1.0_amd64.deb');
+		expect(closing).toContain('chmod +x Ignit_0.1.0_amd64.AppImage');
+	});
+});

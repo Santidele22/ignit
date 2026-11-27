@@ -5,6 +5,7 @@ import {
 	getInstallMode,
 	isIosDevice,
 	isStandaloneDisplayMode,
+	isTauriDesktop,
 	triggerInstall,
 } from './installPrompt';
 
@@ -12,10 +13,15 @@ const moduleSource = readFileSync(new URL('./installPrompt.ts', import.meta.url)
 const guideCss = readFileSync(new URL('./install-guide.css', import.meta.url), 'utf8');
 
 describe('isStandaloneDisplayMode', () => {
-	it('returns true when display-mode is standalone or iOS navigator.standalone is true', () => {
+	it('returns true when display-mode is standalone, iOS navigator.standalone, or Tauri desktop', () => {
 		expect(isStandaloneDisplayMode({ matchMediaStandalone: true, navigatorStandalone: false })).toBe(true);
 		expect(isStandaloneDisplayMode({ matchMediaStandalone: false, navigatorStandalone: true })).toBe(true);
-		expect(isStandaloneDisplayMode({ matchMediaStandalone: false, navigatorStandalone: false })).toBe(false);
+		expect(isStandaloneDisplayMode({ matchMediaStandalone: false, navigatorStandalone: false, tauriDesktop: true })).toBe(true);
+		expect(isStandaloneDisplayMode({ matchMediaStandalone: false, navigatorStandalone: false, tauriDesktop: false })).toBe(false);
+	});
+
+	it('detects non-Tauri runtime cleanly in Node', () => {
+		expect(isTauriDesktop()).toBe(false);
 	});
 });
 

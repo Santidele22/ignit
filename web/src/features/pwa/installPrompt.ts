@@ -20,6 +20,7 @@ export interface BeforeInstallPromptEvent extends Event {
 export interface StandaloneEnvironment {
 	matchMediaStandalone?: boolean;
 	navigatorStandalone?: boolean;
+	tauriDesktop?: boolean;
 }
 
 export interface InstallModeEnvironment {
@@ -30,9 +31,14 @@ export interface InstallModeEnvironment {
 
 export const IOS_GUIDE_DIALOG_ID = 'ignit-ios-install-guide';
 
-/** True when the app is already running installed (standalone display mode). */
+/** True when running inside the Ignit Tauri desktop WebView. */
+export function isTauriDesktop(): boolean {
+	return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+}
+
+/** True when the app is already running installed (standalone or Tauri desktop). */
 export function isStandaloneDisplayMode(env: StandaloneEnvironment): boolean {
-	return Boolean(env.matchMediaStandalone || env.navigatorStandalone);
+	return Boolean(env.matchMediaStandalone || env.navigatorStandalone || env.tauriDesktop);
 }
 
 /** True on iPhone, iPad, iPod, and iPadOS desktop-mode Safari. */
@@ -63,7 +69,11 @@ function readCurrentMode(): InstallMode {
 	const matchMediaStandalone =
 		typeof window.matchMedia === 'function' && window.matchMedia('(display-mode: standalone)').matches;
 	const navigatorStandalone = Boolean((navigator as { standalone?: boolean }).standalone);
-	const standalone = isStandaloneDisplayMode({ matchMediaStandalone, navigatorStandalone });
+	const standalone = isStandaloneDisplayMode({
+		matchMediaStandalone,
+		navigatorStandalone,
+		tauriDesktop: isTauriDesktop(),
+	});
 
 	return getInstallMode({
 		standalone,

@@ -44,6 +44,57 @@ const { authenticated } = Astro.props;
 				}
 				<a class="quiet" href="/biblioteca">Subir un libro</a>
 			</div>
+
+			<div class="desktop-install-panel" id="desktop-installer">
+				<p class="desktop-install-eyebrow">App Desktop nativa · Tauri v2 (v0.1.0)</p>
+				<div class="desktop-install-head">
+					<div>
+						<h3>Ignit para escritorio</h3>
+						<p class="desktop-install-sub">
+							Ventana dedicada, caché offline local y atajos de lectura en Vigilia (`F11`, `Ctrl + / -`).
+						</p>
+					</div>
+					<a
+						class="cta"
+						href="/downloads/Ignit_0.1.0_amd64.deb"
+						download="Ignit_0.1.0_amd64.deb"
+					>
+						Descargar Linux (.deb · 4.9 MB)
+					</a>
+				</div>
+
+				<div class="desktop-os-grid">
+					<article class="desktop-os-card is-ready">
+						<span class="desktop-os-badge">Disponible</span>
+						<h4>Linux (x86_64)</h4>
+						<p>Ubuntu, Debian, Linux Mint, Pop!_OS (`.deb`) y `.AppImage` portable para cualquier distro.</p>
+					</article>
+					<article class="desktop-os-card">
+						<span class="desktop-os-badge">En camino</span>
+						<h4>Windows (x64)</h4>
+						<p>Instalador `.msi` sobre WebView2 (Windows 10 / 11). Configuración Tauri v2 lista.</p>
+					</article>
+					<article class="desktop-os-card">
+						<span class="desktop-os-badge">En camino</span>
+						<h4>macOS (Universal)</h4>
+						<p>Paquete `.dmg` nativo para Apple Silicon e Intel. Configuración Tauri v2 lista.</p>
+					</article>
+				</div>
+
+				<div class="desktop-install-steps">
+					<p class="desktop-steps-title">Cómo instalar en Linux</p>
+					<ol>
+						<li>
+							<strong>Debian / Ubuntu / Mint (`.deb`):</strong> descargá el paquete y ejecutá
+							<code>sudo apt install ./Ignit_0.1.0_amd64.deb</code>. Agrega el ícono al menú automáticamente.
+						</li>
+						<li>
+							<strong>Cualquier distribución (`.AppImage`):</strong> dale permisos de ejecución con
+							<code>chmod +x Ignit_0.1.0_amd64.AppImage &amp;&amp; ./Ignit_0.1.0_amd64.AppImage</code>.
+						</li>
+					</ol>
+				</div>
+			</div>
 		</div>
 	</div>
 </section>
