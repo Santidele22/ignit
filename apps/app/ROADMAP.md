@@ -51,9 +51,9 @@ Una advertencia para quien siga: el `token` del body NO autentica, la cookie fir
 
 ## Fase 5 — Distribución
 
-1. APK firmada con el mismo keystore del TWA (`apps/twa/android.keystore`) reutilizado para la firma de release.
-2. `.aab` para Play Store y ficha (screenshots desde un emulador).
-3. Desktop: migrado a `apps/desktop/` (Tauri v2 reutilizando `web/`); módulo `:platforms:desktop` retirado.
+1. ✅ APK firmada con el mismo keystore del TWA (`apps/twa/android.keystore`) vía env / `keystore.properties` (gitignored) + R8/ProGuard (`proguard-rules.pro`).
+2. ✅ `.aab` configurado (`:platforms:android:bundleRelease`) y guía de release en `apps/app/docs/fase-5.md`.
+3. ✅ Desktop: migrado a `apps/desktop/` (Tauri v2 reutilizando `web/`); módulo `:platforms:desktop` retirado.
 
 ## Fase 6 — iOS (fase posterior)
 
