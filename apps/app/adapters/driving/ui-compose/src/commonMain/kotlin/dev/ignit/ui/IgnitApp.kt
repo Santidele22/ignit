@@ -18,8 +18,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import dev.ignit.application.usecase.GetCurrentSession
 import dev.ignit.application.usecase.LogOut
+import dev.ignit.application.usecase.OpenBookReading
 import dev.ignit.application.usecase.PalettePreference
+import dev.ignit.application.usecase.SaveReadingProgress
 import dev.ignit.application.usecase.SyncLibrary
+import dev.ignit.application.usecase.SyncReadingProgress
+import dev.ignit.domain.model.Book
 import dev.ignit.domain.model.UserSession
 import dev.ignit.ui.theme.IgnitPalette
 import dev.ignit.ui.theme.IgnitTheme
@@ -41,11 +45,15 @@ fun IgnitApp(
 	getCurrentSession: GetCurrentSession,
 	logOut: LogOut,
 	palettePreference: PalettePreference,
+	openBookReading: OpenBookReading? = null,
+	saveReadingProgress: SaveReadingProgress? = null,
+	syncReadingProgress: SyncReadingProgress? = null,
 ) {
 	val scope = rememberCoroutineScope()
 	var session by remember { mutableStateOf<UserSession?>(null) }
 	var restoring by remember { mutableStateOf(true) }
 	var palette by remember { mutableStateOf(IgnitPalette.ORIGINAL) }
+	var activeBook by remember { mutableStateOf<Book?>(null) }
 	// Covers are remote images: install the shared loader before any card can ask for one.
 	IgnitImageLoader()
 
@@ -69,10 +77,19 @@ fun IgnitApp(
 
 					else -> {
 						val current = session
+						val readingBook = activeBook
 						if (current == null) {
 							LoginScreen(
 								viewModel = loginViewModel,
 								onLoggedIn = { loggedIn -> session = loggedIn },
+							)
+						} else if (readingBook != null && openBookReading != null && saveReadingProgress != null && syncReadingProgress != null) {
+							ReaderScreen(
+								book = readingBook,
+								viewModel = remember(readingBook.id) {
+									ReaderViewModel(openBookReading, saveReadingProgress, syncReadingProgress)
+								},
+								onBack = { activeBook = null },
 							)
 						} else {
 							LibraryScreen(
@@ -81,10 +98,12 @@ fun IgnitApp(
 								onLogOut = {
 									scope.launch {
 										logOut()
+										activeBook = null
 										session = null
 										loginViewModel.clearSession()
 									}
 								},
+								onOpenBook = { book -> activeBook = book },
 							)
 						}
 					}

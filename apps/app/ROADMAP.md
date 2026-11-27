@@ -38,10 +38,10 @@ Una advertencia para quien siga: el `token` del body NO autentica, la cookie fir
 
 ## Fase 3 — Lector: el corazón de Ignit
 
-1. Modelo de `ReadingProgress` en `core/domain` (página, capítulo, fecha).
-2. Puerto de descarga de capítulos + persistencia SQLDelight (reemplaza el stub de `LocalProgressRepository`).
-3. Pantalla lector paginado (Compose: `HorizontalPager`), modo vigilia, ficha.
-4. Guardar progreso local + `syncPending()` hacia el backend.
+1. ✅ Modelo de `ReadingProgress` y `DomainReadingDocument` en `core/domain` (página, porcentaje, fecha, LWW).
+2. ✅ Puerto `ReadingContentGateway` (`KtorReadingGateway`) + persistencia local SQLite/`IGB1` (`LocalProgressRepository`).
+3. ✅ Pantalla lector paginado (Compose: `HorizontalPager`), modo vigilia/día, ficha.
+4. ✅ Guardar progreso local + `syncPending()` hacia el backend (`apps/app/docs/fase-3.md`).
 
 ## Fase 4 — Offline y sync real
 

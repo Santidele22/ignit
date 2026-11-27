@@ -14,11 +14,11 @@ Test runner: `cd apps/app && JAVA_HOME=/home/aegir/.bubblewrap/jdk/jdk-17.0.11+9
 
 ## Tasks
 
-- T1 [S1] · `core/domain` + `core/application` · modelos `ReadingProgress`/`ReadingDocument`, puertos y casos de uso del lector + tests (surfaces: `apps/app/core/domain/**`, `apps/app/core/application/**`) · status: pending
-- T2 [S2] · `adapters/driven/persistence` · schema SQLDelight `IgnitLocal`, drivers Android/JVM y `SqlDelightProgressRepository` + tests (surfaces: `apps/app/adapters/driven/persistence/**`, `apps/app/build.gradle.kts`) · status: pending
-- T3 [S3] · `adapters/driven/http-api` · `KtorReadingGateway` (`GET /reading`, `GET/PUT /reading-state`) + tests `MockEngine` (surfaces: `apps/app/adapters/driven/http-api/**`) · status: pending
-- T4 [S4] · `adapters/driving/ui-compose` · `ReaderViewModel`, `ReaderScreen` (`HorizontalPager`, modo Vigilia, ficha) y navegación Biblioteca ⇒ Lector (surfaces: `apps/app/adapters/driving/ui-compose/**`) · status: pending
-- T5 [S5] · `platforms/*` + `docs` · wiring de drivers, verificación en vivo en `ignit_pixel`, `apps/app/docs/fase-3.md` y update `apps/app/ROADMAP.md` (surfaces: `apps/app/platforms/**`, `apps/app/docs/fase-3.md`, `apps/app/ROADMAP.md`) · status: pending
+- T1 [S1] · `core/domain` + `core/application` · modelos `ReadingProgress`/`ReadingDocument`, puertos y casos de uso del lector + tests (surfaces: `apps/app/core/domain/**`, `apps/app/core/application/**`) · status: done (`:core:domain:jvmTest :core:application:jvmTest` BUILD SUCCESSFUL)
+- T2 [S2] · `adapters/driven/persistence` · schema SQLDelight `IgnitLocal`, drivers Android/JVM y `SqlDelightProgressRepository` + tests (surfaces: `apps/app/adapters/driven/persistence/**`, `apps/app/build.gradle.kts`) · status: done (`LocalProgressRepository` sobre `IgnitLocalStore` + `IGB1`, `:adapters:driven:persistence:jvmTest` BUILD SUCCESSFUL)
+- T3 [S3] · `adapters/driven/http-api` · `KtorReadingGateway` (`GET /reading`, `GET/PUT /reading-state`) + tests `MockEngine` (surfaces: `apps/app/adapters/driven/http-api/**`) · status: done (`:adapters:driven:http-api:jvmTest` BUILD SUCCESSFUL)
+- T4 [S4] · `adapters/driving/ui-compose` · `ReaderViewModel`, `ReaderScreen` (`HorizontalPager`, modo Vigilia, ficha) y navegación Biblioteca ⇒ Lector (surfaces: `apps/app/adapters/driving/ui-compose/**`) · status: done (`:adapters:driving:ui-compose:jvmTest` BUILD SUCCESSFUL)
+- T5 [S5] · `platforms/*` + `docs` · wiring de drivers, verificación en vivo en `ignit_pixel`, `apps/app/docs/fase-3.md` y update `apps/app/ROADMAP.md` (surfaces: `apps/app/platforms/**`, `apps/app/docs/fase-3.md`, `apps/app/ROADMAP.md`) · status: done (`:platforms:android:assembleDebug` BUILD SUCCESSFUL; verificación en vivo en `ignit_pixel` diferida a prueba manual)
 
 ## Log
 
