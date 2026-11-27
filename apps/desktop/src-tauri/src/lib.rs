@@ -1,3 +1,4 @@
+pub mod drm;
 pub mod igb1;
 pub mod local_db;
 mod offline;
