@@ -345,5 +345,36 @@ export function prepareBookDisplayItems(
 
 	flushPendingTocHeading(items, tocState);
 
-	return { items, totalParas };
+	// Merge broken mid-sentence continuations (e.g. "'... Tengo algo especial" + "que contarte.'")
+	// into the preceding dialogue or paragraph block.
+	const mergedItems: BookDisplayItem[] = [];
+	let normalizedParaIndex = 0;
+	for (const item of items) {
+		const prev = mergedItems[mergedItems.length - 1];
+		if (
+			prev &&
+			(prev.kind === 'dialogue' || prev.kind === 'para') &&
+			(item.kind === 'dialogue' || item.kind === 'para') &&
+			!(item.kind === 'para' && (item.verse || item.chapterMarker)) &&
+			!/[.!?…»"”’)\]:]\s*$/.test(prev.text) &&
+			/^[a-záéíóúüñ]/.test(item.text.trim())
+		) {
+			const trimmedPrev = prev.text.trimEnd();
+			const trimmedCur = item.text.trimStart();
+			prev.text = /[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ]{2}-$/.test(trimmedPrev)
+				? `${trimmedPrev.slice(0, -1)}${trimmedCur}`
+				: `${trimmedPrev} ${trimmedCur}`;
+			if (prev.runs || item.runs) {
+				prev.runs = undefined;
+			}
+			continue;
+		}
+		if ('paraIndex' in item) {
+			item.paraIndex = normalizedParaIndex;
+			normalizedParaIndex += 1;
+		}
+		mergedItems.push(item);
+	}
+
+	return { items: mergedItems, totalParas: normalizedParaIndex };
 }

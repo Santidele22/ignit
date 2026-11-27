@@ -57,4 +57,28 @@ describe('dialogue detection and legacy chunk rescue', () => {
 			'code',
 		]);
 	});
+
+	it('merges mid-sentence dialogue continuations split across blocks', () => {
+		const chunks: ReadingChunk[] = [
+			makeChunk({
+				id: 'd1',
+				type: 'dialogue',
+				page: 4,
+				text: '‘Te he llamado antes, madre, pero siempre estabas ocupada o en aislamiento.\nTengo algo especial',
+			}),
+			makeChunk({
+				id: 'd2',
+				type: 'dialogue',
+				page: 5,
+				text: 'que contarte.’',
+			}),
+		];
+
+		const prepared = prepareBookDisplayItems(chunks, 10);
+		expect(prepared.items).toHaveLength(1);
+		expect(prepared.items[0]).toMatchObject({
+			kind: 'dialogue',
+			text: '‘Te he llamado antes, madre, pero siempre estabas ocupada o en aislamiento. Tengo algo especial que contarte.’',
+		});
+	});
 });

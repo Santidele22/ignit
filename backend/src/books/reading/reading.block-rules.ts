@@ -189,16 +189,18 @@ export function collectRepeatedEdgeKeys(
 export function mergeCrossPageParagraphs(
   rawBlocks: readonly RawExtractedBlock[],
 ): RawExtractedBlock[] {
+  const isProseOrDialogue = (t: RawExtractedBlock['type']) => t === 'para' || t === 'dialogue';
   const mergedBlocks: RawExtractedBlock[] = [];
   for (const block of rawBlocks) {
     const prev = mergedBlocks[mergedBlocks.length - 1];
     if (
       prev &&
-      prev.type === 'para' &&
-      block.type === 'para' &&
-      block.page === prev.page + 1 &&
+      isProseOrDialogue(prev.type) &&
+      isProseOrDialogue(block.type) &&
+      (block.page === prev.page + 1 || block.page === prev.page) &&
       !prev.endsWithSentencePunct &&
       !block.firstLineIndented &&
+      !/^\s*(?:—|–)/.test(block.text) &&
       (block.startsLowercase || /[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ]{2}-$/.test(prev.text))
     ) {
       const nextText = dehyphenateLinePair(prev.text, block.text);
