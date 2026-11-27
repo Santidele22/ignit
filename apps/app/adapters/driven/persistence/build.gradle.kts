@@ -11,6 +11,10 @@ kotlin {
 		commonMain.dependencies {
 			implementation(project(":core:application"))
 			implementation(libs.sqldelight.coroutines)
+			implementation(libs.kotlinx.serialization.json)
+		}
+		commonTest.dependencies {
+			implementation(kotlin("test"))
 		}
 	}
 }
