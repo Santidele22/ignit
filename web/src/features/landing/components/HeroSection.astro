@@ -39,7 +39,7 @@ const liveLabel =
 	<div class="anim">
 		<div class="hero-frame">
 			<div class="hero-topbar">
-				<span>IGNIT · BIBLIOTECA COMUNITARIA · PWA OFFLINE</span>
+				<span>IGNIT · BIBLIOTECA COMUNITARIA · MODO VIGILIA</span>
 				<span class="hero-live">{liveLabel}</span>
 			</div>
 			<div class="hero-grid">
@@ -50,22 +50,20 @@ const liveLabel =
 							<span class="bloque">para leer y estudiar.</span>
 						</h1>
 						<p class="lead">
-							Dos ritmos en el mismo lugar: el <strong>estudio profesional</strong> (ingeniería, derecho, medicina,
-							economía y diseño) con foco de día, y el <strong>despeje literario</strong> sin pantallas brillantes de noche.
-							Catálogo público de obras en dominio público y licencias abiertas, más tu biblioteca privada para leer tus
-							PDFs en Modo Vigilia, offline en cualquier pantalla.
+							Estudio profesional de día y despeje literario de noche. Catálogo abierto y tu biblioteca privada de PDFs
+							en Modo Vigilia, sin distracciones.
 						</p>
 					</div>
 					<div class="acciones">
-						<a class="cta" href="#s2">Explorar las dos salas</a>
+						<a class="cta" href="#s2">Explorar catálogo</a>
 						{
 							authenticated ? (
 								<a class="cta-sec" href="/biblioteca">
 									Ir a mi biblioteca
 								</a>
 							) : (
-								<a class="cta-sec" href="#s6" data-pwa-install>
-									Instalar app (PWA)
+								<a class="cta-sec" href="#desktop-installer">
+									Descargar para escritorio
 								</a>
 							)
 						}
@@ -197,38 +195,6 @@ const liveLabel =
 						<b>donde pasa la luz, se lee</b>
 					</div>
 				</div>
-			</div>
-
-			<!-- Las dos salas (artboard 04): el dial «dos ritmos de lectura» -->
-			<div class="hero-dial" role="group" aria-label="Las dos salas de lectura de Ignit">
-				<div class="dial-header">
-					<span>Dos ritmos de lectura</span>
-					<span>Misma calma</span>
-				</div>
-				<div class="dial-lanes">
-					<a class="lane-box" href="#s2" data-estancia="estudio">
-						<div>
-							<span class="lane-tag">I · Estudio Profesional</span>
-							<span class="lane-time">14:00 · disciplina y rigor</span>
-						</div>
-						<p class="lane-quote">«Software, leyes, medicina clínica, economía y diseño.»</p>
-						<span class="lane-meta">Fichas técnicas · navegación analítica</span>
-					</a>
-					<a class="lane-box" href="#s2" data-estancia="despeje">
-						<div>
-							<span class="lane-tag">II · Despeje Literario</span>
-							<span class="lane-time">23:30 · pausa y vigilia</span>
-						</div>
-						<p class="lane-quote">«Filosofía estoica, ficción clásica y poesía.»</p>
-						<span class="lane-meta">Tipografía Mincho · luz tenue</span>
-					</a>
-				</div>
-			</div>
-			<div class="hero-specs" role="list" aria-label="Características de Ignit">
-				<div role="listitem"><span>curación</span><b>Revisión humana real</b></div>
-				<div role="listitem"><span>descarga</span><b>Selectiva · ~300 KB/libro</b></div>
-				<div role="listitem"><span>acceso</span><b>Demo de lectura sin cuenta</b></div>
-				<div role="listitem"><span>continuidad</span><b>Offline + sync PC ↔ Celu</b></div>
 			</div>
 		</div>
 	</div>

@@ -620,8 +620,10 @@ export function initLanding(): () => void {
 	const getTomos = () => Array.from(document.querySelectorAll<HTMLElement>('#rejilla .tomo'));
 
 	if (getTomos().length > 0 || chips.length > 0) {
+		const LANDING_PAGE_SIZE = 4;
 		let activeKind = chips.find((chip) => chip.dataset.activa === 'true')?.dataset.filtro ?? '*';
 		let pageController: AbortController | null = null;
+		let clientPage = 1;
 
 		const renderOfflineMeter = () => {
 			const selectedKb = getTomos()
@@ -635,26 +637,108 @@ export function initLanding(): () => void {
 		const activeSala = () =>
 			chips.find((chip) => chip.dataset.activa === 'true')?.dataset.sala ?? null;
 
-		/* S1 pagination feedback: the server paginates the shelf 8 at a time,
-		 * but a room lens spans pages — once the user scopes to a room (or
-		 * searches), silently pull every remaining page and append the tomos,
-		 * then retire the server pagination («dinámico» per user feedback).
-		 * Follows each page's own «Siguiente» link, so no page size constant.
-		 */
+		const findNextPageHref = (root: ParentNode): string | null => {
+			const links = Array.from(root.querySelectorAll<HTMLAnchorElement>('#s2 .cat-pagination a[href]'));
+			return links.find((link) => link.textContent?.includes('Siguiente'))?.href ?? null;
+		};
+
 		let allPagesLoaded = false;
 		let appendingPages = false;
+
+		const updateRoomBadges = () => {
+			if (!allPagesLoaded) return;
+			const tomos = getTomos();
+			const counts: Record<string, number> = { estudio: 0, despeje: 0 };
+			for (const tomo of tomos) {
+				const sala = tomo.dataset.sala;
+				if (sala === 'estudio' || sala === 'despeje') {
+					counts[sala] += 1;
+				}
+			}
+			for (const room of document.querySelectorAll<HTMLElement>('.estancia[data-estancia]')) {
+				const sala = room.dataset.estancia;
+				const badge = room.querySelector<HTMLElement>('.domain-badge');
+				if (!badge || !sala || !(sala in counts)) continue;
+				const count = counts[sala]!;
+				badge.textContent = `${count} ${count === 1 ? 'tomo' : 'tomos'}`;
+			}
+		};
+
+		const renderClientPagination = (totalItems: number) => {
+			if (!catalogSection) return;
+			let container = catalogSection.querySelector<HTMLElement>('.cat-pagination');
+			if (!container) {
+				container = document.createElement('div');
+				container.className = 'cat-pagination';
+				catalogSection.querySelector('.anim')?.appendChild(container);
+			}
+
+			const pageCount = Math.ceil(totalItems / LANDING_PAGE_SIZE);
+			if (pageCount <= 1) {
+				container.setAttribute('hidden', '');
+				container.replaceChildren();
+				return;
+			}
+
+			container.removeAttribute('hidden');
+			const safePage = Math.min(Math.max(1, clientPage), pageCount);
+
+			const nav = document.createElement('nav');
+			nav.className = 'mt-12 flex flex-wrap items-center justify-center gap-2';
+			nav.setAttribute('aria-label', 'Paginación');
+
+			const makeBtn = (label: string, targetPage: number, disabled: boolean, current = false) => {
+				if (current) {
+					const span = document.createElement('span');
+					span.setAttribute('aria-current', 'page');
+					span.className =
+						'inline-flex min-w-9 items-center justify-center border border-aka/60 bg-card px-3 py-2 text-sm font-medium text-aka';
+					span.textContent = label;
+					return span;
+				}
+				const btn = document.createElement('button');
+				btn.type = 'button';
+				btn.disabled = disabled;
+				btn.dataset.clientPage = String(targetPage);
+				btn.className = disabled
+					? 'inline-flex items-center gap-1.5 border border-border px-3 py-2 text-sm font-medium text-muted-foreground opacity-40'
+					: 'inline-flex min-w-9 items-center justify-center gap-1.5 border border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:border-aka/40 hover:text-aka';
+				btn.textContent = label;
+				btn.addEventListener(
+					'click',
+					() => {
+						clientPage = targetPage;
+						applyCatalogFilter();
+					},
+					{ signal },
+				);
+				return btn;
+			};
+
+			nav.appendChild(makeBtn('← Anterior', safePage - 1, safePage <= 1));
+
+			const list = document.createElement('ul');
+			list.className = 'flex items-center gap-1';
+			for (let p = 1; p <= pageCount; p += 1) {
+				const li = document.createElement('li');
+				li.appendChild(makeBtn(String(p), p, false, p === safePage));
+				list.appendChild(li);
+			}
+			nav.appendChild(list);
+
+			nav.appendChild(makeBtn('Siguiente →', safePage + 1, safePage >= pageCount));
+			container.replaceChildren(nav);
+		};
 
 		const appendRemainingPages = async () => {
 			if (allPagesLoaded || appendingPages || !catalogGrid) return;
 			appendingPages = true;
 			try {
-				let href = document.querySelector<HTMLAnchorElement>(
-					'#s2 .cat-pagination a[aria-label="Ir a la página"], #s2 .cat-pagination a:not([aria-current])',
-				)?.href ?? null;
+				let href = findNextPageHref(document);
 				const seen = new Set(getTomos().map((tomo) => tomo.dataset.search ?? ''));
 				let hops = 0;
 
-				while (href && hops < 12) {
+				while (href && hops < 24) {
 					hops += 1;
 					const res = await fetch(href, { headers: { accept: 'text/html' } });
 					if (!res.ok) break;
@@ -673,14 +757,10 @@ export function initLanding(): () => void {
 					if (appended === 0) break;
 
 					bindTomoButtons();
-					const next = parsed
-						.querySelector('#s2 .cat-pagination a[aria-label="Ir a la página"], #s2 .cat-pagination a:not([aria-current])');
-					href = next instanceof HTMLAnchorElement ? next.href : null;
+					href = findNextPageHref(parsed);
 				}
 				allPagesLoaded = true;
-				document
-					.querySelector('#s2 .cat-pagination')
-					?.setAttribute('hidden', '');
+				updateRoomBadges();
 				applyCatalogFilter();
 			} finally {
 				appendingPages = false;
@@ -691,19 +771,36 @@ export function initLanding(): () => void {
 			const tomos = getTomos();
 			const query = normalizeSearchText(catalogSearch?.value ?? '');
 			const sala = activeSala();
-			let visible = 0;
+			const matching: HTMLElement[] = [];
 
 			for (const tomo of tomos) {
 				const matchesKind = activeKind === '*' || tomo.dataset.kind === activeKind;
 				const matchesRoom = !sala || tomo.dataset.sala === sala;
 				const matchesQuery = !query || (tomo.dataset.search ?? '').includes(query);
-				const show = matchesKind && matchesRoom && matchesQuery;
-				tomo.style.display = show ? '' : 'none';
-				if (show) visible += 1;
+				if (matchesKind && matchesRoom && matchesQuery) {
+					matching.push(tomo);
+				} else {
+					tomo.style.display = 'none';
+				}
+			}
+
+			if (allPagesLoaded) {
+				const pageCount = Math.max(1, Math.ceil(matching.length / LANDING_PAGE_SIZE));
+				if (clientPage > pageCount) clientPage = 1;
+				const start = (clientPage - 1) * LANDING_PAGE_SIZE;
+				const end = start + LANDING_PAGE_SIZE;
+				matching.forEach((tomo, index) => {
+					tomo.style.display = index >= start && index < end ? '' : 'none';
+				});
+				renderClientPagination(matching.length);
+			} else {
+				for (const tomo of matching) {
+					tomo.style.display = '';
+				}
 			}
 
 			if (emptySearch) {
-				emptySearch.hidden = visible > 0 || tomos.length === 0;
+				emptySearch.hidden = matching.length > 0 || tomos.length === 0;
 			}
 
 			/* S2 feedback: the room owning the active chip gets the active visual
@@ -822,6 +919,7 @@ export function initLanding(): () => void {
 			chip.addEventListener(
 				'click',
 				() => {
+					clientPage = 1;
 					activeKind = chip.dataset.filtro ?? '*';
 					for (const other of chips) {
 						const active = other === chip;
@@ -836,6 +934,7 @@ export function initLanding(): () => void {
 		}
 
 		catalogSearch?.addEventListener('input', () => {
+			clientPage = 1;
 			void appendRemainingPages();
 			applyCatalogFilter();
 		}, { signal });

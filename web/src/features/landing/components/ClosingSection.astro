@@ -17,20 +17,23 @@ const { authenticated } = Astro.props;
 <section class="capa" data-capa id="s6">
 	<div class="anim">
 		<div class="cierre-box">
-			<p class="num">VI · empezar</p>
+			<p class="num">VI · escritorio</p>
 			<span class="sello" aria-hidden="true">熒</span>
 			<h2>
-				Instalá una vez.<br /><span class="azu">Descargá solo lo que leés.</span>
+				Descargá una vez.<br /><span class="azu">Leé sin ruido.</span>
 			</h2>
 			<p class="lead">
-				App liviana sin tiendas ni ruido. Catálogo curado por categoría, lectura offline y progreso sincronizado
-				entre tus dispositivos.
+				App nativa liviana para leer en Modo Vigilia con ventana dedicada, caché offline en disco y progreso
+				sincronizado con tu sesión web.
 			</p>
 			<div class="acciones">
-				<button class="cta" type="button" data-pwa-install data-pwa-install-only>
-					Instalar app
-				</button>
-				<a class="cta" href="#s2">Explorar catálogo</a>
+				<a
+					class="cta"
+					href="/downloads/Ignit_0.1.0_amd64.deb"
+					download="Ignit_0.1.0_amd64.deb"
+				>
+					Descargar para Linux (.deb · 4.9 MB)
+				</a>
 				{
 					authenticated ? (
 						<a class="cta-sec" href="/biblioteca">
@@ -42,42 +45,35 @@ const { authenticated } = Astro.props;
 						</a>
 					)
 				}
-				<a class="quiet" href="/biblioteca">Subir un libro</a>
 			</div>
 
 			<div class="desktop-install-panel" id="desktop-installer">
 				<p class="desktop-install-eyebrow">App Desktop nativa · Tauri v2 (v0.1.0)</p>
 				<div class="desktop-install-head">
 					<div>
-						<h3>Ignit para escritorio</h3>
+						<h3>Ignit Desktop</h3>
 						<p class="desktop-install-sub">
-							Ventana dedicada, caché offline local y atajos de lectura en Vigilia (`F11`, `Ctrl + / -`).
+							Atajos de lectura en Vigilia (<code>F11</code>, <code>Ctrl + / -</code>) y biblioteca local sin navegador.
 						</p>
 					</div>
-					<a
-						class="cta"
-						href="/downloads/Ignit_0.1.0_amd64.deb"
-						download="Ignit_0.1.0_amd64.deb"
-					>
-						Descargar Linux (.deb · 4.9 MB)
-					</a>
+					<span class="desktop-os-badge">Linux x86_64 listo</span>
 				</div>
 
 				<div class="desktop-os-grid">
 					<article class="desktop-os-card is-ready">
 						<span class="desktop-os-badge">Disponible</span>
 						<h4>Linux (x86_64)</h4>
-						<p>Ubuntu, Debian, Linux Mint, Pop!_OS (`.deb`) y `.AppImage` portable para cualquier distro.</p>
+						<p>Ubuntu, Debian, Linux Mint, Pop!_OS (<code>.deb</code>) y <code>.AppImage</code> portable.</p>
 					</article>
 					<article class="desktop-os-card">
 						<span class="desktop-os-badge">En camino</span>
 						<h4>Windows (x64)</h4>
-						<p>Instalador `.msi` sobre WebView2 (Windows 10 / 11). Configuración Tauri v2 lista.</p>
+						<p>Instalador <code>.msi</code> sobre WebView2 (Windows 10 / 11).</p>
 					</article>
 					<article class="desktop-os-card">
 						<span class="desktop-os-badge">En camino</span>
 						<h4>macOS (Universal)</h4>
-						<p>Paquete `.dmg` nativo para Apple Silicon e Intel. Configuración Tauri v2 lista.</p>
+						<p>Paquete <code>.dmg</code> nativo para Apple Silicon e Intel.</p>
 					</article>
 				</div>
 
@@ -85,11 +81,11 @@ const { authenticated } = Astro.props;
 					<p class="desktop-steps-title">Cómo instalar en Linux</p>
 					<ol>
 						<li>
-							<strong>Debian / Ubuntu / Mint (`.deb`):</strong> descargá el paquete y ejecutá
-							<code>sudo apt install ./Ignit_0.1.0_amd64.deb</code>. Agrega el ícono al menú automáticamente.
+							<strong>Debian / Ubuntu / Mint (<code>.deb</code>):</strong> descargá el paquete y ejecutá
+							<code>sudo apt install ./Ignit_0.1.0_amd64.deb</code>.
 						</li>
 						<li>
-							<strong>Cualquier distribución (`.AppImage`):</strong> dale permisos de ejecución con
+							<strong>Cualquier distribución (<code>.AppImage</code>):</strong> dale permisos de ejecución con
 							<code>chmod +x Ignit_0.1.0_amd64.AppImage &amp;&amp; ./Ignit_0.1.0_amd64.AppImage</code>.
 						</li>
 					</ol>

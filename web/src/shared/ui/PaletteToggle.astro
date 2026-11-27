@@ -18,25 +18,56 @@
 <div
 	role="group"
 	aria-label="Paleta de colores"
-	class="inline-flex shrink-0 items-stretch rounded-sm border border-border bg-card"
+	class="inline-flex shrink-0 items-center gap-1 rounded-full border border-border bg-card p-1"
 >
 	<button
 		type="button"
 		data-palette-option="noche-azul"
 		aria-pressed="true"
 		data-on="true"
-		class="border-r border-border px-2 py-1.5 font-mono text-[10px] tracking-[0.12em] uppercase text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring aria-pressed:bg-aka aria-pressed:font-semibold aria-pressed:text-aka-foreground aria-pressed:hover:text-aka-foreground sm:px-2.5"
+		aria-label="Noche azul — lectura nocturna"
+		title="Noche azul (lectura nocturna)"
+		class="inline-flex size-8 items-center justify-center rounded-full text-muted-foreground transition-all hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring aria-pressed:bg-aka aria-pressed:text-aka-foreground aria-pressed:hover:text-aka-foreground"
 	>
-		Noche azul
+		<svg
+			aria-hidden="true"
+			viewBox="0 0 20 20"
+			class="size-4 shrink-0"
+			fill="none"
+			stroke="currentColor"
+			stroke-width="1.6"
+			stroke-linecap="round"
+			stroke-linejoin="round"
+		>
+			<path d="M2.5 7.5C5 6.3 7.8 6.6 10 8v8.2c-2.2-1.4-5-1.7-7.5-.5V7.5Z" />
+			<path d="M17.5 7.5C15 6.3 12.2 6.6 10 8v8.2c2.2-1.4 5-1.7 7.5-.5V7.5Z" />
+			<path d="M11.8 2.4a2.3 2.3 0 0 0 2.7 2.7 2.4 2.4 0 1 1-2.7-2.7Z" />
+		</svg>
 	</button>
 	<button
 		type="button"
 		data-palette-option="original"
 		aria-pressed="false"
 		data-on="false"
-		class="px-2 py-1.5 font-mono text-[10px] tracking-[0.12em] uppercase text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring aria-pressed:bg-aka aria-pressed:font-semibold aria-pressed:text-aka-foreground aria-pressed:hover:text-aka-foreground sm:px-2.5"
+		aria-label="Original — papel cálido"
+		title="Original (papel cálido)"
+		class="inline-flex size-8 items-center justify-center rounded-full text-muted-foreground transition-all hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring aria-pressed:bg-aka aria-pressed:text-aka-foreground aria-pressed:hover:text-aka-foreground"
 	>
-		Original
+		<svg
+			aria-hidden="true"
+			viewBox="0 0 20 20"
+			class="size-4 shrink-0"
+			fill="none"
+			stroke="currentColor"
+			stroke-width="1.6"
+			stroke-linecap="round"
+			stroke-linejoin="round"
+		>
+			<path d="M2.5 7.5C5 6.3 7.8 6.6 10 8v8.2c-2.2-1.4-5-1.7-7.5-.5V7.5Z" />
+			<path d="M17.5 7.5C15 6.3 12.2 6.6 10 8v8.2c2.2-1.4 5-1.7 7.5-.5V7.5Z" />
+			<circle cx="10" cy="3.6" r="1.4" />
+			<path d="M10 1v.6M6.8 2.2l.4.4M13.2 2.2l-.4.4" />
+		</svg>
 	</button>
 </div>
 

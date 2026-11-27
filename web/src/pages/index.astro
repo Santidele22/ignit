@@ -14,7 +14,7 @@ import { buildShelfLayout } from '../features/landing/lib/catalog';
 import { featuredEmbedPath } from '../features/landing/lib/embed';
 import { parseOffset } from '../shared/api/pagination';
 
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 4;
 const rawKind = Astro.url.searchParams.get('kind');
 const activeKind = isBookKind(rawKind) ? rawKind : undefined;
 const offset = parseOffset(Astro.url.searchParams.get('offset'));

@@ -19,15 +19,15 @@ const snippet = JOURNEY_SNIPPETS[state.phoneSnippetIndex] ?? JOURNEY_SNIPPETS[0]
 
 <section class="capa" data-capa id="s5">
 	<div class="anim">
-		<p class="num">V · en cualquier pantalla</p>
+		<p class="num">V · continuidad entre sesiones</p>
 		<div class="viaje-head">
 			<div>
 				<h2>
 					La página <span id="vTitlePage">{state.phonePage}</span> <span class="azu">viaja con vos.</span>
 				</h2>
 				<p class="lead">
-					Vista previa interactiva de la continuidad PWA: cortá la conexión y seguís pasando páginas en el
-					celular sin señal; cuando vuelve la red, el escritorio salta solo a donde quedaste.
+					Vista previa interactiva de la sincronización entre la sesión web y la app de escritorio: seguí leyendo
+					sin conexión en Ignit Desktop y cuando vuelve la red, tu sesión web salta adonde quedaste.
 				</p>
 			</div>
 			<div class="net-controls" role="group" aria-label="Simular conexión">
@@ -42,7 +42,7 @@ const snippet = JOURNEY_SNIPPETS[state.phoneSnippetIndex] ?? JOURNEY_SNIPPETS[0]
 					aria-pressed="false"
 					type="button"
 				>
-					<span class="net-dot"></span>Modo avión (bondi)
+					<span class="net-dot"></span>Sin conexión
 				</button>
 			</div>
 		</div>
@@ -81,16 +81,15 @@ const snippet = JOURNEY_SNIPPETS[state.phoneSnippetIndex] ?? JOURNEY_SNIPPETS[0]
 					<span class="sync-tag" id="syncTag">{state.syncTag}</span>
 				</div>
 
-				<!-- Smartphone PWA vertical -->
+				<!-- App Desktop nativa -->
 				<div class="frame-phone">
-					<div class="phone-notch" aria-hidden="true"></div>
 					<div class="phone-screen">
 						<div class="phone-status">
-							<span>19:42 · bondi</span>
+							<span>App Desktop · Linux</span>
 							<span class="phone-pill" id="phonePill">{state.phonePill}</span>
 						</div>
 						<div class="phone-appbar">
-							<b>熒 IGNIT · PWA</b>
+							<b>熒 IGNIT · DESKTOP</b>
 							<span>566 KB local</span>
 						</div>
 						<div class="phone-body">
@@ -99,7 +98,7 @@ const snippet = JOURNEY_SNIPPETS[state.phoneSnippetIndex] ?? JOURNEY_SNIPPETS[0]
 									<span class="en-focus">{snippet.phoneFocus}</span>{snippet.phoneTail}
 								</p>
 								<div class="phone-queue">
-									<span>IndexedDB</span>
+									<span>Caché local</span>
 									<b id="phoneQueue">{state.phoneQueueLabel}</b>
 								</div>
 							</div>
@@ -113,14 +112,13 @@ const snippet = JOURNEY_SNIPPETS[state.phoneSnippetIndex] ?? JOURNEY_SNIPPETS[0]
 							<button class="phone-act" id="phoneNext" type="button">Leer +1 ›</button>
 						</div>
 					</div>
-					<div class="phone-home" aria-hidden="true"></div>
 				</div>
 			</div>
 
 			<div class="viaje-specs">
-				<div><span>en tu dispositivo</span><b>Preview interactivo · PWA offline en camino</b></div>
-				<div><span>sin conexión</span><b>Lectura y cola local en el celu</b></div>
-				<div><span>al reconectar</span><b>Cola automática: la PC salta adonde quedaste</b></div>
+				<div><span>en tu equipo</span><b>App Desktop nativa · Caché offline local</b></div>
+				<div><span>sin conexión</span><b>Lectura y progreso guardado en disco</b></div>
+				<div><span>al reconectar</span><b>Sync automático con tu sesión web</b></div>
 			</div>
 		</div>
 	</div>

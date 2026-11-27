@@ -92,8 +92,8 @@ function deriveState(
 			deskStatus: pending > 0 ? '○ esperando señal' : '○ desconectado',
 			deskNote:
 				pending > 0
-					? `Teléfono avanzó a pág. ${phonePage} sin señal · sincronizará al reconectar`
-					: 'Modo avión activo · podés seguir leyendo en el teléfono',
+					? `Ignit Desktop avanzó a pág. ${phonePage} sin señal · sincronizará al reconectar`
+					: 'Sin conexión · podés seguir leyendo en Ignit Desktop',
 		};
 	}
 
