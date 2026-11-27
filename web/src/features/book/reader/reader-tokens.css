@@ -12,7 +12,7 @@
 :root {
 	--background:#f4efe4; --foreground:#23201a; --card:#fbf8f0;
 	--muted-foreground:#6f6657;
-	--border:#ddd2bc; --aka:#c73e3a; --aka-deep:#a02f2b; --ink-soft:#57503f;
+	--border:#ddd2bc; --aka:#2f5aa8; --aka-deep:#224485; --ink-soft:#57503f;
 	--font-mincho:var(--font-shippori),'Shippori Mincho','Hiragino Mincho ProN','Yu Mincho',serif;
 	--font-zen-stack:var(--font-zen),'Zen Kaku Gothic New','Hiragino Kaku Gothic ProN','Yu Gothic',system-ui,sans-serif;
 	--font-mono:var(--font-geist-mono),'Geist Mono',ui-monospace,'SF Mono',monospace;
@@ -22,105 +22,106 @@ html, body { height:100%; }
 body.vigilia-body {
 	font-family:var(--font-zen-stack);
 
+	/* --- Paleta Papel (light mode accesible con acento azul tinta) --- */
 	/* --- Tinta, acentos y atmósfera --- */
-	--w-foreground:#ece5d5; --w-body:#d6ccb4; --w-faint:#8f826b; --w-ghost:#786c57;
-	--w-border:#352d22; --w-panel:rgba(18,14,10,.96);
-	--bronce:#b98a44; --niebla:#8c96a0;
-	--w-tinta:#8a7d66; --w-dust:#d8cdb4;
-	--w-vignette-edge:rgba(8,6,4,.48);
+	--w-foreground:#1e1b16; --w-body:#2c2720; --w-faint:#5e5547; --w-ghost:#786e5e;
+	--w-border:#d8ccb4; --w-panel:rgba(251,248,240,.97);
+	--bronce:#224485; --niebla:#5b697d;
+	--w-tinta:#5e5547; --w-dust:#2f5aa8;
+	--w-vignette-edge:rgba(215,205,186,.42);
 
 	/* --- Superficies y cromo (barras, controles, pistas, overlays) --- */
-	--w-bg:#0d0a07;
-	--w-bar:rgba(13,10,7,.92);
-	--w-bar-fade:rgba(13,10,7,.85);
-	--w-bar-fade-bottom:rgba(13,10,7,.88);
-	--w-bar-clear:rgba(13,10,7,0);
-	--w-control-bg:rgba(20,17,13,.85);
-	--w-control-bg-strong:rgba(20,17,13,.88);
-	--w-control-bg-soft:rgba(13,10,7,.7);
-	--w-control-bg-muted:rgba(13,10,7,.75);
-	--w-seg-bg:rgba(13,10,7,.65);
-	--w-input-bg:#120e0a;
-	--w-track-bg:#262017;
-	--w-track-border:#3f3628;
-	--w-topthread-bg:rgba(74,62,44,.32);
-	--w-code-bg:#17130e;
-	--w-dialogue-bg:rgba(36, 29, 20, .38);
-	--w-dialogue-bg-active:rgba(199, 62, 58, .12);
-	--w-code-inset:rgba(236,229,213,.04);
-	--w-fallback-bg:#0d0b08;
-	--w-veil-backdrop:rgba(10,8,6,.96);
-	--w-summary-backdrop:rgba(10,8,6,.84);
+	--w-bg:#f4efe4;
+	--w-bar:rgba(244,239,228,.94);
+	--w-bar-fade:rgba(244,239,228,.86);
+	--w-bar-fade-bottom:rgba(244,239,228,.9);
+	--w-bar-clear:rgba(244,239,228,0);
+	--w-control-bg:rgba(251,248,240,.88);
+	--w-control-bg-strong:rgba(251,248,240,.94);
+	--w-control-bg-soft:rgba(244,239,228,.78);
+	--w-control-bg-muted:rgba(244,239,228,.85);
+	--w-seg-bg:rgba(236,229,212,.75);
+	--w-input-bg:#fbf8f0;
+	--w-track-bg:#e5dcc9;
+	--w-track-border:#cfc3ab;
+	--w-topthread-bg:rgba(47,90,168,.16);
+	--w-code-bg:#ece5d4;
+	--w-dialogue-bg:rgba(47, 90, 168, .06);
+	--w-dialogue-bg-active:rgba(47, 90, 168, .12);
+	--w-code-inset:rgba(35,32,26,.06);
+	--w-fallback-bg:#f4efe4;
+	--w-veil-backdrop:rgba(244,239,228,.96);
+	--w-summary-backdrop:rgba(244,239,228,.88);
 
 	/* --- Bordes y tintes de hover --- */
-	--w-border-soft:rgba(53,45,34,.7);
-	--w-border-chrome:rgba(53,45,34,.85);
-	--w-border-meta:rgba(53,45,34,.55);
-	--w-border-hover:#b3a78e;
-	--w-border-muted-hover:#8a7d66;
-	--w-rule-soft:rgba(138,125,102,.22);
-	--w-dots-color:rgba(138,125,102,.42);
-	--w-kw-border:rgba(138,125,102,.55);
-	--w-opt-hover-border:rgba(138,125,102,.35);
-	--w-hover-tint:rgba(216,205,180,.06);
-	--w-hover-tint-strong:rgba(216,205,180,.08);
+	--w-border-soft:rgba(216,204,180,.75);
+	--w-border-chrome:rgba(205,192,166,.9);
+	--w-border-meta:rgba(216,204,180,.65);
+	--w-border-hover:#8b7f6c;
+	--w-border-muted-hover:#2f5aa8;
+	--w-rule-soft:rgba(94,85,71,.22);
+	--w-dots-color:rgba(94,85,71,.38);
+	--w-kw-border:rgba(94,85,71,.45);
+	--w-opt-hover-border:rgba(47,90,168,.35);
+	--w-hover-tint:rgba(47,90,168,.06);
+	--w-hover-tint-strong:rgba(47,90,168,.1);
 
-	/* --- Hilos de progreso (el rojo de la lámpara) --- */
+	/* --- Hilos de progreso (azul tinta) --- */
 	--w-wire-1:var(--aka-deep);
 	--w-wire-2:var(--aka);
-	--w-wire-glow:rgba(201,62,58,.55);
-	--w-wire-glow-soft:rgba(201,62,58,.5);
+	--w-wire-glow:rgba(47,90,168,.32);
+	--w-wire-glow-soft:rgba(47,90,168,.26);
 
-	/* --- Estados alfa del acento aka --- */
-	--w-aka-tint-1:rgba(201,62,58,.08);
-	--w-aka-tint-2:rgba(201,62,58,.1);
-	--w-aka-tint-3:rgba(201,62,58,.12);
-	--w-aka-tint-4:rgba(201,62,58,.14);
-	--w-aka-tint-5:rgba(201,62,58,.18);
-	--w-aka-tint-6:rgba(201,62,58,.2);
-	--w-aka-tint-7:rgba(201,62,58,.22);
-	--w-aka-tint-8:rgba(201,62,58,.3);
-	--w-aka-tint-9:rgba(201,62,58,.36);
-	--w-aka-border-soft:rgba(201,62,58,.45);
-	--w-aka-border:rgba(201,62,58,.5);
-	--w-aka-border-strong:rgba(201,62,58,.55);
-	--w-aka-border-heavy:rgba(201,62,58,.6);
-	--w-aka-border-max:rgba(201,62,58,.65);
+	/* --- Estados alfa del acento aka (azul) --- */
+	--w-aka-tint-1:rgba(47,90,168,.08);
+	--w-aka-tint-2:rgba(47,90,168,.1);
+	--w-aka-tint-3:rgba(47,90,168,.12);
+	--w-aka-tint-4:rgba(47,90,168,.14);
+	--w-aka-tint-5:rgba(47,90,168,.18);
+	--w-aka-tint-6:rgba(47,90,168,.2);
+	--w-aka-tint-7:rgba(47,90,168,.22);
+	--w-aka-tint-8:rgba(47,90,168,.3);
+	--w-aka-tint-9:rgba(47,90,168,.36);
+	--w-aka-border-soft:rgba(47,90,168,.45);
+	--w-aka-border:rgba(47,90,168,.5);
+	--w-aka-border-strong:rgba(47,90,168,.55);
+	--w-aka-border-heavy:rgba(47,90,168,.6);
+	--w-aka-border-max:rgba(47,90,168,.65);
 
-	/* --- Estados alfa del bronce (citas, código, avisos pausados) --- */
-	--w-bronce-tint-1:rgba(185,138,68,.035);
-	--w-bronce-tint-2:rgba(185,138,68,.09);
-	--w-bronce-tint-3:rgba(185,138,68,.12);
-	--w-bronce-tint-4:rgba(185,138,68,.14);
-	--w-bronce-border-1:rgba(185,138,68,.2);
-	--w-bronce-border-2:rgba(185,138,68,.22);
-	--w-bronce-border-3:rgba(185,138,68,.42);
-	--w-bronce-border-4:rgba(185,138,68,.45);
-	--w-bronce-border-5:rgba(185,138,68,.48);
-	--w-bronce-border-6:rgba(185,138,68,.55);
+	/* --- Estados alfa del acento secundario (citas, código, avisos pausados) --- */
+	--w-bronce-tint-1:rgba(34,68,133,.04);
+	--w-bronce-tint-2:rgba(34,68,133,.08);
+	--w-bronce-tint-3:rgba(34,68,133,.11);
+	--w-bronce-tint-4:rgba(34,68,133,.14);
+	--w-bronce-border-1:rgba(34,68,133,.2);
+	--w-bronce-border-2:rgba(34,68,133,.24);
+	--w-bronce-border-3:rgba(34,68,133,.4);
+	--w-bronce-border-4:rgba(34,68,133,.45);
+	--w-bronce-border-5:rgba(34,68,133,.5);
+	--w-bronce-border-6:rgba(34,68,133,.58);
 
 	/* --- Destructivo y estados de guardado --- */
-	--w-del:#e07d79;
-	--w-del-hover:#ffd9d7;
-	--w-del-tint:rgba(201,62,58,.2);
-	--w-saved:#9fc49a;
-	--w-warn:#e07d79;
+	--w-del:#b43a35;
+	--w-del-hover:#8c2824;
+	--w-del-tint:rgba(180,58,53,.14);
+	--w-saved:#2b6a4b;
+	--w-warn:#b43a35;
 
-	/* --- Sintaxis del código (bloques pre) --- */
-	--tok-comment:#7d725e;
-	--tok-preproc:#d2735e;
-	--tok-keyword:#d98b5f;
-	--tok-type:#cfa45c;
-	--tok-fn:#8fb3c9;
-	--tok-string:#9ab882;
-	--tok-number:#d4a26a;
-	--tok-punct:#9d917c;
+	/* --- Sintaxis del código (bloques pre sobre papel) --- */
+	--tok-comment:#6f6657;
+	--tok-preproc:#224485;
+	--tok-keyword:#1d4e89;
+	--tok-type:#7c4d12;
+	--tok-fn:#2f5aa8;
+	--tok-string:#2b6a4b;
+	--tok-number:#8a4b22;
+	--tok-punct:#57503f;
 
-	/* --- Luz ambiental por mood del pasaje --- */
-	--glow-espera:rgba(201,62,58,.15);
-	--glow-polvo:rgba(185,138,68,.14);
-	--glow-alerta:rgba(201,62,58,.22);
-	--glow-niebla:rgba(140,150,160,.13);
+	/* --- Luz ambiental suave sobre papel --- */
+	--glow-espera:rgba(47,90,168,.07);
+	--glow-polvo:rgba(185,138,68,.08);
+	--glow-alerta:rgba(47,90,168,.11);
+	--glow-niebla:rgba(91,105,125,.08);
 	--glow:var(--glow-espera);
 
 	--reader-scale:1;
@@ -129,8 +130,8 @@ body.vigilia-body {
 	--reader-hyphens:none;
 	--focus-top:21vh;
 	--focus-bottom:calc(21vh + 308px);
-	--veil-edge:rgba(13,10,7,.42);
-	--veil-mid:rgba(13,10,7,.34);
+	--veil-edge:rgba(244,239,228,.45);
+	--veil-mid:rgba(244,239,228,.35);
 	background:var(--w-bg); color:var(--w-body); overflow:hidden;
 }
 body.vigilia-body[data-font="sans"] { --reader-font:var(--font-zen-stack); }
@@ -138,12 +139,12 @@ body.vigilia-body[data-font="serif"] { --reader-font:var(--font-mincho); }
 body.vigilia-body[data-align="justify"] { --reader-align:justify; --reader-hyphens:auto; }
 body.vigilia-body[data-align="left"] { --reader-align:left; --reader-hyphens:none; }
 body.vigilia-body[data-focus="narrow"] {
-	--veil-edge:rgba(13,10,7,.76);
-	--veil-mid:rgba(13,10,7,.66);
+	--veil-edge:rgba(244,239,228,.76);
+	--veil-mid:rgba(244,239,228,.66);
 }
 body.vigilia-body[data-focus="off"] {
-	--veil-edge:rgba(13,10,7,0);
-	--veil-mid:rgba(13,10,7,0);
+	--veil-edge:rgba(244,239,228,0);
+	--veil-mid:rgba(244,239,228,0);
 }
 /* El mood mueve la lámpara sólo por CSS: cambiar de paleta cambia el halo al
    instante, sin que el JS tenga que re-inyectar colores (feedback.ts). */
@@ -319,6 +320,22 @@ html[data-palette="noche-azul"] body.vigilia-body[data-focus="narrow"] {
 	--veil-mid:rgba(6,9,19,.66);
 }
 body.vigilia-body[data-contrast="aaa"] {
+	--w-bg:#fcfaf4;
+	--w-bar:rgba(252,250,244,.97);
+	--w-panel:rgba(255,255,255,.98);
+	--w-foreground:#0a0907;
+	--w-body:#14120e;
+	--w-faint:#3f3a31;
+	--w-ghost:#554e42;
+	--w-border:#9b907c;
+	--w-border-hover:#1d4285;
+	--aka:#1d4285;
+	--aka-foreground:#ffffff;
+	--bronce:#1d4285;
+	--w-dialogue-bg:rgba(29, 66, 133, .08);
+	--w-dialogue-bg-active:rgba(29, 66, 133, .16);
+}
+html[data-palette="noche-azul"] body.vigilia-body[data-contrast="aaa"] {
 	--w-bg:#020307;
 	--w-bar:#04060d;
 	--w-panel:rgba(4,6,13,.98);
