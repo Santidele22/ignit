@@ -16,11 +16,13 @@ async function main(): Promise<void> {
   process.env.DB_MODE ??= 'prod';
   process.env.DATABASE_URL ??= databaseUrl;
 
-  const [{ User }, { Book }, { DownloadEvent }, { ReadingState }] = await Promise.all([
+  const [{ User }, { Book }, { DownloadEvent }, { ReadingState }, { Device }, { License, BookEntitlement }] = await Promise.all([
     import('../users/entities/user.entity.js'),
     import('../books/entities/book.entity.js'),
     import('../books/entities/download-event.entity.js'),
     import('../books/entities/reading-state.entity.js'),
+    import('../devices/entities/device.entity.js'),
+    import('../licenses/entities/license.entity.js'),
   ]);
 
   const pool = new Pool({ connectionString: databaseUrl });
@@ -41,7 +43,7 @@ async function main(): Promise<void> {
   const dataSource = new DataSource({
     type: 'postgres',
     url: databaseUrl,
-    entities: [User, Book, DownloadEvent, ReadingState],
+    entities: [User, Book, DownloadEvent, ReadingState, Device, License, BookEntitlement],
     synchronize: true,
   });
 
