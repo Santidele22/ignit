@@ -42,6 +42,7 @@ interface ProgressRepository {
 	}
 	suspend fun getCachedDocument(bookId: String): DomainReadingDocument? = null
 	suspend fun cacheDocument(document: DomainReadingDocument) {}
+	suspend fun deleteCachedDocument(bookId: String): Boolean = false
 }
 
 /** Outbound port: fetches extracted reading document and remote reading state from backend. */

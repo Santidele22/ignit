@@ -110,4 +110,7 @@ class LocalProgressRepository(
 		val bytes = Igb1Codec.encode(igbDoc, document.bookId, ContentTier.PUBLIC_OPEN)
 		blobs.saveIgb(document.bookId, bytes)
 	}
+
+	override suspend fun deleteCachedDocument(bookId: String): Boolean =
+		blobStore?.deleteIgb(bookId) ?: false
 }
