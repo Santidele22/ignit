@@ -294,29 +294,24 @@ export function isOcrNoiseArtifact(text: string, type?: ReadingChunkType): boole
   if (trimmed.length > 80) return false;
   if (OCR_STAMP_DATE_RE.test(trimmed)) return true;
   if (/^[#*^~|\\/_·.\-\s]+$/.test(trimmed)) return true;
-  if (/^[\^~|\\]/.test(trimmed) || /[\^~|\\]$/.test(trimmed) || /[A-Za-z][\\^|][A-Za-z]/.test(trimmed)) {
+  if (/^[\^\\]|\^$/.test(trimmed) || /[A-Za-z][\\^][A-Za-z]/.test(trimmed)) {
     return true;
   }
-  const weirdSymbolCount = (trimmed.match(/[%$@^*~|\\_=<>#]/g) ?? []).length;
+  const looksTechnical =
+    /[_$=<>(){}[\];]|->|::|\/\/|\b(?:git|http|https|www|int|char|void|def|return|print|const|let|var|sudo|cd|ls|rm|cp|mv)\b/i.test(
+      trimmed,
+    );
+  if (looksTechnical) return false;
+  const weirdSymbolCount = (trimmed.match(/[%@^*~|\\#]/g) ?? []).length;
   if (trimmed.length <= 50 && weirdSymbolCount >= 2) {
     return true;
   }
-  if (trimmed.length <= 40 && /[a-z][%$@^*~|\\_=<>:][a-z]/i.test(trimmed)) {
+  if (trimmed.length <= 40 && /[a-z][%@^*~|\\:][a-z]/i.test(trimmed)) {
     return true;
   }
   const nonWs = trimmed.replace(/\s+/g, '');
   if (nonWs.length <= 24 && OCR_INVERTED_CAMEL_RE.test(trimmed) && !/\s/.test(trimmed)) {
     return true;
-  }
-  if (
-    nonWs.length >= 3 &&
-    nonWs.length <= 45 &&
-    !isValidRomanHeading(trimmed) &&
-    !/^\d{1,4}(?:[.,-]\d{1,4})*$/.test(trimmed) &&
-    !MATH_OR_CODE_EXPR_RE.test(trimmed)
-  ) {
-    const letters = nonWs.match(/\p{L}/gu)?.length ?? 0;
-    if (letters / nonWs.length < 0.5) return true;
   }
   return false;
 }
