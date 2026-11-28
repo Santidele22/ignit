@@ -19,7 +19,7 @@ import {
 import { dehyphenateRuns } from './reading.pdf-xml.js';
 
 function parseTocPageToken(raw: string): string | null {
-  const token = raw.trim();
+  const token = raw.trim().replace(/^[|[\]()]+|[|[\]()]+$/g, '').trim();
   if (!token) return null;
   if (/^\d{1,4}$/.test(token)) {
     const n = Number(token);
@@ -33,6 +33,15 @@ function parseTocPageToken(raw: string): string | null {
     }
   }
   return null;
+}
+
+function cleanTocLabelText(raw: string): string {
+  return raw
+    .replace(/<[a-zA-ZÁÉÍÓÚÜÑáéíóúüñ]{5,}\S*(?:\s+[a-zA-ZÁÉÍÓÚÜÑáéíóúüñ]{1,4})?/gu, ' ')
+    .replace(/\s*(?:[-–—_·•.<>~]{2,}\S*(?:\s+\S+){0,2}|\.(?:\s*\.)+)\s*$/u, '')
+    .replace(/[.\s]+$/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 const TOC_INLINE_LEADER_RE =
@@ -49,7 +58,7 @@ export function parseXmlTocLine(
 ): { label: string; pageToken: string } | null {
   const leaderMatch = line.text.match(TOC_INLINE_LEADER_RE);
   if (leaderMatch) {
-    const label = leaderMatch[1].trim();
+    const label = cleanTocLabelText(leaderMatch[1]);
     const pageToken = parseTocPageToken(leaderMatch[2]);
     if (label && pageToken && !KEY_VALUE_META_LABEL_RE.test(label)) {
       return { label, pageToken };
@@ -60,7 +69,7 @@ export function parseXmlTocLine(
     const pageFirstMatch = line.text.match(TOC_PAGE_FIRST_LINE_RE);
     if (pageFirstMatch) {
       const pageToken = parseTocPageToken(pageFirstMatch[1]);
-      const label = pageFirstMatch[2].trim();
+      const label = cleanTocLabelText(pageFirstMatch[2]);
       const endsWithPageNumber = /\s\d{1,4}$/.test(label);
       if (pageToken && label && !label.endsWith('.') && !endsWithPageNumber) {
         return { label, pageToken };
@@ -72,12 +81,13 @@ export function parseXmlTocLine(
     const lastSeg = line.segments[line.segments.length - 1];
     const pageToken = parseTocPageToken(lastSeg.text);
     if (pageToken) {
-      const label = line.segments
+      const rawLabel = line.segments
         .slice(0, -1)
         .map((s) => s.text)
         .join(' ')
         .replace(/\s+/g, ' ')
         .trim();
+      const label = cleanTocLabelText(rawLabel);
       const isShortAbbrevRoman = label.length <= 3 && !/^\d+$/.test(pageToken);
       if (label && !label.endsWith('.') && !KEY_VALUE_META_LABEL_RE.test(label) && !isShortAbbrevRoman) {
         return { label, pageToken };
@@ -88,7 +98,7 @@ export function parseXmlTocLine(
   if (inTocPage) {
     const singleMatch = line.text.match(TOC_SINGLE_LINE_PAGE_RE);
     if (singleMatch) {
-      const label = singleMatch[1].trim();
+      const label = cleanTocLabelText(singleMatch[1]);
       const pageToken = parseTocPageToken(singleMatch[2]);
       if (label && pageToken && !label.endsWith('.') && !KEY_VALUE_META_LABEL_RE.test(label)) {
         return { label, pageToken };
@@ -115,11 +125,19 @@ export function isEdgeRunningLine(line: PdfLine, pageHeight: number, bodySize: n
   return false;
 }
 
+export const ORDINAL_PART_HEADING_RE =
+  /^(?:primera|segunda|tercera|cuarta|quinta|sexta|s[eé]ptima|octava|novena|d[eé]cima)\s+parte\b/i;
+
 export function inferHeadingLevelFromText(text: string, fontSize: number, bodySize: number): 1 | 2 | 3 {
   if (SECTION_NUM_L3_RE.test(text)) return 3;
   if (SECTION_NUM_L2_RE.test(text)) return 2;
   if (fontSize >= bodySize * 1.45) return 1;
-  if (/^(?:cap[ií]tulo|parte|pr[oó]logo|prefacio|justificaci[oó]n|introducci[oó]n|ep[ií]logo|contenido|[íi]ndice)\b/i.test(text)) {
+  if (
+    ORDINAL_PART_HEADING_RE.test(text) ||
+    /^(?:cap[ií]tulo|parte|pr[oó]logo|prefacio|justificaci[oó]n|introducci[oó]n|ep[ií]logo|post\s*scr[ií]ptum|bibliograf[ií]a|contenido|[íi]ndice)\b/i.test(
+      text,
+    )
+  ) {
     return 1;
   }
   if (/^(?:\d{1,2}|[IVXLCDM]{1,6})\s*·\s*/.test(text)) {
@@ -189,7 +207,7 @@ export function collectRepeatedEdgeKeys(
     const pageHeight = pages[pageIdx].height;
     for (const line of lines) {
       const inEdgeBand = line.top < pageHeight * 0.11 || line.bottom > pageHeight * 0.91;
-      if (!inEdgeBand || line.fontSize > bodySize * 1.18) continue;
+      if (!inEdgeBand || line.fontSize > bodySize * 1.45) continue;
       if (!isRepeatedLineCandidate(line.text)) continue;
       const key = normalizeEdgeKey(line.text);
       if (!key) continue;
@@ -200,7 +218,7 @@ export function collectRepeatedEdgeKeys(
   });
   const repeatedEdgeKeys = new Set<string>();
   for (const [key, pageSet] of edgeKeyPages.entries()) {
-    const minPages = totalPages <= 6 ? 2 : 3;
+    const minPages = totalPages <= 6 || key.includes('#') ? 2 : 3;
     if (pageSet.size >= minPages) repeatedEdgeKeys.add(key);
   }
   return repeatedEdgeKeys;

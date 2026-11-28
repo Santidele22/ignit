@@ -1,4 +1,4 @@
-import type { PdfLine } from './reading.types.js';
+import type { PdfLine, ReadingChunkType } from './reading.types.js';
 
 export const TOC_LINE_RE = /(?:(?:\.\s*){3,}|\.{3,}\s*)\d+\s*$/;
 export const TOC_HEADING_RE =
@@ -53,6 +53,56 @@ const INDESIGN_PLACEHOLDER_TOKEN_RE =
 const LOREM_IPSUM_RE = /\b(?:lorem\s+ipsum|consectetur\s+adipiscing\s+elit)\b/i;
 const LAYOUT_SLOT_MARKER_RE = /^E\d{1,2}\s+a\s+E\d{1,2}$/i;
 
+const MULTI_LETTER_ROMAN_HEADING_RE =
+  /^M{0,3}(?:CM|CD|D?C{0,3})(?:XC|XL|L?X{0,3})(?:IX|IV|V?I{0,3})$/;
+const CJK_SCRIPT_RE = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u;
+
+export function isValidRomanHeading(text: string): boolean {
+  const token = text.trim().replace(/\.$/, '');
+  if (!token) return false;
+  if (token.length === 1) {
+    return /^[IVX]$/.test(token);
+  }
+  return token.length <= 8 && MULTI_LETTER_ROMAN_HEADING_RE.test(token);
+}
+
+/**
+ * Detects blocks whose lowercase/small-caps glyphs were lost in broken `/ToUnicode`
+ * fonts, leaving only isolated 1-letter initials, digits, and punctuation
+ * (e.g. `L . . ,`, `¡E !`, `D R\tD\nP :\t1637\nF :\tD`, or truncated headings `D`, `P`).
+ */
+const MATH_OR_CODE_EXPR_RE = /[=+*/^²³√∑∫≈≠≤≥(){}[\];]/;
+const COMPACT_INITIALISM_RE = /^(?:\p{Lu}\.){2,6}$/u;
+const DIALOGUE_TURN_SHORT_RE = /^(?:(?:—|–|--)\s*)?[¿¡]?\p{L}[?!]$/u;
+
+export function isCorruptStrippedGlyphText(text: string, type?: ReadingChunkType): boolean {
+  const trimmed = text.trim();
+  if (!trimmed || trimmed.length > 120) return false;
+  if (type === 'code' || type === 'list' || type === 'dialogue') return false;
+  if (CJK_SCRIPT_RE.test(trimmed)) return false;
+  if (!/\p{L}/u.test(trimmed)) return false;
+  if (/\p{L}{2,}/u.test(trimmed)) return false;
+  if (COMPACT_INITIALISM_RE.test(trimmed)) return false;
+  if (MATH_OR_CODE_EXPR_RE.test(trimmed)) return false;
+  if (/^\s*(?:—|–|--)/.test(trimmed) || DIALOGUE_TURN_SHORT_RE.test(trimmed)) return false;
+  if (type === 'heading' && (isValidRomanHeading(trimmed) || /^\d{1,3}\.?$/.test(trimmed))) {
+    return false;
+  }
+  if (type === 'toc') {
+    const lines = trimmed
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean);
+    if (
+      lines.length > 0 &&
+      lines.every((l) => /^(?:[A-ZÁÉÍÓÚÜÑ]{1,6}|\d{1,3})\t(?:\d{1,4}|[ivxlcdm]{1,6})$/i.test(l))
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
 export function isPlaceholderGibberish(text: string): boolean {
   const trimmed = text.trim();
   if (!trimmed) return false;
@@ -62,15 +112,26 @@ export function isPlaceholderGibberish(text: string): boolean {
 }
 
 export function normalizeEdgeKey(text: string): string {
-  return text
+  const hasTrailingAllCapsFolio = /^[A-ZÁÉÍÓÚÜÑ][A-ZÁÉÍÓÚÜÑ\s]{3,}\s+(?:[IVXLCDM]{1,6}|[A-Z]{1,2})$/.test(
+    text.trim(),
+  );
+  const hasLeadingAllCapsFolio = /^(?:[IVXLCDM]{1,6}|[A-Z]{1,2})\s+[A-ZÁÉÍÓÚÜÑ][A-ZÁÉÍÓÚÜÑ\s]{3,}$/.test(
+    text.trim(),
+  );
+  let normalized = text
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .replace(/\b(?:pagina|page|pag\.?)\s*\d+(?:\s*(?:de|of|\/)\s*\d+)?\b/g, 'pagina #')
     .replace(/^\d+(?:\s*[-–—|·]\s*|\s+)/g, '# ')
-    .replace(/(?:\s*[-–—|·]\s*|\s+)\d+$/g, ' #')
-    .replace(/\s+/g, ' ')
-    .trim();
+    .replace(/(?:\s*[-–—|·]\s*|\s+)\d+$/g, ' #');
+  if (hasTrailingAllCapsFolio) {
+    normalized = normalized.replace(/\s+[a-z]{1,6}$/, ' #');
+  }
+  if (hasLeadingAllCapsFolio) {
+    normalized = normalized.replace(/^[a-z]{1,6}\s+/, '# ');
+  }
+  return normalized.replace(/\s+/g, ' ').trim();
 }
 
 export function isRepeatedLineCandidate(line: string): boolean {
@@ -196,6 +257,67 @@ export function isExtractionNoiseText(text: string, pageNum?: number, totalPages
     if (trimmed.length <= 320 && FRONTMATTER_LEGAL_RE.test(trimmed)) return true;
   }
 
+  return false;
+}
+
+const OCR_STAMP_DATE_RE =
+  /(?:^|\s)(?:OCT|NOV|DIC|DEC|JAN|ENE|FEB|MAR|APR|ABR|MAY|JUN|JUL|AUG|AGO|SEP|SET)\s+\d{5,8}(?:\s|$)/i;
+const OCR_INVERTED_CAMEL_RE =
+  /\b(?:[A-ZÁÉÍÓÚÜÑ]{2,}[a-záéíóúüñ]{1,2}[A-ZÁÉÍÓÚÜÑ]{2,}[A-Za-záéíóúüñÁÉÍÓÚÜÑ]*|[a-záéíóúüñ][A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]{3,})\b/;
+const OCR_IMPOSSIBLE_PUNCT_RE =
+  /(?:[A-ZÁÉÍÓÚÜÑ]{3,}:\?|[A-Za-z][\\^|;][A-Za-z]|^\^|\^$|"\d{2,4}\b|\d+[«»]|[«»]\*|[A-ZÁÉÍÓÚÜÑ]{4,}[áéíóúüñ][-,])/;
+
+/**
+ * Counts distinct legacy-OCR anomaly signals in a page's text so degraded
+ * scanned OCR layers (e.g. `VAkIOS`, `JUICIO:?`, `V\BRA/t`, `OCT 161968`,
+ * `^ITVOFlfi^`) trigger surgical optical `hOCR` rescue.
+ */
+export function countLegacyOcrNoiseSignals(text: string): number {
+  if (!text.trim()) return 0;
+  let signals = 0;
+  if (OCR_STAMP_DATE_RE.test(text)) signals += 1;
+  const camelMatches = text.match(new RegExp(OCR_INVERTED_CAMEL_RE.source, 'g'));
+  if (camelMatches) signals += Math.min(3, camelMatches.length);
+  const punctMatches = text.match(new RegExp(OCR_IMPOSSIBLE_PUNCT_RE.source, 'g'));
+  if (punctMatches) signals += Math.min(3, punctMatches.length);
+  return signals;
+}
+
+/**
+ * Detects isolated physical-scan artifacts (library rubber stamps, shields,
+ * scanner margin symbols) deterministically without per-book keyword lists.
+ */
+export function isOcrNoiseArtifact(text: string, type?: ReadingChunkType): boolean {
+  const trimmed = text.trim();
+  if (!trimmed) return true;
+  if (type === 'code' || type === 'dialogue' || type === 'list') return false;
+  if (trimmed.length > 80) return false;
+  if (OCR_STAMP_DATE_RE.test(trimmed)) return true;
+  if (/^[#*^~|\\/_·.\-\s]+$/.test(trimmed)) return true;
+  if (/^[\^~|\\]/.test(trimmed) || /[\^~|\\]$/.test(trimmed) || /[A-Za-z][\\^|][A-Za-z]/.test(trimmed)) {
+    return true;
+  }
+  const weirdSymbolCount = (trimmed.match(/[%$@^*~|\\_=<>#]/g) ?? []).length;
+  if (trimmed.length <= 50 && weirdSymbolCount >= 2) {
+    return true;
+  }
+  if (trimmed.length <= 40 && /[a-z][%$@^*~|\\_=<>:][a-z]/i.test(trimmed)) {
+    return true;
+  }
+  const nonWs = trimmed.replace(/\s+/g, '');
+  if (nonWs.length <= 24 && OCR_INVERTED_CAMEL_RE.test(trimmed) && !/\s/.test(trimmed)) {
+    return true;
+  }
+  if (
+    nonWs.length >= 3 &&
+    nonWs.length <= 45 &&
+    !isValidRomanHeading(trimmed) &&
+    !/^\d{1,4}(?:[.,-]\d{1,4})*$/.test(trimmed) &&
+    !MATH_OR_CODE_EXPR_RE.test(trimmed)
+  ) {
+    const letters = nonWs.match(/\p{L}/gu)?.length ?? 0;
+    if (letters / nonWs.length < 0.5) return true;
+  }
   return false;
 }
 

@@ -253,5 +253,27 @@ export function parsePdftohtmlPages(xml: string): PdfXmlPage[] {
     pages.push({ number: pageNumber, width, height, spans });
   }
 
+  let totalSpans = 0;
+  let monoSpans = 0;
+  for (const page of pages) {
+    for (const span of page.spans) {
+      totalSpans += 1;
+      if (span.isMono) monoSpans += 1;
+    }
+  }
+  if (totalSpans >= 20 && monoSpans / totalSpans >= 0.75) {
+    for (const page of pages) {
+      for (const span of page.spans) {
+        if (!span.isMono) continue;
+        span.isMono = false;
+        span.runs = span.runs.map((r) => {
+          if (!r.marks) return r;
+          const nextMarks = r.marks.filter((m) => m !== 'code');
+          return nextMarks.length > 0 ? { text: r.text, marks: nextMarks } : { text: r.text };
+        });
+      }
+    }
+  }
+
   return pages;
 }

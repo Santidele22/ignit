@@ -114,6 +114,22 @@ export async function runPdftohtmlXml(pdfPath: string): Promise<string | null> {
     if (!stdout || !stdout.includes('<page ')) {
       return null;
     }
+    // Scanned OCR PDFs (e.g. Tesseract `GlyphLessFont` in `3 Tr` hidden text mode)
+    // emit `<page>` + `<fontspec>` with zero visible `<text>` spans unless `-hidden` is set.
+    // Only retry with `-hidden` when the visible layer has zero `<text>` elements across the PDF.
+    if (!stdout.includes('<text ')) {
+      const hiddenRes = await execFileAsync(
+        '/usr/bin/pdftohtml',
+        ['-xml', '-hidden', '-stdout', '-i', pdfPath],
+        {
+          maxBuffer: 64 * 1024 * 1024,
+          timeout: 30_000,
+        },
+      );
+      if (hiddenRes.stdout && hiddenRes.stdout.includes('<text ')) {
+        return hiddenRes.stdout;
+      }
+    }
     return stdout;
   } catch {
     return null;

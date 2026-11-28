@@ -7,6 +7,39 @@ import type {
 } from './reading.types.js';
 import { appendSpaceToRuns, cloneRuns, trimRuns } from './reading.pdf-xml.js';
 
+function detectTwoColumnSplitX(spans: readonly PdfXmlSpan[], pageWidth: number): number | null {
+  if (spans.length < 16 || pageWidth < 300) return null;
+  const minX = Math.round(pageWidth * 0.36);
+  const maxX = Math.round(pageWidth * 0.64);
+  let bestX: number | null = null;
+  let bestScore = 0;
+
+  for (let x = minX; x <= maxX; x += 6) {
+    let crossing = 0;
+    let leftCount = 0;
+    let rightCount = 0;
+    for (const s of spans) {
+      const sLeft = s.left;
+      const sRight = s.left + s.width;
+      if (sLeft < x - 2 && sRight > x + 2) {
+        crossing += 1;
+      } else if (sRight <= x + 2) {
+        leftCount += 1;
+      } else if (sLeft >= x - 2) {
+        rightCount += 1;
+      }
+    }
+    if (crossing === 0 && leftCount >= 6 && rightCount >= 6) {
+      const score = Math.min(leftCount, rightCount);
+      if (score > bestScore) {
+        bestScore = score;
+        bestX = x;
+      }
+    }
+  }
+  return bestX;
+}
+
 export function assemblePageLines(page: PdfXmlPage, approxBodySize: number): PdfLine[] {
   if (page.spans.length === 0) return [];
   const sorted = [...page.spans].sort((a, b) => a.top - b.top || a.left - b.left);
@@ -26,6 +59,25 @@ export function assemblePageLines(page: PdfXmlPage, approxBodySize: number): Pdf
     }
   }
 
+  const splitX = detectTwoColumnSplitX(deduped, page.width);
+  if (splitX !== null) {
+    const leftSpans = deduped.filter((s) => s.left + s.width / 2 <= splitX);
+    const rightSpans = deduped.filter((s) => s.left + s.width / 2 > splitX);
+    if (leftSpans.length >= 4 && rightSpans.length >= 4) {
+      return [
+        ...assembleSingleColumnLines(leftSpans, approxBodySize, splitX),
+        ...assembleSingleColumnLines(rightSpans, approxBodySize, page.width),
+      ];
+    }
+  }
+  return assembleSingleColumnLines(deduped, approxBodySize, page.width);
+}
+
+function assembleSingleColumnLines(
+  deduped: readonly PdfXmlSpan[],
+  approxBodySize: number,
+  pageWidth: number,
+): PdfLine[] {
   const lineGroups: PdfXmlSpan[][] = [];
   for (const span of deduped) {
     const lastGroup = lineGroups[lineGroups.length - 1];
@@ -164,10 +216,10 @@ export function assemblePageLines(page: PdfXmlPage, approxBodySize: number): Pdf
     const lineRight = segments[segments.length - 1].right;
     const lineWidth = Math.max(0, lineRight - lineLeft);
     const lineCenter = lineLeft + lineWidth / 2;
-    const pageCenter = page.width / 2;
+    const pageCenter = pageWidth / 2;
     const isCentered =
-      lineWidth < page.width * 0.68 &&
-      Math.abs(lineCenter - pageCenter) <= page.width * 0.11;
+      lineWidth < pageWidth * 0.68 &&
+      Math.abs(lineCenter - pageCenter) <= pageWidth * 0.11;
 
     const minTop = Math.min(...group.map((s) => s.top));
     const maxBottom = Math.max(...group.map((s) => s.top + s.height));

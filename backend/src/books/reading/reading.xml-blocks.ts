@@ -27,6 +27,7 @@ import {
 import { assemblePageLines, computeDocumentStats, computePageBodyBounds } from './reading.pdf-layout.js';
 import { cloneRuns, dehyphenateRuns, mergeAdjacentRuns, parsePdftohtmlPages, trimRuns } from './reading.pdf-xml.js';
 import {
+  ORDINAL_PART_HEADING_RE,
   collectRepeatedEdgeKeys,
   collectSuppressedLabelIndices,
   inferHeadingLevelFromText,
@@ -79,7 +80,7 @@ export function extractReadingFromPdftohtmlXml(
     const filteredLines = rawLines.filter((line) => {
       if (isEdgeRunningLine(line, pageMeta.height, stats.bodySize)) return false;
       const inEdgeBand = line.top < pageMeta.height * 0.11 || line.bottom > pageMeta.height * 0.91;
-      if (inEdgeBand && line.fontSize <= stats.bodySize * 1.18) {
+      if (inEdgeBand && line.fontSize <= stats.bodySize * 1.28) {
         const key = normalizeEdgeKey(line.text);
         if (key && repeatedEdgeKeys.has(key)) return false;
       }
@@ -353,7 +354,8 @@ export function extractReadingFromPdftohtmlXml(
 
       // 7. Code blocks (monospace runs or syntax-detected code listings, before heading detection)
       const firstCodeScore = scoreCodeLine(line.text);
-      if ((line.isMono && line.text.length <= 160) || firstCodeScore >= 2) {
+      const allowMonoCodeWithoutScore = pageNum > 8;
+      if ((line.isMono && line.text.length <= 160 && (allowMonoCodeWithoutScore || firstCodeScore >= 1)) || firstCodeScore >= 2) {
         const codeLines: PdfLine[] = [line];
         const scanState: CodeScanState = { inBlockComment: false, braceDepth: 0 };
         updateCodeScanState(line.text, scanState);
@@ -426,7 +428,17 @@ export function extractReadingFromPdftohtmlXml(
       const startsLower = /^[a-záéíóúüñ]/.test(line.text);
       const endsSentence = /[.!?;»"]$/.test(line.text);
       const endsColon = line.text.endsWith(':');
-      const isNumberedSection = SECTION_NUM_L2_RE.test(line.text) || SECTION_NUM_L3_RE.test(line.text);
+      const isNumberedSection =
+        SECTION_NUM_L2_RE.test(line.text) ||
+        SECTION_NUM_L3_RE.test(line.text) ||
+        (/^\d{1,2}\.\s+[A-ZÁÉÍÓÚÜÑ«"“]/.test(line.text) &&
+          !endsSentence &&
+          line.text.length <= 75);
+      const isBareFootnoteLine =
+        /^\d{1,3}\s+(?:-\s+)?[A-ZÁÉÍÓÚÜÑa-záéíóúüñ“"«']/.test(line.text) &&
+        !SECTION_NUM_L2_RE.test(line.text) &&
+        !SECTION_NUM_L3_RE.test(line.text) &&
+        line.fontSize < stats.bodySize * 1.35;
       const isAllCapsSubheading =
         !line.isMono &&
         line.fontSize >= stats.bodySize * 0.98 &&
@@ -441,12 +453,41 @@ export function extractReadingFromPdftohtmlXml(
           (i + 1 < lines.length &&
             (lines[i + 1].left - bodyLeft >= 14 ||
               lines[i + 1].top - line.top >= stats.bodyLineStep * 1.15)));
+      const isUnboldJitteredProse =
+        !line.isBold &&
+        !line.isCentered &&
+        !isNumberedSection &&
+        !ORDINAL_PART_HEADING_RE.test(line.text) &&
+        ((line.fontSize <= stats.bodySize * 1.24 &&
+          (endsSentence ||
+            line.right - line.left >= (bodyRight - bodyLeft) * 0.62 ||
+            /[a-záéíóúüñ]{2,}\s+[a-záéíóúüñ]{2,}/.test(line.text))) ||
+          (line.fontSize < stats.bodySize * 1.45 &&
+            (line.text.endsWith(',') ||
+              /[a-záéíóúüñ]{2,}(?:\s+\S+){4,}\s+[a-záéíóúüñ]{2,}/.test(line.text))));
+      const isTrulyCenteredHeading =
+        line.isCentered &&
+        line.left - bodyLeft >= 42 &&
+        line.fontSize >= stats.bodySize * 1.05 &&
+        !endsSentence &&
+        !endsColon &&
+        line.text.length <= 75 &&
+        !(
+          !line.isBold &&
+          line.fontSize <= stats.bodySize * 1.24 &&
+          /[a-záéíóúüñ]{2,}\s+[a-záéíóúüñ]{2,}\s+[a-záéíóúüñ]{2,}/.test(line.text)
+        );
       const isLargeOrBoldHeading =
         !startsLower &&
+        !isBareFootnoteLine &&
+        !isUnboldJitteredProse &&
         line.text.length <= 120 &&
         (isNumberedSection ||
-          (line.fontSize >= stats.bodySize * 1.11 && !endsColon) ||
-          (line.isCentered && line.fontSize >= stats.bodySize * 1.05 && !endsSentence && !endsColon && line.text.length <= 75) ||
+          ORDINAL_PART_HEADING_RE.test(line.text) ||
+          (line.fontSize >= stats.bodySize * 1.11 &&
+            !endsColon &&
+            (!endsSentence || line.fontSize >= stats.bodySize * 1.35)) ||
+          isTrulyCenteredHeading ||
           (line.isBold && line.fontSize >= stats.bodySize * 0.9 && !endsSentence && (!endsColon || line.text.length <= 65) && line.text.length <= 90) ||
           isAllCapsSubheading ||
           (TOC_HEADING_RE.test(line.text) && line.fontSize >= stats.bodySize * 0.95));
@@ -508,7 +549,7 @@ export function extractReadingFromPdftohtmlXml(
           lines[i + 1].left - bodyLeft >= 28 &&
           !/^\d{1,2}[aªº.)]\s/.test(lines[i + 1].text),
       );
-      if (isDeeplyIndented && (line.isItalic || line.left - bodyLeft >= 60 || nextIsQuoteContinuation)) {
+      if (isDeeplyIndented && (line.isItalic || line.left - bodyLeft >= 90 || nextIsQuoteContinuation)) {
         const quoteLines: PdfLine[] = [line];
         let j = i + 1;
         while (j < lines.length) {
@@ -520,30 +561,38 @@ export function extractReadingFromPdftohtmlXml(
           quoteLines.push(next);
           j += 1;
         }
-        let quoteText = quoteLines[0].text;
-        let quoteRuns = cloneRuns(quoteLines[0].runs);
-        for (let k = 1; k < quoteLines.length; k++) {
-          const prevQ = quoteLines[k - 1];
-          const curQ = quoteLines[k];
-          if (curQ.text.startsWith('—') || (curQ.left - prevQ.left > 24 && /[.!?]$/.test(prevQ.text))) {
-            quoteText = `${quoteText}\n${curQ.text}`;
-            quoteRuns = mergeAdjacentRuns([...quoteRuns, { text: '\n' }, ...curQ.runs]);
-          } else {
-            quoteText = dehyphenateLinePair(quoteText, curQ.text);
-            quoteRuns = dehyphenateRuns(quoteRuns, curQ.runs);
+        const candidateText = quoteLines.map((q) => q.text).join(' ').trim();
+        const incompleteQuote = !line.isItalic && !/[.!?»"]$/.test(candidateText);
+        const continuesAsProse =
+          incompleteQuote ||
+          (quoteLines.length === 1 && j < lines.length && /^[a-záéíóúüñ]/.test(lines[j].text));
+        const isSingleNonItalicIndent = quoteLines.length === 1 && !line.isItalic;
+        if (!isSingleNonItalicIndent && !continuesAsProse) {
+          let quoteText = quoteLines[0].text;
+          let quoteRuns = cloneRuns(quoteLines[0].runs);
+          for (let k = 1; k < quoteLines.length; k++) {
+            const prevQ = quoteLines[k - 1];
+            const curQ = quoteLines[k];
+            if (curQ.text.startsWith('—') || (curQ.left - prevQ.left > 24 && /[.!?]$/.test(prevQ.text))) {
+              quoteText = `${quoteText}\n${curQ.text}`;
+              quoteRuns = mergeAdjacentRuns([...quoteRuns, { text: '\n' }, ...curQ.runs]);
+            } else {
+              quoteText = dehyphenateLinePair(quoteText, curQ.text);
+              quoteRuns = dehyphenateRuns(quoteRuns, curQ.runs);
+            }
           }
+          pushBlock({
+            type: isDialogueText(quoteText) ? 'dialogue' : 'quote',
+            page: pageNum,
+            text: quoteText,
+            runs: quoteRuns,
+            endsWithSentencePunct: /[.!?»"]$/.test(quoteText),
+            startsLowercase: /^[a-záéíóúüñ]/.test(quoteText),
+            firstLineIndented: false,
+          });
+          i = j;
+          continue;
         }
-        pushBlock({
-          type: isDialogueText(quoteText) ? 'dialogue' : 'quote',
-          page: pageNum,
-          text: quoteText,
-          runs: quoteRuns,
-          endsWithSentencePunct: /[.!?»"]$/.test(quoteText),
-          startsLowercase: /^[a-záéíóúüñ]/.test(quoteText),
-          firstLineIndented: false,
-        });
-        i = j;
-        continue;
       }
 
       // 10. Ordinary prose paragraph (grouped by indent, vertical gap, or short ended line)
@@ -554,26 +603,37 @@ export function extractReadingFromPdftohtmlXml(
         const nextL = lines[j];
         const dy = nextL.top - prevL.top;
         if (dy > stats.bodyLineStep * 1.45) break;
-        if (nextL.fontSize >= stats.bodySize * 1.11 || nextL.isBold) {
+        const isNextNumberedHeading =
+          SECTION_NUM_L2_RE.test(nextL.text) ||
+          SECTION_NUM_L3_RE.test(nextL.text) ||
+          (/^\d{1,2}\.\s+[A-ZÁÉÍÓÚÜÑ«"“]/.test(nextL.text) &&
+            !/[.!?;»"]$/.test(nextL.text) &&
+            nextL.text.length <= 75);
+        const isNextUnboldJitteredProse =
+          !nextL.isBold &&
+          !nextL.isCentered &&
+          !isNextNumberedHeading &&
+          !ORDINAL_PART_HEADING_RE.test(nextL.text) &&
+          nextL.fontSize <= stats.bodySize * 1.24;
+        if ((nextL.fontSize >= stats.bodySize * 1.11 || nextL.isBold) && !isNextUnboldJitteredProse) {
           if (
             nextL.fontSize >= stats.bodySize * 1.11 ||
-            SECTION_NUM_L2_RE.test(nextL.text) ||
-            SECTION_NUM_L3_RE.test(nextL.text) ||
+            isNextNumberedHeading ||
             (nextL.isBold && nextL.text.length <= 90 && !/[.!?]$/.test(nextL.text))
           ) {
             break;
           }
         }
+        const prevEndedHyphen = /[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ]{2}-$/.test(prevL.text);
         if (
           BULLET_LIST_RE.test(nextL.text) ||
           DASH_LIST_RE.test(nextL.text) ||
           CAPTION_RE.test(nextL.text) ||
-          /^\s*(?:—|–)\s*[A-ZÁÉÍÓÚÜÑa-záéíóúüñ¿¡«"“‘']/.test(nextL.text) ||
+          (!prevEndedHyphen && /^\s*(?:—|–)\s+(?![—–])[A-ZÁÉÍÓÚÜÑa-záéíóúüñ¿¡«"“‘']/.test(nextL.text)) ||
           isFrontmatterMetaLine(nextL, pageNum, totalPages, stats.bodySize)
         ) {
           break;
         }
-        const prevEndedHyphen = /[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ]{2}-$/.test(prevL.text);
         const nextStartsLower = /^[a-záéíóúüñ]/.test(nextL.text);
         const nextIndented = nextL.left - bodyLeft >= 14 && !nextL.isCentered;
         if (nextIndented && !prevEndedHyphen && !nextStartsLower) break;

@@ -20,15 +20,11 @@
 	color:var(--w-foreground); margin:40px 0 36px; letter-spacing:.01em;
 }
 .text h2:first-child { margin-top:0; }
-/* Nivel 2 · sección: un escalón por debajo del capítulo, con filo bronce */
+/* Nivel 2 · sección: un escalón por debajo del capítulo */
 .text h3 {
 	font:600 calc(clamp(21px, 2.1vw, 27px) * var(--reader-scale, 1))/1.4 var(--font-mincho);
 	color:var(--w-foreground); letter-spacing:.01em;
 	margin:34px 0 18px;
-}
-.text h3:not(.align-center):not(.align-right) {
-	padding-left:16px;
-	border-left:2px solid var(--w-bronce-border-3);
 }
 /* Nivel 3 · subsección: compacta, sans, pegada a su párrafo */
 .text h4 {

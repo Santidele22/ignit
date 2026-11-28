@@ -1,4 +1,4 @@
-export const READING_EXTRACTOR_VERSION = 4;
+export const READING_EXTRACTOR_VERSION = 6;
 
 export type ReadingZone = 'frontmatter' | 'toc' | 'body' | 'backmatter';
 

@@ -10,6 +10,11 @@ import { inferHeadingLevelFromText } from './reading.block-rules.js';
 import { extractReadingFromPdftohtmlXml } from './reading.xml-blocks.js';
 import { countCorruptShortHeadings, hasPartialFontCorruption } from './reading.legibility.js';
 import { normalizeReadingDocument } from './reading.normalizer.js';
+import {
+  applySurgicalPageOcr,
+  detectPagesNeedingSurgicalOcr,
+  ocrPdfPages,
+} from './reading.ocr-rescue.js';
 
 export async function extractReadingFromPdf(
   bookId: number,
@@ -20,7 +25,14 @@ export async function extractReadingFromPdf(
   if (xml) {
     const xmlDoc = extractReadingFromPdftohtmlXml(bookId, xml);
     if (!xmlDoc.ocrPending && xmlDoc.chunks.length > 0) {
-      const normalized = normalizeReadingDocument(xmlDoc);
+      const corruptPages = detectPagesNeedingSurgicalOcr(xmlDoc);
+      if (corruptPages.length === 0) {
+        return normalizeReadingDocument(xmlDoc);
+      }
+      const ocrMap = await ocrPdfPages(pdfPath, corruptPages);
+      const rescuedDoc =
+        ocrMap.size > 0 ? applySurgicalPageOcr(xmlDoc, ocrMap) : xmlDoc;
+      const normalized = normalizeReadingDocument(rescuedDoc);
       if (!hasPartialFontCorruption(normalized)) {
         return normalized;
       }

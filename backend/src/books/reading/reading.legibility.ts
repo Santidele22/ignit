@@ -1,4 +1,5 @@
 import type { BookReadingDocument } from './reading.types.js';
+import { isValidRomanHeading } from './reading.noise.js';
 
 const SAMPLE_WINDOW_CHARS = 8_000;
 const FULL_SCAN_LIMIT = 24_000;
@@ -171,15 +172,12 @@ export function assessTextLegibility(rawText: string): LegibilityVerdict {
  * Detects localized `/ToUnicode` or small-caps font corruption where headings
  * collapse to 1-2 surviving letters (e.g. `L . . ,`, `D`, `P`).
  */
-const VALID_ROMAN_HEADING_RE =
-  /^M{0,3}(?:CM|CD|D?C{0,3})(?:XC|XL|L?X{0,3})(?:IX|IV|V?I{0,3})$/;
-
 export function countCorruptShortHeadings(document: BookReadingDocument): number {
   let count = 0;
   for (const chunk of document.chunks) {
     if (chunk.type !== 'heading') continue;
     const trimmed = chunk.text.trim();
-    if (VALID_ROMAN_HEADING_RE.test(trimmed)) continue;
+    if (isValidRomanHeading(trimmed) || /^\d{1,3}\.?$/.test(trimmed)) continue;
     const letters = trimmed.match(/\p{L}/gu)?.length ?? 0;
     if (letters > 0 && letters <= 2) {
       count += 1;
